@@ -1,4 +1,3 @@
-# .github/release-drafter.yml
 name-template: 'v$RESOLVED_VERSION-alpha'
 tag-template: 'v$RESOLVED_VERSION-alpha'
 commitish: main
