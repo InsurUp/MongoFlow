@@ -117,7 +117,7 @@ var collection = vault.Blogs.Collection;
 
 ### Interceptors
 
-MongoFlow has interceptors to intercept the operations before they are sent to the database.
+MongoFlow has interceptors to intercept the operations before or after they are sent to the database.
 
 ```csharp
 public class MyInterceptor : VaultInterceptor
