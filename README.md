@@ -1,6 +1,6 @@
 # MongoFlow
 
-MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver. It simplifies database operations with features like fluent configuration, query filters, interceptors, and more.
+MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver. It simplifies database operations with features like Unit of work & Repository pattern, query filters, interceptors, and more.
 
 ## Features
 
@@ -9,7 +9,6 @@ MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the of
 - Built-in soft delete & multi-tenant support
 - Unit of work & Repository pattern
 - Transaction support
-- Type-safe document mapping
 
 ## Installation
 
