@@ -3,6 +3,10 @@ name: Release Drafter
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: 'Version'
+        required: false
+        type: string
       prerelease-identifier:
         description: 'Version Suffix (alpha, beta, rc, etc)'
         required: false
@@ -20,6 +24,7 @@ jobs:
     steps:
       - uses: release-drafter/release-drafter@v6
         with:
+          version: ${{ inputs.version }}
           prerelease: ${{ inputs.prerelease-identifier != '' }}
           prerelease-identifier: ${{ inputs.prerelease-identifier }}
         env:
