@@ -7,7 +7,7 @@
     <Version>0.1.0</Version>
     <Title>MongoFlow</Title>
     <Authors>InsurUp</Authors>
-    <Description>A simple and lightweight MongoDB toolkit for .NET Core.</Description>
+    <Description>MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver.</Description>
     <PackageProjectUrl>https://github.com/InsurUp/MongoFlow</PackageProjectUrl>
     <RepositoryUrl>https://github.com/InsurUp/MongoFlow</RepositoryUrl>
     <PackageTags>interceptors;interceptor;query-filter;mongodb;mongo;nosql</PackageTags>
