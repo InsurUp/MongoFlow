@@ -1,0 +1,41 @@
+name: Publish NuGet Preview Package
+
+on:
+  workflow_dispatch:    # Manual trigger only
+
+env:
+  PROJECT_PATH: 'src/Core/MongoFlow.csproj'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0    # Required to get the commit hash
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+
+    - name: Get commit hash
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}
+
+    - name: Build
+      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+
+    - name: Run tests
+      run: dotnet test --no-restore --verbosity normal
+
+    - name: Pack
+      run: >
+        dotnet pack ${{ env.PROJECT_PATH }}
+        --configuration Release
+        --no-build
+        -p:PackageVersion=0.1.0-alpha-${{ steps.vars.outputs.sha_short }}
+
+    - name: Push to NuGet
+      run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
