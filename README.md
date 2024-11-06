@@ -18,12 +18,6 @@ To install MongoFlow, add the following package to your project:
 dotnet add package MongoFlow
 ```
 
-## Quick Start
-
-```csharp
-TODO
-```
-
 ## Contributing
 
 1. Fork the repository
