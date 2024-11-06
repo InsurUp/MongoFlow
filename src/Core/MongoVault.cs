@@ -1,0 +1,159 @@
+using MongoDB.Driver;
+
+namespace MongoFlow;
+
+public abstract class MongoVault : IDisposable
+{
+    private readonly VaultConfigurationManager _configurationManager;
+    private readonly List<VaultOperation> _operations = [];
+
+    private MongoVaultTransaction? _transaction;
+
+    protected MongoVault(VaultConfigurationManager configurationManager)
+    {
+        _configurationManager = configurationManager;
+
+        DocumentTypes = VaultPropertyCache.GetProperties(GetType()).Values;
+
+        foreach (var documentType in DocumentTypes)
+        {
+            var setType = typeof(DocumentSet<>).MakeGenericType(documentType.DocumentType);
+            var set = Activator.CreateInstance(setType, this, false)!;
+            documentType.PropertyInfo.SetValue(this, set);
+        }
+    }
+
+    protected IEnumerable<VaultProperty> DocumentTypes { get; }
+
+    internal VaultConfiguration Configuration => _configurationManager.Configuration;
+
+    internal IServiceProvider ServiceProvider => _configurationManager.ServiceProvider;
+
+    internal IMongoDatabase MongoDatabase => Configuration.Database!;
+
+    internal IMongoCollection<TDocument> GetCollection<TDocument>()
+    {
+        var setConfiguration = Configuration.GetDocumentSetConfiguration<TDocument>();
+
+        return MongoDatabase.GetCollection<TDocument>(setConfiguration.Name);
+    }
+
+    public DocumentSet<TDocument> Set<TDocument>(bool ignoreQueryFilter = false)
+    {
+        return new DocumentSet<TDocument>(this, ignoreQueryFilter);
+    }
+
+    public bool IsInTransaction => _transaction is not null;
+
+    public IMongoVaultTransaction BeginTransaction()
+    {
+        if (_transaction is not null)
+        {
+            throw new InvalidOperationException("Transaction already started");
+        }
+
+        _transaction = new MongoVaultTransaction(this, MongoDatabase.Client.StartSession());
+
+        return _transaction;
+    }
+
+    internal void ClearTransaction()
+    {
+        _transaction = null;
+    }
+
+    public DocumentProperty GetDocumentKeyProperty(Type documentType)
+    {
+        return Configuration.GetDocumentSetConfiguration(documentType).Key;
+    }
+
+    public virtual async Task<int> SaveAsync(CancellationToken cancellationToken = default)
+    {
+        var operations = _operations.ToList();
+
+        _operations.Clear();
+
+        if (operations.Count == 0)
+        {
+            return 0;
+        }
+
+        var session = _transaction is not null
+            ? _transaction.GetSession()
+            : await MongoDatabase.Client.StartSessionAsync(cancellationToken: cancellationToken);
+
+        if (!session.IsInTransaction)
+        {
+            session.StartTransaction();
+        }
+
+        var interceptors = _configurationManager.ResolveInterceptors();
+        var interceptorContext = new VaultInterceptorContext(this, operations, session, ServiceProvider);
+
+        foreach (var interceptor in interceptors)
+        {
+            await interceptor.SavingChangesAsync(interceptorContext, cancellationToken);
+        }
+
+        var affected = 0;
+
+        try
+        {
+            var operationContext = new VaultOperationContext(session, this, interceptorContext.DiagnosticsEnabled);
+
+            foreach (var operation in operations)
+            {
+                affected += await operation.ExecuteAsync(operationContext, cancellationToken);
+            }
+
+            foreach (var interceptor in interceptors)
+            {
+                await interceptor.SavedChangesAsync(interceptorContext, affected, cancellationToken);
+            }
+
+            if (_transaction is null)
+            {
+                await session.CommitTransactionAsync(cancellationToken);
+            }
+        }
+        catch (Exception e)
+        {
+            foreach (var interceptor in interceptors)
+            {
+                await interceptor.SaveChangesFailedAsync(e, interceptorContext, cancellationToken);
+            }
+
+            if (_transaction is null)
+            {
+                await session.AbortTransactionAsync(cancellationToken);
+            }
+
+            throw;
+        }
+        finally
+        {
+            if (_transaction is null)
+            {
+                session.Dispose();
+            }
+        }
+
+        return affected;
+    }
+
+    internal void AddOperation(VaultOperation operation)
+    {
+        if (!_operations.Exists(x => x.DocumentType == operation.DocumentType &&
+                                     x.CurrentDocument is not null &&
+                                     x.CurrentDocument == operation.CurrentDocument))
+        {
+            _operations.Add(operation);
+        }
+    }
+
+    public void Dispose()
+    {
+        _transaction?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+}
