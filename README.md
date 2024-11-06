@@ -4,11 +4,12 @@ MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the of
 
 ## Features
 
-- Interceptors
-- Query filters
-- Built-in soft delete & multi-tenant support
-- Unit of work & Repository pattern
-- Transaction support
+- 🔄 Unit of Work & Repository patterns
+- 🎯 Interceptors for custom logic
+- 🔍 Query filters with LINQ support
+- 🗑️ Built-in soft delete support
+- 🏢 Multi-tenant support
+- ⚡ Transaction support
 
 ## Getting Started
 
@@ -20,7 +21,7 @@ To install MongoFlow, add the following package to your project:
 dotnet add package MongoFlow
 ```
 
-### Create MongoVault and Configurations
+### Create Your Vault and Models
 
 ```csharp
 public class BloggingVault : MongoVault
@@ -30,22 +31,6 @@ public class BloggingVault : MongoVault
     }
 
     public DocumentSet<Blog> Blogs { get; set; } = null!;
-
-    public sealed class Configuration : IVaultConfigurationSpecification
-    {
-        private readonly IMongoDatabase _db;
-
-        // You can inject singleton services here
-        public Configuration(IMongoDatabase db)
-        {
-            _db = db;
-        }
-
-        public void Configure(VaultConfigurationBuilder builder)
-        {
-            builder.SetDatabase(_db);
-        }
-    }
 }
 
 public class Blog
@@ -58,9 +43,29 @@ public class Blog
 }
 ```
 
+### Create Configuration
+
+```csharp
+public sealed class BloggingConfiguration : IVaultConfigurationSpecification
+{
+    private readonly IMongoDatabase _db;
+
+    // You can inject singleton services here
+    public BloggingConfiguration(IMongoDatabase db)
+    {
+        _db = db;
+    }
+
+    public void Configure(VaultConfigurationBuilder builder)
+    {
+        builder.SetDatabase(_db);
+}
+}
+```
+
 ### Register MongoVault
 
-MongoVault is registered as a scoped service, so you can inject it into a controller or a service.
+MongoVault is registered as a scoped service, so you can inject it into a service.
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -71,8 +76,33 @@ builder.Services.AddSingleton<IMongoDatabase>(_ =>
     return client.GetDatabase("Blogging");
 });
 
-/// You can combine multiple specifications
-builder.Services.AddMongoVault<BloggingVault>(x => x.AddSpecification<BloggingVault.Configuration>());
+// You can combine multiple specifications
+builder.Services.AddMongoVault<BloggingVault>(x => x.AddSpecification<BloggingConfiguration>());
+```
+
+### Basic MongoVault Usage
+
+```csharp
+public class BlogService
+{
+    private readonly BloggingVault _vault;
+
+    public BlogService(BloggingVault vault)
+    {
+        _vault = vault;
+    }
+
+    public async Task<Blog> GetBlogAsync(ObjectId id)
+    {
+        return await _vault.Blogs.Find(x => x.Id == id).FirstOrDefaultAsync();
+    }
+
+    public async Task AddBlogAsync(Blog blog)
+    {
+        _vault.Blogs.Add(blog);
+        await _vault.SaveChangesAsync();
+    }
+}
 ```
 
 ### Add Documents
@@ -80,15 +110,23 @@ builder.Services.AddMongoVault<BloggingVault>(x => x.AddSpecification<BloggingVa
 MongoVault is unit of work, so you can add, update or delete documents to the vault and save them all at once with a single transaction.
 
 ```csharp
-var vault = serviceProvider.GetRequiredService<BloggingVault>();
+var blog1 = new Blog
+{
+    Title = "Hello World",
+    Content = "This is a blog post",
+    TenantId = 1
+};
+var blog2 = new Blog
+{
+    Title = "Hello World 2",
+    Content = "This is a blog post 2",
+    TenantId = 2
+};
 
-var blog1 = new Blog { Title = "Hello World", Content = "This is a blog post", TenantId = 1 };
-var blog2 = new Blog { Title = "Hello World 2", Content = "This is a blog post 2", TenantId = 2 };
-
-vault.Blogs.Add(blog1); // It doesn't save the blog to the database yet
+vault.Blogs.Add(blog1); // It doesn't save to the database yet
 vault.Blogs.Add(blog2)
 
-await vault.SaveChangesAsync(); // It saves the blogs to the database with a single transaction
+await vault.SaveChangesAsync(); // Saves all changes in a single transaction
 ```
 
 ### Query Documents
@@ -96,13 +134,18 @@ await vault.SaveChangesAsync(); // It saves the blogs to the database with a sin
 Because MongoFlow is built on top of MongoDB.Driver, you can use LINQ, Find, Aggregate, etc. to query documents.
 
 ```csharp
+// Query documents using LINQ
 var blogsWithLinq = await vault.Blogs
     .AsQueryable()
     .Where(x => x.Title.Contains("Hello"))
     .ToListAsync();
+
+// Query documents using Find
 var blogsWithFind = await vault.Blogs
     .Find(x => x.Title.Contains("Hello"))
     .ToListAsync();
+
+// Query documents using Aggregate
 var blogsWithAggregate = await vault.Blogs
     .Aggregate()
     .Match(x => x.Title.Contains("Hello"))
@@ -156,10 +199,10 @@ public class MyInterceptor : VaultInterceptor
 }
 ```
 
-Then you can register the interceptor in the `VaultConfigurationBuilder` of `IVaultConfigurationSpecification`:
+Then you can register the interceptor in the `VaultConfigurationBuilder`:
 
 ```csharp
-public class MySpecification : IVaultConfigurationSpecification
+public class BloggingConfiguration : IVaultConfigurationSpecification
 {
     public void Configure(VaultConfigurationBuilder builder)
     {
@@ -175,17 +218,21 @@ MongoFlow has built-in query filters to filter documents. Common use cases are s
 To configure basic query filters, you can enable with `AddQueryFilter` method in `IVaultConfigurationSpecification`:
 
 ```csharp
-public class MySpecification : IVaultConfigurationSpecification
+public class BloggingConfiguration : IVaultConfigurationSpecification
 {
     public void Configure(VaultConfigurationBuilder builder)
     {
         builder.ConfigureDocumentType<Blog>(x =>
         {
-            x.AddQueryFilter(x => !x.Deleted); // Static query filter
-            x.AddQueryFilter(services => x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId); // You can use IServiceProvider to resolve services
+            // Static query filter
+            x.AddQueryFilter(x => !x.Deleted);
+
+            // You can use IServiceProvider to resolve services
+            x.AddQueryFilter(services =>
+                x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId);
         });
     }
-
+}
 ```
 
 You can ignore query filters by calling `IgnoreQueryFilters` method on `DocumentSet<T>`:
@@ -197,8 +244,11 @@ vault.Blogs.IgnoreQueryFilters().Find(x => x.TenantId == 1).ToListAsync();
 If you want to add query filters to all document types that are implemented by an interface, you can use `AddMultiQueryFilters` method:
 
 ```csharp
-builder.AddMultiQueryFilters<ISoftDelete>(x => !x.Deleted); // This will add !x.Deleted to all document types that implement ISoftDelete
-builder.AddMultiQueryFilters<IMultiTenant>(x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId); // This will add x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId to all document types that implement IMultiTenant
+// This will add !x.Deleted to all document types that implement ISoftDelete
+builder.AddMultiQueryFilters<ISoftDelete>(x => !x.Deleted);
+
+// This will add to all document types that implement IMultiTenant
+builder.AddMultiQueryFilters<IMultiTenant>(x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId);
 ```
 
 ### Soft Delete
