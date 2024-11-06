@@ -1,7 +1,7 @@
-name-template: 'v$RESOLVED_VERSION'
-tag-template: 'v$RESOLVED_VERSION'
+name-template: 'v$RESOLVED_VERSION-alpha'
+tag-template: 'v$RESOLVED_VERSION-alpha'
 prerelease: true
-prerelease-identifier: 'alpha'
+#prerelease-identifier: 'alpha'
 
 template: |
   ## What's Changed
