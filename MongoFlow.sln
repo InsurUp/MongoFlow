@@ -1,9 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# 
+#
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{786C660D-3CF5-498B-963B-6664B41F6C26}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoFlow", "src\Core\MongoFlow.csproj", "{46211B9A-F636-413F-8FAD-33D94FAB267A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{578CEEA0-921A-47F2-A1E3-0272F77FEF88}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+		icon.png = icon.png
+		README.md = README.md
+		LICENSE.md = LICENSE.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
