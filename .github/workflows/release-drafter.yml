@@ -1,9 +1,12 @@
 name: Release Drafter
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      prerelease-identifier:
+        description: 'alpha, beta, rc, etc'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -16,5 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v6
+        with:
+          prerelease-identifier: ${{ inputs.prerelease-identifier }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
