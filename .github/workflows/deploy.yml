@@ -37,7 +37,7 @@ jobs:
         dotnet pack ${{ env.PROJECT_PATH }}
         --configuration Release
         --no-build
-        -p:PackageVersion={{ steps.get_version.outputs.version }}
+        -p:PackageVersion=${{ steps.get_version.outputs.version }}
 
     - name: Push to NuGet
       run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
