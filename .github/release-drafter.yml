@@ -1,6 +1,16 @@
-name-template: 'v$RESOLVED_VERSION-alpha'
-tag-template: 'v$RESOLVED_VERSION-alpha'
-commitish: main
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+prerelease: true
+prerelease-identifier: 'alpha'
+
+template: |
+  ## What's Changed
+  $CHANGES
+
+  ## 👥 Contributors
+  $CONTRIBUTORS
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
 
 version-resolver:
   major:
@@ -48,12 +58,3 @@ exclude-labels:
   - 'skip-changelog'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
-
-template: |
-  ## What's Changed
-  $CHANGES
-
-  > ⚠️ This is an alpha release and may contain breaking changes.
-
-  ## 👥 Contributors
-  $CONTRIBUTORS
