@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       prerelease-identifier:
-        description: 'alpha, beta, rc, etc'
+        description: 'Version Suffix (alpha, beta, rc, etc)'
         required: false
         type: string
 
@@ -20,6 +20,7 @@ jobs:
     steps:
       - uses: release-drafter/release-drafter@v6
         with:
+          prerelease: ${{ inputs.prerelease-identifier != '' }}
           prerelease-identifier: ${{ inputs.prerelease-identifier }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
