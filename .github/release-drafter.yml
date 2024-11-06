@@ -6,30 +6,38 @@ version-resolver:
   major:
     labels:
       - 'breaking'
+      - 'major'
   minor:
     labels:
       - 'feature'
       - 'enhancement'
+      - 'new'
+      - 'minor'
   patch:
     labels:
       - 'bug'
       - 'bugfix'
       - 'fix'
+      - 'patch'
   default: patch
 
 categories:
   - title: '💥 Breaking'
     labels:
       - 'breaking'
+      - 'major'
   - title: '🚀 New'
     labels:
       - 'feature'
       - 'enhancement'
+      - 'new'
+      - 'minor'
   - title: '🐛 Fixes'
     labels:
       - 'bug'
       - 'bugfix'
       - 'fix'
+      - 'patch'
   - title: '📝 Docs'
     labels:
       - 'docs'
@@ -47,7 +55,7 @@ change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 template: |
   ## What's Changed
   $CHANGES
-  
+
   > ⚠️ This is an alpha release and may contain breaking changes.
 
   ## 👥 Contributors
