@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace MongoFlow;
 
@@ -41,7 +40,7 @@ public sealed class DocumentSet<TDocument>
         return _collection.Find(filter ?? Builders<TDocument>.Filter.Empty);
     }
 
-    public IMongoQueryable<TDocument> AsQueryable()
+    public IQueryable<TDocument> AsQueryable()
     {
         var filter = TransformQueryFilterExpression();
 
