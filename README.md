@@ -59,7 +59,7 @@ public sealed class BloggingConfiguration : IVaultConfigurationSpecification
     public void Configure(VaultConfigurationBuilder builder)
     {
         builder.SetDatabase(_db);
-}
+    }
 }
 ```
 
@@ -100,7 +100,7 @@ public class BlogService
     public async Task AddBlogAsync(Blog blog)
     {
         _vault.Blogs.Add(blog);
-        await _vault.SaveChangesAsync();
+        await _vault.SaveAsync();
     }
 }
 ```
@@ -126,7 +126,7 @@ var blog2 = new Blog
 vault.Blogs.Add(blog1); // It doesn't save to the database yet
 vault.Blogs.Add(blog2)
 
-await vault.SaveChangesAsync(); // Saves all changes in a single transaction
+await vault.SaveAsync(); // Saves all changes in a single transaction
 ```
 
 ### Query Documents
@@ -181,18 +181,16 @@ public class MyInterceptor : VaultInterceptor
         IClientSessionHandle session = context.Session; // You can get the current session that is used to save the changes
 
         await _myService.DoSomethingBeforeSaveAsync();
-
-        return ValueTask.CompletedTask;
     }
 
     // This method is called after the changes are saved to the database
-    public override async ValueTask SavedChangesAsync(VaultInterceptorContext context, CancellationToken cancellationToken)
+    public override async ValueTask SavedChangesAsync(VaultInterceptorContext context, int result, CancellationToken cancellationToken)
     {
         await _myService.DoSomethingAfterSaveAsync();
     }
 
     // This method is called when an exception is thrown
-    public override async ValueTask ExceptionThrownAsync(Exception exception, VaultInterceptorContext context, CancellationToken cancellationToken)
+    public override async ValueTask SaveChangesFailedAsync(Exception exception, VaultInterceptorContext context, CancellationToken cancellationToken)
     {
         await _myService.DoSomethingOnExceptionAsync(exception);
     }
@@ -206,7 +204,8 @@ public class BloggingConfiguration : IVaultConfigurationSpecification
 {
     public void Configure(VaultConfigurationBuilder builder)
     {
-        builder.AddInterceptor<MyInterceptor>(); // or builder.AddInterceptors(new MyInterceptor())
+        builder.AddInterceptor<MyInterceptor>(); 
+        // or builder.AddInterceptor(new MyInterceptor());
     }
 }
 ```
@@ -222,13 +221,13 @@ public class BloggingConfiguration : IVaultConfigurationSpecification
 {
     public void Configure(VaultConfigurationBuilder builder)
     {
-        builder.ConfigureDocumentType<Blog>(x =>
+        builder.ConfigureDocumentType<Blog>(blogBuilder =>
         {
             // Static query filter
-            x.AddQueryFilter(x => !x.Deleted);
+            blogBuilder.AddQueryFilter(x => !x.Deleted);
 
             // You can use IServiceProvider to resolve services
-            x.AddQueryFilter(services =>
+            blogBuilder.AddQueryFilter(services =>
                 x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId);
         });
     }
@@ -238,7 +237,7 @@ public class BloggingConfiguration : IVaultConfigurationSpecification
 You can ignore query filters by calling `IgnoreQueryFilters` method on `DocumentSet<T>`:
 
 ```csharp
-vault.Blogs.IgnoreQueryFilters().Find(x => x.TenantId == 1).ToListAsync();
+vault.Blogs.IgnoreQueryFilter().Find(x => x.TenantId == 1).ToListAsync();
 ```
 
 If you want to add query filters to all document types that are implemented by an interface, you can use `AddMultiQueryFilters` method:
@@ -248,7 +247,7 @@ If you want to add query filters to all document types that are implemented by a
 builder.AddMultiQueryFilters<ISoftDelete>(x => !x.Deleted);
 
 // This will add to all document types that implement IMultiTenant
-builder.AddMultiQueryFilters<IMultiTenant>(x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId);
+builder.AddMultiQueryFilters<IMultiTenant>(services => x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId);
 ```
 
 ### Soft Delete
@@ -258,7 +257,7 @@ You can enable soft delete support with interceptors and query filters easily. H
 To enable soft delete support, you can use `AddSoftDelete` method in `IVaultConfigurationSpecification`:
 
 ```csharp
-builder.AddSoftDelete(new VaultSoftDeleteOptions<ISoftDeleteEntity>
+builder.AddSoftDelete(new VaultSoftDeleteOptions<ISoftDelete>
 {
     IsDeletedAccessor = x => x.Deleted,
     ChangeIsDeleted = (entity, isDeleted) => entity.Deleted = isDeleted
@@ -272,10 +271,10 @@ Now it is done! AddSoftDelete adds a query filter and interceptor to all documen
 To enable multi-tenancy support, you can use `AddMultiTenancy` method in `IVaultConfigurationSpecification`:
 
 ```csharp
-builder.AddMultiTenancy(new VaultMultiTenancyOptions<ITenantEntity, int>
+builder.AddMultiTenancy(new VaultMultiTenancyOptions<IMultiTenant, int>
 {
-    TenantIdAccessor = x => x.AgentId,
-    TenantIdSetter = (entity, tenantId) => entity.AgentId = tenantId,
+    TenantIdAccessor = x => x.TenantId,
+    TenantIdSetter = (entity, tenantId) => entity.TenantId = tenantId,
     TenantIdProvider = serviceProvider => serviceProvider.GetRequiredService<ITenantProvider>().TenantId
 });
 ```
