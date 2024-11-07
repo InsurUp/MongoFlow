@@ -1,5 +1,9 @@
 # MongoFlow
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET C#](https://img.shields.io/badge/.NET-C%23-blue)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+[![NuGet](https://img.shields.io/nuget/v/MongoFlow)](https://www.nuget.org/packages/MongoFlow)
+
 MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver. It simplifies database operations with features like Unit of work & Repository pattern, query filters, interceptors, and more.
 
 ## Features
