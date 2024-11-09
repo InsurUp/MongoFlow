@@ -2,12 +2,11 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-internal sealed class MongoVaultTransaction : IMongoVaultTransaction
+internal sealed class VaultTransaction : IVaultTransaction
 {
     private readonly MongoVault _vault;
-    private readonly IClientSessionHandle _session;
 
-    public MongoVaultTransaction(MongoVault vault,
+    public VaultTransaction(MongoVault vault,
         IClientSessionHandle session)
     {
         if (session.IsInTransaction)
@@ -18,29 +17,26 @@ internal sealed class MongoVaultTransaction : IMongoVaultTransaction
         session.StartTransaction();
 
         _vault = vault;
-        _session = session;
+        Session = session;
     }
 
     public void Dispose()
     {
-        _session.Dispose();
+        Session.Dispose();
         _vault.ClearTransaction();
     }
 
     public async Task CommitAsync(CancellationToken cancellationToken = default)
     {
-        await _session.CommitTransactionAsync(cancellationToken);
+        await Session.CommitTransactionAsync(cancellationToken);
         _vault.ClearTransaction();
     }
 
     public async Task RollbackAsync(CancellationToken cancellationToken = default)
     {
-        await _session.AbortTransactionAsync(cancellationToken);
+        await Session.AbortTransactionAsync(cancellationToken);
         _vault.ClearTransaction();
     }
 
-    internal IClientSessionHandle GetSession()
-    {
-        return _session;
-    }
+    public IClientSessionHandle Session { get; }
 }

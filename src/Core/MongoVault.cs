@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -7,7 +8,7 @@ public abstract class MongoVault : IDisposable
     private readonly VaultConfigurationManager _configurationManager;
     private readonly List<VaultOperation> _operations = [];
 
-    private MongoVaultTransaction? _transaction;
+    private VaultTransaction? _transaction;
 
     protected MongoVault(VaultConfigurationManager configurationManager)
     {
@@ -28,6 +29,8 @@ public abstract class MongoVault : IDisposable
     internal VaultConfiguration Configuration => _configurationManager.Configuration;
 
     internal IServiceProvider ServiceProvider => _configurationManager.ServiceProvider;
+    
+    private IGlobalTransactionManager? GlobalTransactionManager => ServiceProvider.GetService<IGlobalTransactionManager>();
 
     internal IMongoDatabase MongoDatabase => Configuration.Database!;
 
@@ -45,14 +48,19 @@ public abstract class MongoVault : IDisposable
 
     public bool IsInTransaction => _transaction is not null;
 
-    public IMongoVaultTransaction BeginTransaction()
+    public IVaultTransaction BeginTransaction()
     {
         if (_transaction is not null)
         {
             throw new InvalidOperationException("Transaction already started");
         }
+        
+        if (GlobalTransactionManager?.CurrentTransaction is not null)
+        {
+            throw new InvalidOperationException("BeginTransaction cannot be called inside a global transaction.");
+        }
 
-        _transaction = new MongoVaultTransaction(this, MongoDatabase.Client.StartSession());
+        _transaction = new VaultTransaction(this, MongoDatabase.Client.StartSession());
 
         return _transaction;
     }
@@ -77,9 +85,11 @@ public abstract class MongoVault : IDisposable
         {
             return 0;
         }
+        
+        var transaction = GlobalTransactionManager?.CurrentTransaction ?? _transaction;
 
-        var session = _transaction is not null
-            ? _transaction.GetSession()
+        var session = transaction is not null
+            ? transaction.Session
             : await MongoDatabase.Client.StartSessionAsync(cancellationToken: cancellationToken);
 
         if (!session.IsInTransaction)

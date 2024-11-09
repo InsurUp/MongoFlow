@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -34,6 +35,14 @@ public static class MongoVaultServiceCollectionExtensions
             new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), serviceProvider));
         services.AddSingleton(new VaultConfigurationProvider<TVault>(options));
         services.AddScoped<TInterface, TVault>();
+
+        return services;
+    }
+    
+    public static IServiceCollection AddMongoVaultGlobalTransaction(this IServiceCollection services, Func<IServiceProvider, MongoClient> mongoClientFactory)
+    {
+        services.AddScoped<IGlobalTransactionManager>(serviceProvider =>
+            new MongoGlobalTransactionManager(mongoClientFactory(serviceProvider)));
 
         return services;
     }
