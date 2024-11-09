@@ -6,8 +6,14 @@ namespace MongoFlow.Identity;
 public static class MongoFlowIdentityBuilderExtensions
 {
     public static IdentityBuilder AddMongoFlowStores<TVault>(this IdentityBuilder builder)
-        where TVault : IdentityMongoVault
+        where TVault : MongoVault
     {
+        var vaultType = FindGenericBaseType(typeof(TVault), typeof(IdentityMongoVault<,,>));
+        if (vaultType is null)
+        {
+            throw new InvalidOperationException("AddMongoFlowStores can only be called with a vault that derives from IdentityMongoVault<TUser, TRole, TKey>");
+        }
+        
         var userType = builder.UserType;
         var roleType = builder.RoleType;
         
@@ -30,8 +36,8 @@ public static class MongoFlowIdentityBuilderExtensions
         
         var keyType = mongoUserType.GenericTypeArguments[0];
         
-        var userStoreType = typeof(MongoUserStore<,,,>).MakeGenericType(typeof(TVault), userType, roleType, keyType);
-        var roleStoreType = typeof(MongoRoleStore<,,>).MakeGenericType(typeof(TVault), roleType, keyType);
+        var userStoreType = typeof(MongoUserStore<,,,>).MakeGenericType(vaultType, userType, roleType, keyType);
+        var roleStoreType = typeof(MongoRoleStore<,,>).MakeGenericType(vaultType, roleType, keyType);
         
         builder.Services.AddScoped(typeof(IUserStore<>).MakeGenericType(userType), userStoreType);
         builder.Services.AddScoped(typeof(IRoleStore<>).MakeGenericType(roleType), roleStoreType);
