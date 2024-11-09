@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Title>AspNetCore.Identity.MongoFlow</Title>
+    <PackageId>AspNetCore.Identity.MongoFlow</PackageId>
+    <Product>AspNetCore.Identity.MongoFlow</Product>
     <Authors>InsurUp</Authors>
     <Description>A MongoDB provider for ASP.NET Core Identity that leverages MongoFlow for seamless integration.</Description>
     <Summary>A MongoDB provider for ASP.NET Core Identity that leverages MongoFlow for seamless integration.</Summary>
