@@ -39,7 +39,7 @@ public static class MongoVaultServiceCollectionExtensions
         return services;
     }
     
-    public static IServiceCollection AddMongoVaultGlobalTransaction(this IServiceCollection services, Func<IServiceProvider, MongoClient> mongoClientFactory)
+    public static IServiceCollection AddMongoGlobalTransaction(this IServiceCollection services, Func<IServiceProvider, MongoClient> mongoClientFactory)
     {
         services.AddScoped<IMongoGlobalTransactionManager>(serviceProvider =>
             new MongoGlobalTransactionManager(mongoClientFactory(serviceProvider)));
