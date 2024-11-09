@@ -2,11 +2,11 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-internal sealed class VaultTransaction : IVaultTransaction
+internal sealed class MongoVaultTransaction : IMongoVaultTransaction
 {
     private readonly MongoVault _vault;
 
-    public VaultTransaction(MongoVault vault,
+    public MongoVaultTransaction(MongoVault vault,
         IClientSessionHandle session)
     {
         if (session.IsInTransaction)

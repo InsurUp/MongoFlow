@@ -2,7 +2,7 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-public interface IVaultTransaction : IDisposable
+public interface IMongoVaultTransaction : IDisposable
 {
     Task CommitAsync(CancellationToken cancellationToken = default);
     Task RollbackAsync(CancellationToken cancellationToken = default);

@@ -2,7 +2,7 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-internal sealed class MongoGlobalTransaction : IVaultTransaction
+internal sealed class MongoGlobalTransaction : IMongoVaultTransaction
 {
     public MongoGlobalTransaction(IClientSessionHandle session)
     {

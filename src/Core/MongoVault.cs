@@ -8,7 +8,7 @@ public abstract class MongoVault : IDisposable
     private readonly VaultConfigurationManager _configurationManager;
     private readonly List<VaultOperation> _operations = [];
 
-    private VaultTransaction? _transaction;
+    private MongoVaultTransaction? _transaction;
 
     protected MongoVault(VaultConfigurationManager configurationManager)
     {
@@ -30,7 +30,7 @@ public abstract class MongoVault : IDisposable
 
     internal IServiceProvider ServiceProvider => _configurationManager.ServiceProvider;
     
-    private IGlobalTransactionManager? GlobalTransactionManager => ServiceProvider.GetService<IGlobalTransactionManager>();
+    private IMongoGlobalTransactionManager? GlobalTransactionManager => ServiceProvider.GetService<IMongoGlobalTransactionManager>();
 
     internal IMongoDatabase MongoDatabase => Configuration.Database!;
 
@@ -48,7 +48,7 @@ public abstract class MongoVault : IDisposable
 
     public bool IsInTransaction => _transaction is not null;
 
-    public IVaultTransaction BeginTransaction()
+    public IMongoVaultTransaction BeginTransaction()
     {
         if (_transaction is not null)
         {
@@ -60,7 +60,7 @@ public abstract class MongoVault : IDisposable
             throw new InvalidOperationException("BeginTransaction cannot be called inside a global transaction.");
         }
 
-        _transaction = new VaultTransaction(this, MongoDatabase.Client.StartSession());
+        _transaction = new MongoVaultTransaction(this, MongoDatabase.Client.StartSession());
 
         return _transaction;
     }

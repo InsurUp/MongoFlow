@@ -2,7 +2,7 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-internal sealed class MongoGlobalTransactionManager : IGlobalTransactionManager, IDisposable
+internal sealed class MongoGlobalTransactionManager : IMongoGlobalTransactionManager, IDisposable
 {
     private readonly MongoClient _mongoClient;
     private readonly SemaphoreSlim _semaphore;
@@ -13,8 +13,8 @@ internal sealed class MongoGlobalTransactionManager : IGlobalTransactionManager,
         _semaphore = new SemaphoreSlim(1, 1);
     }
     
-    public IVaultTransaction? CurrentTransaction { get; private set; }
-    public async Task<IVaultTransaction> BeginAsync(CancellationToken cancellationToken = default)
+    public IMongoVaultTransaction? CurrentTransaction { get; private set; }
+    public async Task<IMongoVaultTransaction> BeginAsync(CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken);
         try
