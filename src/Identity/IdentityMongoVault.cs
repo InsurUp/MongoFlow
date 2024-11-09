@@ -1,7 +1,6 @@
 using MongoDB.Bson;
-using MongoFlow;
 
-namespace AspNetCore.Identity.MongoFlow;
+namespace MongoFlow.Identity;
 
 public abstract class IdentityMongoVault : IdentityMongoVault<MongoUser, MongoRole, ObjectId>
 {

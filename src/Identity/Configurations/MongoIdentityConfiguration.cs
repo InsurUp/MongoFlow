@@ -2,7 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Bson.Serialization;
 
-namespace AspNetCore.Identity.MongoFlow.Configurations;
+namespace MongoFlow.Identity;
 
 internal static class MongoIdentityConfiguration
 {

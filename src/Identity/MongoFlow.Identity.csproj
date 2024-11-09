@@ -4,14 +4,14 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Title>AspNetCore.Identity.MongoFlow</Title>
-    <PackageId>AspNetCore.Identity.MongoFlow</PackageId>
-    <Product>AspNetCore.Identity.MongoFlow</Product>
+    <Title>MongoFlow.Identity</Title>
+    <PackageId>MongoFlow.Identity</PackageId>
+    <Product>MongoFlow.Identity</Product>
     <Authors>InsurUp</Authors>
     <Description>A MongoDB provider for ASP.NET Core Identity that leverages MongoFlow for seamless integration.</Description>
     <Summary>A MongoDB provider for ASP.NET Core Identity that leverages MongoFlow for seamless integration.</Summary>
-    <PackageProjectUrl>https://github.com/InsurUp/AspNetCore.Identity.MongoFlow</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/InsurUp/AspNetCore.Identity.MongoFlow</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/InsurUp/MongoFlow.Identity</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/InsurUp/MongoFlow.Identity</RepositoryUrl>
     <PackageTags>mongoflow;identity;mongodb;mongo;nosql</PackageTags>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>

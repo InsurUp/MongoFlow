@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver.Linq;
 using MongoFlow;
 
-namespace AspNetCore.Identity.MongoFlow;
+namespace MongoFlow.Identity;
 
 public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, IRoleClaimStore<TRole>
     where TVault : MongoVault

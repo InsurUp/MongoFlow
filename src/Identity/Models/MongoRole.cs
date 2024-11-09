@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Bson;
 
-namespace AspNetCore.Identity.MongoFlow;
+namespace MongoFlow.Identity;
 
 public class MongoRole : MongoRole<ObjectId>;
 

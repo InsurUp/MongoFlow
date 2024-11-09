@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 
-namespace AspNetCore.Identity.MongoFlow;
+namespace MongoFlow.Identity;
 
 public class MongoUserStore<TVault, TUser, TRole, TKey> : 
     UserStoreBase<TUser, TRole, TKey, IdentityUserClaim<TKey>, IdentityUserRole<TKey>, IdentityUserLogin<TKey>, IdentityUserToken<TKey>, IdentityRoleClaim<TKey>> 

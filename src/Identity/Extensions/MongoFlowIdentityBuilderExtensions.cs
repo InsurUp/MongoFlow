@@ -1,8 +1,7 @@
-using AspNetCore.Identity.MongoFlow.Configurations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace AspNetCore.Identity.MongoFlow;
+namespace MongoFlow.Identity;
 
 public static class MongoFlowIdentityBuilderExtensions
 {
