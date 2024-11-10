@@ -36,8 +36,8 @@ public static class MongoFlowIdentityBuilderExtensions
         
         var keyType = mongoUserType.GenericTypeArguments[0];
         
-        var userStoreType = typeof(MongoUserStore<,,,>).MakeGenericType(vaultType, userType, roleType, keyType);
-        var roleStoreType = typeof(MongoRoleStore<,,>).MakeGenericType(vaultType, roleType, keyType);
+        var userStoreType = typeof(MongoUserStore<,,,>).MakeGenericType(typeof(TVault), userType, roleType, keyType);
+        var roleStoreType = typeof(MongoRoleStore<,,>).MakeGenericType(typeof(TVault), roleType, keyType);
         
         builder.Services.AddScoped(typeof(IUserStore<>).MakeGenericType(userType), userStoreType);
         builder.Services.AddScoped(typeof(IRoleStore<>).MakeGenericType(roleType), roleStoreType);
