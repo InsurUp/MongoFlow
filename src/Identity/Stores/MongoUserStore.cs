@@ -385,12 +385,12 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         _vault.Users.Replace(user);
     }
 
-    public override Task<IList<string>> GetRolesAsync(TUser user, CancellationToken cancellationToken = default)
+    public override async Task<IList<string>> GetRolesAsync(TUser user, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IList<string>>(user.Roles
-            .Select(ConvertIdToString)
-            .Where(x => x is not null)
-            .OfType<string>()
-            .ToList());
+        var roleIds = user.Roles;
+        
+        return await _vault.Roles.Find(x => roleIds.Contains(x.Id) && x.Name != null)
+            .Project(x => x.Name!)
+            .ToListAsync(cancellationToken);
     }
 }
