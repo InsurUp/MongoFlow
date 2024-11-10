@@ -36,7 +36,6 @@ internal sealed class MongoGlobalTransactionManager : IMongoGlobalTransactionMan
 
     public void Dispose()
     {
-        _mongoClient.Dispose();
         _semaphore.Dispose();
         CurrentTransaction?.Dispose();
     }
