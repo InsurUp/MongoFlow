@@ -121,7 +121,7 @@ public abstract class MongoVault : IDisposable
                 await interceptor.SavedChangesAsync(interceptorContext, affected, cancellationToken);
             }
 
-            if (_transaction is null)
+            if (transaction is null)
             {
                 await session.CommitTransactionAsync(cancellationToken);
             }
@@ -133,7 +133,7 @@ public abstract class MongoVault : IDisposable
                 await interceptor.SaveChangesFailedAsync(e, interceptorContext, cancellationToken);
             }
 
-            if (_transaction is null)
+            if (transaction is null)
             {
                 await session.AbortTransactionAsync(cancellationToken);
             }
@@ -142,7 +142,7 @@ public abstract class MongoVault : IDisposable
         }
         finally
         {
-            if (_transaction is null)
+            if (transaction is null)
             {
                 session.Dispose();
             }
