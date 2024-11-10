@@ -38,6 +38,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         
+        _vault.Users.Replace(user);
         await _vault.SaveAsync(cancellationToken);
         
         return IdentityResult.Success;
