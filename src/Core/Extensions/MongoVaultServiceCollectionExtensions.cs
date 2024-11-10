@@ -34,7 +34,8 @@ public static class MongoVaultServiceCollectionExtensions
         services.AddScoped<VaultConfigurationManager<TVault>>(serviceProvider =>
             new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), serviceProvider));
         services.AddSingleton(new VaultConfigurationProvider<TVault>(options));
-        services.AddScoped<TInterface, TVault>();
+        services.AddScoped<TVault>();
+        services.AddScoped<TInterface, TVault>(serviceProvider => serviceProvider.GetRequiredService<TVault>());
 
         return services;
     }
