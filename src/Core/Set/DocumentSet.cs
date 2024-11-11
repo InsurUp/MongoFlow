@@ -22,7 +22,11 @@ public sealed class DocumentSet<TDocument>
 
     public IFindFluent<TDocument, TDocument> Find(Expression<Func<TDocument, bool>> filter)
     {
-        return _collection.Find(TransformQueryFilterExpression(filter));
+        var transformedFilter = TransformQueryFilterExpression(filter);
+        
+        return _vault.CurrentTransaction is not null ?
+            _collection.Find(_vault.CurrentTransaction.Session, transformedFilter)
+            : _collection.Find(transformedFilter);
     }
 
     public IFindFluent<TDocument, TDocument> Find(FilterDefinition<TDocument> filter)
@@ -30,21 +34,27 @@ public sealed class DocumentSet<TDocument>
         var queryFilter = TransformQueryFilterExpression();
         var finalFilter = queryFilter is not null ? filter & queryFilter : filter;
 
-        return _collection.Find(finalFilter);
+        return _vault.CurrentTransaction is not null ?
+            _collection.Find(_vault.CurrentTransaction.Session, finalFilter)
+            : _collection.Find(finalFilter);
     }
 
     public IFindFluent<TDocument, TDocument> Find()
     {
-        var filter = TransformQueryFilterExpression();
+        var filter = TransformQueryFilterExpression() ?? Builders<TDocument>.Filter.Empty;
 
-        return _collection.Find(filter ?? Builders<TDocument>.Filter.Empty);
+        return _vault.CurrentTransaction is not null ?
+            _collection.Find(_vault.CurrentTransaction.Session, filter)
+            : _collection.Find(filter);
     }
 
     public IQueryable<TDocument> AsQueryable()
     {
         var filter = TransformQueryFilterExpression();
 
-        var queryable = _collection.AsQueryable();
+        var queryable = _vault.CurrentTransaction is not null ?
+            _collection.AsQueryable(_vault.CurrentTransaction.Session)
+            : _collection.AsQueryable();
 
         return filter is not null ? queryable.Where(filter) : queryable;
     }
@@ -52,8 +62,12 @@ public sealed class DocumentSet<TDocument>
     public IAggregateFluent<TDocument> Aggregate()
     {
         var filter = TransformQueryFilterExpression() ?? Builders<TDocument>.Filter.Empty;
+        
+        var aggregate = _vault.CurrentTransaction is not null ?
+            _collection.Aggregate(_vault.CurrentTransaction.Session)
+            : _collection.Aggregate();
 
-        return _collection.Aggregate().Match(filter);
+        return aggregate.Match(filter);
     }
 
     public void Add(TDocument document)
@@ -110,8 +124,11 @@ public sealed class DocumentSet<TDocument>
     public async Task<TDocument?> GetByKeyAsync(object key, CancellationToken cancellationToken = default)
     {
         var filter = BuildKeyFilter(key);
+        var find = _vault.CurrentTransaction is not null ?
+            _collection.Find(_vault.CurrentTransaction.Session, filter)
+            : _collection.Find(filter);
 
-        return await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+        return await find.FirstOrDefaultAsync(cancellationToken);
     }
 
     public DocumentSet<TDocument> IgnoreQueryFilter()

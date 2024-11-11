@@ -46,18 +46,15 @@ public abstract class MongoVault : IDisposable
         return new DocumentSet<TDocument>(this, ignoreQueryFilter);
     }
 
-    public bool IsInTransaction => _transaction is not null;
+    public bool IsInTransaction => _transaction is not null || GlobalTransactionManager?.CurrentTransaction is not null;
+    
+    public IMongoVaultTransaction? CurrentTransaction => _transaction ?? GlobalTransactionManager?.CurrentTransaction;
 
     public IMongoVaultTransaction BeginTransaction()
     {
-        if (_transaction is not null)
+        if (IsInTransaction)
         {
-            throw new InvalidOperationException("Transaction already started");
-        }
-        
-        if (GlobalTransactionManager?.CurrentTransaction is not null)
-        {
-            throw new InvalidOperationException("BeginTransaction cannot be called inside a global transaction.");
+            throw new InvalidOperationException("BeginTransaction cannot be called inside a transaction.");
         }
 
         _transaction = new MongoVaultTransaction(this, MongoDatabase.Client.StartSession());
@@ -86,10 +83,8 @@ public abstract class MongoVault : IDisposable
             return 0;
         }
         
-        var transaction = GlobalTransactionManager?.CurrentTransaction ?? _transaction;
-
-        var session = transaction is not null
-            ? transaction.Session
+        var session = CurrentTransaction is not null
+            ? CurrentTransaction.Session
             : await MongoDatabase.Client.StartSessionAsync(cancellationToken: cancellationToken);
 
         if (!session.IsInTransaction)
@@ -121,7 +116,7 @@ public abstract class MongoVault : IDisposable
                 await interceptor.SavedChangesAsync(interceptorContext, affected, cancellationToken);
             }
 
-            if (transaction is null)
+            if (CurrentTransaction is null)
             {
                 await session.CommitTransactionAsync(cancellationToken);
             }
@@ -133,7 +128,7 @@ public abstract class MongoVault : IDisposable
                 await interceptor.SaveChangesFailedAsync(e, interceptorContext, cancellationToken);
             }
 
-            if (transaction is null)
+            if (CurrentTransaction is null)
             {
                 await session.AbortTransactionAsync(cancellationToken);
             }
@@ -142,7 +137,7 @@ public abstract class MongoVault : IDisposable
         }
         finally
         {
-            if (transaction is null)
+            if (CurrentTransaction is null)
             {
                 session.Dispose();
             }
