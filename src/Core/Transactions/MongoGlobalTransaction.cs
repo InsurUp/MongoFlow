@@ -4,12 +4,16 @@ namespace MongoFlow;
 
 internal sealed class MongoGlobalTransaction : IMongoVaultTransaction
 {
-    public MongoGlobalTransaction(IClientSessionHandle session)
+    private readonly MongoGlobalTransactionManager _manager;
+
+    public MongoGlobalTransaction(IClientSessionHandle session, MongoGlobalTransactionManager manager)
     {
         if (session.IsInTransaction)
         {
             throw new InvalidOperationException("MongoVaultTransaction can only be created from an inactive transaction.");
         }
+
+        _manager = manager;
 
         session.StartTransaction();
 
@@ -19,6 +23,7 @@ internal sealed class MongoGlobalTransaction : IMongoVaultTransaction
     public void Dispose()
     {
         Session.Dispose();
+        _manager.ClearTransaction();
     }
 
     public async Task CommitAsync(CancellationToken cancellationToken = default)

@@ -14,6 +14,7 @@ internal sealed class MongoGlobalTransactionManager : IMongoGlobalTransactionMan
     }
     
     public IMongoVaultTransaction? CurrentTransaction { get; private set; }
+    
     public async Task<IMongoVaultTransaction> BeginAsync(CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken);
@@ -25,7 +26,7 @@ internal sealed class MongoGlobalTransactionManager : IMongoGlobalTransactionMan
             }
 
             var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
-            CurrentTransaction = new MongoGlobalTransaction(session);
+            CurrentTransaction = new MongoGlobalTransaction(session, this);
             return CurrentTransaction;
         }
         finally
@@ -37,6 +38,11 @@ internal sealed class MongoGlobalTransactionManager : IMongoGlobalTransactionMan
     public void Dispose()
     {
         _semaphore.Dispose();
-        CurrentTransaction?.Dispose();
+        ClearTransaction();
+    }
+
+    internal void ClearTransaction()
+    {
+        CurrentTransaction = null;
     }
 }
