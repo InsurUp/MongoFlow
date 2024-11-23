@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
+using MongoFlow.Bson;
 
 namespace MongoFlow;
 
@@ -18,6 +19,8 @@ public static class MongoVaultServiceCollectionExtensions
             new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), serviceProvider));
         services.AddSingleton(new VaultConfigurationProvider<TVault>(options));
         services.AddScoped<TVault>();
+        
+        BsonConfiguration.Configure();
 
         return services;
     }
@@ -36,6 +39,8 @@ public static class MongoVaultServiceCollectionExtensions
         services.AddSingleton(new VaultConfigurationProvider<TVault>(options));
         services.AddScoped<TVault>();
         services.AddScoped<TInterface, TVault>(serviceProvider => serviceProvider.GetRequiredService<TVault>());
+        
+        BsonConfiguration.Configure();
 
         return services;
     }

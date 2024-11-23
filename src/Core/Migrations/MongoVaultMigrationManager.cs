@@ -47,7 +47,7 @@ internal sealed class MongoVaultMigrationManager<TVault> : IMongoVaultMigrationM
         version ??= VaultVersion;
         
         var currentVersion = await GetCurrentVersionAsync(cancellationToken);
-        if (currentVersion == version)
+        if (currentVersion is not null && currentVersion == version)
         {
             return MigrateResult.Succeeded(currentVersion, []);
         }
@@ -56,7 +56,7 @@ internal sealed class MongoVaultMigrationManager<TVault> : IMongoVaultMigrationM
         
         var migrations = Migrations
             .Where(x => runUp ? 
-                x.Version.CompareSortOrderTo(currentVersion) > 0 && x.Version.CompareSortOrderTo(version) <= 0 : 
+                currentVersion is null || x.Version.CompareSortOrderTo(currentVersion) > 0 && x.Version.CompareSortOrderTo(version) <= 0 : 
                 x.Version.CompareSortOrderTo(currentVersion) <= 0 && x.Version.CompareSortOrderTo(version) > 0)
             .OrderBy(x => x.Version, SemVersion.SortOrderComparer)
             .ToArray();
@@ -76,20 +76,27 @@ internal sealed class MongoVaultMigrationManager<TVault> : IMongoVaultMigrationM
         {
             foreach (var migration in migrations)
             {
-                var task = runUp ? 
-                    migration.Up(_database, session, cancellationToken) : 
-                    migration.Down(_database, session, cancellationToken);
-                
-                await task;
-                
-                await _collection.InsertOneAsync(session, new MigrationDocument
+                if (runUp)
                 {
-                    Id = ObjectId.GenerateNewId(),
-                    Version = migration.Version,
-                    Description = migration.Description,
-                    Timestamp = DateTime.UtcNow,
-                    Name = migration.GetType().Name
-                }, cancellationToken: cancellationToken);
+                    await migration.Up(_database, session, cancellationToken);
+                    
+                    await _collection.InsertOneAsync(session, new MigrationDocument
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        Version = migration.Version,
+                        Description = migration.Description,
+                        Timestamp = DateTime.UtcNow,
+                        Name = migration.GetType().Name
+                    }, cancellationToken: cancellationToken);
+                }
+                else
+                {
+                    await migration.Down(_database, session, cancellationToken);
+                    
+                    await _collection.DeleteOneAsync(session, 
+                        x => x.Version == migration.Version, 
+                        cancellationToken: cancellationToken);
+                }
             }
             
             await session.CommitTransactionAsync(cancellationToken);
