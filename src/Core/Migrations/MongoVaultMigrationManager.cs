@@ -101,10 +101,10 @@ internal sealed class MongoVaultMigrationManager<TVault> : IMongoVaultMigrationM
             
             await session.CommitTransactionAsync(cancellationToken);
         }
-        catch
+        catch (Exception ex)
         {
             await session.AbortTransactionAsync(cancellationToken);
-            throw;
+            return MigrateResult.Failed(migrations[^1].Version, ex);
         }
         
         return MigrateResult.Succeeded(migrations[^1].Version, migrations);
