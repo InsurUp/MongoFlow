@@ -1,11 +1,4 @@
 namespace MongoFlow;
 
-internal sealed class MongoVaultOptions
-{
-    public MongoVaultOptions(List<IVaultConfigurationSpecificationProvider> specificationProviders)
-    {
-        SpecificationProviders = specificationProviders;
-    }
-
-    public List<IVaultConfigurationSpecificationProvider> SpecificationProviders { get; }
-}
+internal sealed record MongoVaultOptions(List<IVaultConfigurationSpecificationProvider> SpecificationProviders, 
+    MongoMigrationOptions? MigrationOptions = null);

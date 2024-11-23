@@ -6,9 +6,9 @@ namespace MongoFlow;
 public static class MongoVaultServiceCollectionExtensions
 {
     public static IServiceCollection AddMongoVault<TVault>(this IServiceCollection services,
-        Action<MongoVaultOptionsBuilder>? optionsAction = null) where TVault : MongoVault
+        Action<MongoVaultOptionsBuilder<TVault>>? optionsAction = null) where TVault : MongoVault
     {
-        var optionsBuilder = new MongoVaultOptionsBuilder();
+        var optionsBuilder = new MongoVaultOptionsBuilder<TVault>(services);
 
         optionsAction?.Invoke(optionsBuilder);
 
@@ -23,9 +23,9 @@ public static class MongoVaultServiceCollectionExtensions
     }
 
     public static IServiceCollection AddMongoVault<TInterface, TVault>(this IServiceCollection services,
-        Action<MongoVaultOptionsBuilder>? optionsAction = null) where TVault : MongoVault, TInterface where TInterface : class
+        Action<MongoVaultOptionsBuilder<TVault>>? optionsAction = null) where TVault : MongoVault, TInterface where TInterface : class
     {
-        var optionsBuilder = new MongoVaultOptionsBuilder();
+        var optionsBuilder = new MongoVaultOptionsBuilder<TVault>(services);
 
         optionsAction?.Invoke(optionsBuilder);
 
