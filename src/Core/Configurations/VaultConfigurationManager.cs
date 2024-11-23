@@ -8,29 +8,30 @@ public abstract class VaultConfigurationManager
 
     internal abstract IServiceProvider ServiceProvider { get; }
     
-    public abstract bool MigrationEnabled { get; }
+    internal abstract bool MigrationEnabled { get; }
     
-    public abstract IMongoVaultMigrationManager MigrationManager { get; }
+    internal abstract IMongoVaultMigrationManager MigrationManager { get; }
 }
 
 public class VaultConfigurationManager<TVault> : VaultConfigurationManager where TVault : MongoVault
 {
-    private readonly VaultConfigurationProvider<TVault> _configurationProvider;
+    private readonly MongoVaultOptions _options;
 
     internal VaultConfigurationManager(VaultConfigurationProvider<TVault> configurationProvider,
+        MongoVaultOptions options,
         IServiceProvider serviceProvider)
     {
-        _configurationProvider = configurationProvider;
+        _options = options;
         ServiceProvider = serviceProvider;
         Configuration = configurationProvider.GetConfiguration(serviceProvider);
     }
 
     internal override IServiceProvider ServiceProvider { get; }
     
-    public override bool MigrationEnabled => _configurationProvider.MigrationOptions is not null;
+    internal override bool MigrationEnabled => _options.MigrationOptions is not null;
     
-    public override IMongoVaultMigrationManager MigrationManager => MigrationEnabled
-        ? new MongoVaultMigrationManager<TVault>(_configurationProvider.MigrationOptions!, this)
+    internal override IMongoVaultMigrationManager MigrationManager => MigrationEnabled
+        ? new MongoVaultMigrationManager<TVault>(_options.MigrationOptions!, this)
         : throw new InvalidOperationException("Migration is not enabled for this vault.");
 
     internal override VaultConfiguration Configuration { get; }

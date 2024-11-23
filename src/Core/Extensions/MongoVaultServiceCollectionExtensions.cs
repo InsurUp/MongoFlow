@@ -16,7 +16,7 @@ public static class MongoVaultServiceCollectionExtensions
         var options = optionsBuilder.Build();
 
         services.AddScoped<VaultConfigurationManager<TVault>>(serviceProvider =>
-            new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), serviceProvider));
+            new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), options, serviceProvider));
         services.AddSingleton(new VaultConfigurationProvider<TVault>(options));
         services.AddScoped<TVault>();
         
@@ -35,7 +35,7 @@ public static class MongoVaultServiceCollectionExtensions
         var options = optionsBuilder.Build();
 
         services.AddScoped<VaultConfigurationManager<TVault>>(serviceProvider =>
-            new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), serviceProvider));
+            new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), options, serviceProvider));
         services.AddSingleton(new VaultConfigurationProvider<TVault>(options));
         services.AddScoped<TVault>();
         services.AddScoped<TInterface, TVault>(serviceProvider => serviceProvider.GetRequiredService<TVault>());

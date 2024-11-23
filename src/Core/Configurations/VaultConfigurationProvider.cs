@@ -29,6 +29,4 @@ internal sealed class VaultConfigurationProvider<TVault> where TVault : MongoVau
 
         return _configuration;
     }
-    
-    public MongoMigrationOptions? MigrationOptions => _options.MigrationOptions;
 }
