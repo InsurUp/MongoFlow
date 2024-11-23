@@ -34,6 +34,10 @@ public abstract class MongoVault : IDisposable
 
     internal IMongoDatabase MongoDatabase => Configuration.Database!;
 
+    public bool MigrationEnabled => _configurationManager.MigrationEnabled;
+    
+    public IMongoVaultMigrationManager MigrationManager => _configurationManager.MigrationManager;
+
     internal IMongoCollection<TDocument> GetCollection<TDocument>()
     {
         var setConfiguration = Configuration.GetDocumentSetConfiguration<TDocument>();
