@@ -119,11 +119,6 @@ public abstract class MongoVault : IDisposable
             {
                 await interceptor.SavedChangesAsync(interceptorContext, affected, cancellationToken);
             }
-
-            if (CurrentTransaction is null)
-            {
-                await session.CommitTransactionAsync(cancellationToken);
-            }
         }
         catch (Exception e)
         {
@@ -139,9 +134,14 @@ public abstract class MongoVault : IDisposable
 
             throw;
         }
-        finally
+        
+        if (CurrentTransaction is null)
         {
-            if (CurrentTransaction is null)
+            try
+            {
+                await session.CommitTransactionAsync(cancellationToken);
+            }
+            finally
             {
                 session.Dispose();
             }
