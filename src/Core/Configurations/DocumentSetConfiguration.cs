@@ -17,11 +17,6 @@ internal sealed class DocumentSetConfiguration
     public string Name { get; }
     public IReadOnlyCollection<IQueryFilterDefinition> QueryFilterDefinitions { get; }
 
-    internal LambdaExpression[] BuildQueryFilters(IServiceProvider serviceProvider)
-    {
-        return QueryFilterDefinitions.Select(x => x.Get(serviceProvider)).ToArray();
-    }
-
     public Expression<Func<TDocument, object>> GetKeyExpression<TDocument>()
     {
         var key = KeyExpressionCache<TDocument>.Get(Key);

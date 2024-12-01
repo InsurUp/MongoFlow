@@ -6,10 +6,14 @@ internal sealed class ServiceProviderQueryFilterDefinition : IQueryFilterDefinit
 {
     private readonly Func<IServiceProvider, LambdaExpression> _expressionProvider;
 
-    public ServiceProviderQueryFilterDefinition(Func<IServiceProvider, LambdaExpression> expressionProvider)
+    public ServiceProviderQueryFilterDefinition(Func<IServiceProvider, LambdaExpression> expressionProvider,
+        string? name)
     {
         _expressionProvider = expressionProvider;
+        Name = name;
     }
+
+    public string? Name { get; }
 
     public LambdaExpression Get(IServiceProvider serviceProvider)
     {
@@ -22,10 +26,14 @@ internal sealed class ServiceProviderQueryFilterDefinition<TDocument> : IQueryFi
 {
     private readonly Func<IServiceProvider, Expression<Func<TDocument, bool>>> _expressionProvider;
 
-    public ServiceProviderQueryFilterDefinition(Func<IServiceProvider, Expression<Func<TDocument, bool>>> expressionProvider)
+    public ServiceProviderQueryFilterDefinition(Func<IServiceProvider, Expression<Func<TDocument, bool>>> expressionProvider,
+        string? name)
     {
         _expressionProvider = expressionProvider;
+        Name = name;
     }
+
+    public string? Name { get; }
 
     public LambdaExpression Get(IServiceProvider serviceProvider)
     {

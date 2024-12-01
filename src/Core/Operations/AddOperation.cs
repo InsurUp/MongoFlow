@@ -4,9 +4,11 @@ public sealed class AddOperation<TDocument> : VaultOperation
 {
     private readonly TDocument _document;
 
-    public AddOperation(TDocument document)
+    public AddOperation(TDocument document,
+        DisableContext interceptorDisableContext)
     {
         _document = document;
+        InterceptorDisableContext = interceptorDisableContext;
     }
 
     public override Type DocumentType => typeof(TDocument);
@@ -16,6 +18,8 @@ public sealed class AddOperation<TDocument> : VaultOperation
     public override object? OldDocument => null;
 
     public override OperationType OperationType => OperationType.Add;
+    
+    public override DisableContext InterceptorDisableContext { get; }
 
     internal override Task<int> ExecuteAsync(VaultOperationContext context,
         CancellationToken cancellationToken = default)

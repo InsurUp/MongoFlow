@@ -8,10 +8,13 @@ public sealed class DeleteOperation<TDocument> : VaultOperation
     private readonly Expression<Func<TDocument, bool>> _filter;
     private TDocument? _document;
 
-    public DeleteOperation(Expression<Func<TDocument, bool>> filter, TDocument? document)
+    public DeleteOperation(Expression<Func<TDocument, bool>> filter, 
+        TDocument? document,
+        DisableContext interceptorDisableContext)
     {
         _filter = filter;
         _document = document;
+        InterceptorDisableContext = interceptorDisableContext;
     }
 
     public override Type DocumentType => typeof(TDocument);
@@ -21,6 +24,8 @@ public sealed class DeleteOperation<TDocument> : VaultOperation
     public override object? CurrentDocument => null;
 
     public override OperationType OperationType => OperationType.Delete;
+    
+    public override DisableContext InterceptorDisableContext { get; }
 
     internal override async Task<int> ExecuteAsync(VaultOperationContext context, CancellationToken cancellationToken = default)
     {
@@ -43,8 +48,8 @@ public sealed class DeleteOperation<TDocument> : VaultOperation
         operation = operationType switch
         {
             _ when _document is null => null,
-            OperationType.Add => new AddOperation<TDocument>(_document),
-            OperationType.Update => new ReplaceOperation<TDocument>(_filter, _document),
+            OperationType.Add => new AddOperation<TDocument>(_document, InterceptorDisableContext),
+            OperationType.Update => new ReplaceOperation<TDocument>(_filter, _document, InterceptorDisableContext),
             OperationType.Delete => this,
             _ => null
         };

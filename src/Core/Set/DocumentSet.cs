@@ -6,14 +6,18 @@ namespace MongoFlow;
 public sealed class DocumentSet<TDocument>
 {
     private readonly MongoVault _vault;
-    private readonly bool _ignoreQueryFilter;
     private readonly DocumentSetConfiguration _documentSetConfiguration;
     private readonly IMongoCollection<TDocument> _collection;
+    private readonly DisableContext _queryFilterDisableContext;
+    private readonly DisableContext _interceptorDisableContext;
 
-    public DocumentSet(MongoVault vault, bool ignoreQueryFilter = false)
+    public DocumentSet(MongoVault vault, 
+        DisableContext? queryFilterDisableContext = null,
+        DisableContext? interceptorDisableContext = null)
     {
         _vault = vault;
-        _ignoreQueryFilter = ignoreQueryFilter;
+        _queryFilterDisableContext = queryFilterDisableContext ?? DisableContext.Empty;
+        _interceptorDisableContext = interceptorDisableContext ?? DisableContext.Empty;
         _documentSetConfiguration = vault.Configuration.GetDocumentSetConfiguration<TDocument>();
         _collection = _vault.GetCollection<TDocument>();
     }
@@ -22,7 +26,7 @@ public sealed class DocumentSet<TDocument>
 
     public IFindFluent<TDocument, TDocument> Find(Expression<Func<TDocument, bool>> filter)
     {
-        var transformedFilter = TransformQueryFilterExpression(filter);
+        var transformedFilter = IncludeQueryFilters(filter);
         
         return _vault.CurrentTransaction is not null ?
             _collection.Find(_vault.CurrentTransaction.Session, transformedFilter)
@@ -31,7 +35,7 @@ public sealed class DocumentSet<TDocument>
 
     public IFindFluent<TDocument, TDocument> Find(FilterDefinition<TDocument> filter)
     {
-        var queryFilter = TransformQueryFilterExpression();
+        var queryFilter = IncludeQueryFilters();
         var finalFilter = queryFilter is not null ? filter & queryFilter : filter;
 
         return _vault.CurrentTransaction is not null ?
@@ -41,7 +45,7 @@ public sealed class DocumentSet<TDocument>
 
     public IFindFluent<TDocument, TDocument> Find()
     {
-        var filter = TransformQueryFilterExpression() ?? Builders<TDocument>.Filter.Empty;
+        var filter = IncludeQueryFilters() ?? Builders<TDocument>.Filter.Empty;
 
         return _vault.CurrentTransaction is not null ?
             _collection.Find(_vault.CurrentTransaction.Session, filter)
@@ -50,7 +54,7 @@ public sealed class DocumentSet<TDocument>
 
     public IQueryable<TDocument> AsQueryable()
     {
-        var filter = TransformQueryFilterExpression();
+        var filter = IncludeQueryFilters();
 
         var queryable = _vault.CurrentTransaction is not null ?
             _collection.AsQueryable(_vault.CurrentTransaction.Session)
@@ -61,7 +65,7 @@ public sealed class DocumentSet<TDocument>
 
     public IAggregateFluent<TDocument> Aggregate()
     {
-        var filter = TransformQueryFilterExpression() ?? Builders<TDocument>.Filter.Empty;
+        var filter = IncludeQueryFilters() ?? Builders<TDocument>.Filter.Empty;
         
         var aggregate = _vault.CurrentTransaction is not null ?
             _collection.Aggregate(_vault.CurrentTransaction.Session)
@@ -72,7 +76,7 @@ public sealed class DocumentSet<TDocument>
 
     public void Add(TDocument document)
     {
-        var operation = new AddOperation<TDocument>(document);
+        var operation = new AddOperation<TDocument>(document, _interceptorDisableContext);
 
         _vault.AddOperation(operation);
     }
@@ -81,7 +85,7 @@ public sealed class DocumentSet<TDocument>
     {
         var filter = BuildKeyFilter(document);
 
-        var operation = new DeleteOperation<TDocument>(filter, document);
+        var operation = new DeleteOperation<TDocument>(filter, document, _interceptorDisableContext);
 
         _vault.AddOperation(operation);
     }
@@ -100,14 +104,14 @@ public sealed class DocumentSet<TDocument>
     {
         var filter = BuildKeyFilter(document);
 
-        var operation = new ReplaceOperation<TDocument>(filter, document);
+        var operation = new ReplaceOperation<TDocument>(filter, document, _interceptorDisableContext);
 
         _vault.AddOperation(operation);
     }
 
     public void Update(Expression<Func<TDocument, bool>> filter, UpdateDefinition<TDocument> update)
     {
-        var operation = new UpdateOperation<TDocument>(filter, update);
+        var operation = new UpdateOperation<TDocument>(filter, update, _interceptorDisableContext);
 
         _vault.AddOperation(operation);
     }
@@ -116,7 +120,7 @@ public sealed class DocumentSet<TDocument>
     {
         var filter = BuildKeyFilter(key);
 
-        var operation = new UpdateOperation<TDocument>(filter, update);
+        var operation = new UpdateOperation<TDocument>(filter, update, _interceptorDisableContext);
 
         _vault.AddOperation(operation);
     }
@@ -131,19 +135,41 @@ public sealed class DocumentSet<TDocument>
         return await find.FirstOrDefaultAsync(cancellationToken);
     }
 
-    public DocumentSet<TDocument> IgnoreQueryFilter()
+    public DocumentSet<TDocument> DisableQueryFilters(params string[] names)
     {
-        return new DocumentSet<TDocument>(_vault, true);
+        var newDisableContext = _queryFilterDisableContext.Disable(names);
+        
+        return new DocumentSet<TDocument>(_vault, newDisableContext, _interceptorDisableContext);
     }
 
-    private Expression<Func<TDocument, bool>>? TransformQueryFilterExpression(Expression<Func<TDocument, bool>>? expression = null)
+    public DocumentSet<TDocument> DisableAllQueryFilters()
     {
-        if (_ignoreQueryFilter)
+        return new DocumentSet<TDocument>(_vault, DisableContext.All, _interceptorDisableContext);
+    }
+    
+    public DocumentSet<TDocument> DisableInterceptors(params string[] names)
+    {
+        var newDisableContext = _interceptorDisableContext.Disable(names);
+        
+        return new DocumentSet<TDocument>(_vault, _queryFilterDisableContext, newDisableContext);
+    }
+    
+    public DocumentSet<TDocument> DisableAllInterceptors()
+    {
+        return new DocumentSet<TDocument>(_vault, _queryFilterDisableContext, DisableContext.All);
+    }
+
+    private Expression<Func<TDocument, bool>>? IncludeQueryFilters(Expression<Func<TDocument, bool>>? expression = null)
+    {
+        if (_queryFilterDisableContext.AllDisabled)
         {
             return expression;
         }
-
-        var queryFilters = _documentSetConfiguration.BuildQueryFilters(_vault.ServiceProvider);
+        
+        var queryFilters = _documentSetConfiguration.QueryFilterDefinitions
+            .Where(x => !_queryFilterDisableContext.DisabledItems.Contains(x.Name))
+            .Select(x => x.Get(_vault.ServiceProvider))
+            .ToArray();
 
         if (queryFilters.Length == 0)
         {
@@ -161,7 +187,7 @@ public sealed class DocumentSet<TDocument>
     {
         var keyFilter = _documentSetConfiguration.BuildKeyFilterExpression<TDocument>(key);
 
-        return TransformQueryFilterExpression(keyFilter)!;
+        return IncludeQueryFilters(keyFilter)!;
     }
 
     private Expression<Func<TDocument, bool>> BuildKeyFilter(TDocument document)
@@ -174,7 +200,7 @@ public sealed class DocumentSet<TDocument>
 
     public void AddRange(IEnumerable<TDocument> documents)
     {
-        var operation = new AddRangeOperation<TDocument>(documents);
+        var operation = new AddRangeOperation<TDocument>(documents, _interceptorDisableContext);
 
         _vault.AddOperation(operation);
     }

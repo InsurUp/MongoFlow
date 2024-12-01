@@ -10,10 +10,13 @@ public class UpdateOperation<TDocument> : VaultOperation
     private TDocument? _currentDocument;
     private TDocument? _oldDocument;
 
-    public UpdateOperation(Expression<Func<TDocument, bool>> filter, UpdateDefinition<TDocument> update)
+    public UpdateOperation(Expression<Func<TDocument, bool>> filter, 
+        UpdateDefinition<TDocument> update,
+        DisableContext interceptorDisableContext)
     {
         _filter = filter;
         _update = update;
+        InterceptorDisableContext = interceptorDisableContext;
     }
 
     public override Type DocumentType => typeof(TDocument);
@@ -22,6 +25,8 @@ public class UpdateOperation<TDocument> : VaultOperation
     public override object? OldDocument => _oldDocument;
 
     public override OperationType OperationType => OperationType.Update;
+    
+    public override DisableContext InterceptorDisableContext { get; }
 
     internal override async Task<int> ExecuteAsync(VaultOperationContext context, CancellationToken cancellationToken = default)
     {
@@ -52,8 +57,8 @@ public class UpdateOperation<TDocument> : VaultOperation
     {
         operation = operationType switch
         {
-            OperationType.Add when _currentDocument is not null => new AddOperation<TDocument>(_currentDocument),
-            OperationType.Delete => new DeleteOperation<TDocument>(_filter, _currentDocument),
+            OperationType.Add when _currentDocument is not null => new AddOperation<TDocument>(_currentDocument, InterceptorDisableContext),
+            OperationType.Delete => new DeleteOperation<TDocument>(_filter, _currentDocument, InterceptorDisableContext),
             OperationType.Update => this,
             _ => null
         };

@@ -6,10 +6,14 @@ internal sealed class StaticQueryFilterDefinition : IQueryFilterDefinition
 {
     private readonly LambdaExpression _expression;
 
-    public StaticQueryFilterDefinition(LambdaExpression expression)
+    public StaticQueryFilterDefinition(LambdaExpression expression,
+        string? name)
     {
+        Name = name;
         _expression = expression;
     }
+
+    public string? Name { get; }
 
     public LambdaExpression Get(IServiceProvider serviceProvider)
     {
@@ -21,10 +25,14 @@ internal sealed class StaticQueryFilterDefinition<TDocument> : IQueryFilterDefin
 {
     private readonly Expression<Func<TDocument, bool>> _expression;
 
-    public StaticQueryFilterDefinition(Expression<Func<TDocument, bool>> expression)
+    public StaticQueryFilterDefinition(Expression<Func<TDocument, bool>> expression,
+        string? name)
     {
+        Name = name;
         _expression = expression;
     }
+
+    public string? Name { get; }
 
     public LambdaExpression Get(IServiceProvider serviceProvider)
     {

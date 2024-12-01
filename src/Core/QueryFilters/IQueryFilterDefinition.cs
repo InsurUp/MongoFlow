@@ -4,6 +4,7 @@ namespace MongoFlow;
 
 public interface IQueryFilterDefinition
 {
+    string? Name { get; }
     LambdaExpression Get(IServiceProvider serviceProvider);
 }
 

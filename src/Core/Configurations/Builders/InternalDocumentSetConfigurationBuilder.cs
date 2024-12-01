@@ -50,14 +50,14 @@ internal sealed class InternalDocumentSetConfigurationBuilder
         _queryFilterDefinitions.Add(queryFilterDefinition);
     }
 
-    public void AddQueryFilter(LambdaExpression expression)
+    public void AddQueryFilter(string? name, LambdaExpression expression)
     {
-        _queryFilterDefinitions.Add(new StaticQueryFilterDefinition(expression));
+        _queryFilterDefinitions.Add(new StaticQueryFilterDefinition(expression, name));
     }
 
-    public void AddQueryFilter(Func<IServiceProvider, LambdaExpression> expressionProvider)
+    public void AddQueryFilter(string? name, Func<IServiceProvider, LambdaExpression> expressionProvider)
     {
-        _queryFilterDefinitions.Add(new ServiceProviderQueryFilterDefinition(expressionProvider));
+        _queryFilterDefinitions.Add(new ServiceProviderQueryFilterDefinition(expressionProvider, name));
     }
 
     internal DocumentSetConfiguration Build()
