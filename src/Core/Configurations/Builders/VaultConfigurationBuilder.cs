@@ -78,14 +78,14 @@ public class VaultConfigurationBuilder
         var body = Expression.Not(options.IsDeletedAccessor.Body);
         var expression = Expression.Lambda(body, options.IsDeletedAccessor.Parameters[0]);
 
-        AddMultiQueryFilters<TInterface>(expression);
+        AddMultiQueryFilters<TInterface>("soft-delete", expression);
 
         AddInterceptor("soft-delete", new SoftDeleteInterceptor<TInterface>(options));
     }
 
     public void AddMultiTenancy<TInterface, TTenantId>(VaultMultiTenancyOptions<TInterface, TTenantId> options) where TTenantId : struct
     {
-        AddMultiQueryFilters<TInterface>(serviceProvider =>
+        AddMultiQueryFilters<TInterface>("multi-tenancy", serviceProvider =>
         {
             var tenantId = options.TenantIdProvider(serviceProvider);
 
@@ -106,6 +106,11 @@ public class VaultConfigurationBuilder
 
     public void AddMultiQueryFilters<TInterface>(Expression<Func<TInterface, bool>> expression)
     {
+        AddMultiQueryFilters(null, expression);
+    }
+    
+    public void AddMultiQueryFilters<TInterface>(string? name, Expression<Func<TInterface, bool>> expression)
+    {
         var documentSetProperties = VaultPropertyCache.GetProperties(_vaultType);
 
         foreach (var (type, _) in documentSetProperties)
@@ -114,7 +119,7 @@ public class VaultConfigurationBuilder
             {
                 ConfigureDocumentType(type, builder =>
                 {
-                    builder.AddQueryFilter(expression);
+                    builder.AddQueryFilter(name, expression);
                 });
             }
         }
@@ -122,21 +127,10 @@ public class VaultConfigurationBuilder
 
     public void AddMultiQueryFilters<TInterface>(Func<IServiceProvider, Expression<Func<TInterface, bool>>> expressionProvider)
     {
-        var documentSetProperties = VaultPropertyCache.GetProperties(_vaultType);
-
-        foreach (var (type, _) in documentSetProperties)
-        {
-            if (typeof(TInterface).IsAssignableFrom(type))
-            {
-                ConfigureDocumentType(type, builder =>
-                {
-                    builder.AddQueryFilter(expressionProvider);
-                });
-            }
-        }
+        AddMultiQueryFilters(null, expressionProvider);
     }
-
-    public void AddMultiQueryFilters<TInterface>(LambdaExpression expression)
+    
+    public void AddMultiQueryFilters<TInterface>(string? name, Func<IServiceProvider, Expression<Func<TInterface, bool>>> expressionProvider)
     {
         var documentSetProperties = VaultPropertyCache.GetProperties(_vaultType);
 
@@ -146,7 +140,28 @@ public class VaultConfigurationBuilder
             {
                 ConfigureDocumentType(type, builder =>
                 {
-                    builder.AddQueryFilter(expression);
+                    builder.AddQueryFilter(name, expressionProvider);
+                });
+            }
+        }
+    }
+
+    public void AddMultiQueryFilters<TInterface>(LambdaExpression expression)
+    {
+        AddMultiQueryFilters<TInterface>(null, expression);
+    }
+    
+    public void AddMultiQueryFilters<TInterface>(string? name, LambdaExpression expression)
+    {
+        var documentSetProperties = VaultPropertyCache.GetProperties(_vaultType);
+
+        foreach (var (type, _) in documentSetProperties)
+        {
+            if (typeof(TInterface).IsAssignableFrom(type))
+            {
+                ConfigureDocumentType(type, builder =>
+                {
+                    builder.AddQueryFilter(name, expression);
                 });
             }
         }
