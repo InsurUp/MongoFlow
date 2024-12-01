@@ -19,7 +19,7 @@ public abstract class MongoVault : IDisposable
         foreach (var documentType in DocumentTypes)
         {
             var setType = typeof(DocumentSet<>).MakeGenericType(documentType.DocumentType);
-            var set = Activator.CreateInstance(setType, this, false)!;
+            var set = Activator.CreateInstance(setType, this, null, null)!;
             documentType.PropertyInfo.SetValue(this, set);
         }
     }
