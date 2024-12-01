@@ -1,7 +1,5 @@
 using System.Collections.Frozen;
 using System.Reflection;
-using MongoDB.Bson;
-using MongoDB.Driver;
 using Semver;
 
 // ReSharper disable StaticMemberInGenericType

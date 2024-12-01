@@ -1,54 +1,76 @@
 using System.Linq.Expressions;
-using MongoDB.Driver;
 
 namespace MongoFlow;
 
-public sealed class DeleteOperation<TDocument> : VaultOperation
+internal sealed class DeleteOperation<TDocument> : VaultOperationBase<TDocument>
 {
+    private readonly MongoVault _vault;
     private readonly Expression<Func<TDocument, bool>> _filter;
-    private TDocument? _document;
+    private readonly bool _multiple;
 
-    public DeleteOperation(Expression<Func<TDocument, bool>> filter, TDocument? document)
+    public DeleteOperation(MongoVault vault,
+        Expression<Func<TDocument, bool>> filter, 
+        TDocument[] documents,
+        bool multiple) : base(vault, filter, documents, multiple)
     {
+        _vault = vault;
         _filter = filter;
-        _document = document;
+        _multiple = multiple;
     }
 
-    public override Type DocumentType => typeof(TDocument);
+    public override VaultOperationType OperationType => VaultOperationType.Delete;
 
-    public override object? OldDocument => _document;
-
-    public override object? CurrentDocument => null;
-
-    public override OperationType OperationType => OperationType.Delete;
-
-    internal override async Task<int> ExecuteAsync(VaultOperationContext context, CancellationToken cancellationToken = default)
+    public override async Task<int> ExecuteAsync(IClientSessionHandle session, CancellationToken cancellationToken = default)
     {
-        var collection = context.Vault.GetCollection<TDocument>();
+        var collection = _vault.GetCollection<TDocument>();
+        
 
-        if (context.EnableDiagnostic && _document is null)
-        {
-            _document = await collection.FindOneAndDeleteAsync(context.Session, _filter, cancellationToken: cancellationToken);
+        var result = _multiple ? 
+            await collection.DeleteManyAsync(session, _filter, cancellationToken: cancellationToken)
+            : await collection.DeleteOneAsync(session, _filter, cancellationToken: cancellationToken);
 
-            return _document is not null ? 1 : 0;
-        }
-
-        var result = await collection.DeleteOneAsync(context.Session, _filter, cancellationToken: cancellationToken);
-
-        return result.DeletedCount == 1 ? 1 : 0;
+        return (int) result.DeletedCount;
     }
 
-    public override bool To(OperationType operationType, out VaultOperation? operation)
+    public override bool TryConvert(VaultOperationType operationType, out IVaultOperation? operation)
     {
         operation = operationType switch
         {
-            _ when _document is null => null,
-            OperationType.Add => new AddOperation<TDocument>(_document),
-            OperationType.Update => new ReplaceOperation<TDocument>(_filter, _document),
-            OperationType.Delete => this,
+            VaultOperationType.Delete => this,
+            VaultOperationType.Replace when CachedDocuments.Length > 1 => ConvertToReplace(),
+            VaultOperationType.Add when CachedDocuments.Length > 0 
+                => new AddOperation<TDocument>(_vault, CachedDocuments.OfType<TDocument>().ToArray()),
             _ => null
         };
 
         return operation is not null;
+    }
+    
+    private IVaultOperation ConvertToReplace()
+    {
+        if (CachedDocuments.Length == 1)
+        {
+            return new ReplaceOperation<TDocument>(_vault, _filter, (TDocument) CachedDocuments[0]);
+        }
+        
+        var documentSetConfiguration = _vault.Configuration.GetDocumentSetConfiguration<TDocument>();
+        var keyExpression = documentSetConfiguration.GetKeyExpression<TDocument>();
+
+        var filtersAndDocuments = CachedDocuments
+            .OfType<TDocument>()
+            .Select(x => new
+            {
+                Document = x, 
+                Key = keyExpression.Compile().Invoke(x)
+            })
+            .Select(x => new
+            {
+                x.Document, 
+                KeyFilter = documentSetConfiguration.BuildKeyFilterExpression<TDocument>(x.Key)
+            })
+            .Select(x => (new LambdaExpression[] {x.KeyFilter, _filter}.CombineAnd<TDocument>(), x.Document))
+            .ToArray();
+        
+        return new ReplaceOperation<TDocument>(_vault, filtersAndDocuments);
     }
 }

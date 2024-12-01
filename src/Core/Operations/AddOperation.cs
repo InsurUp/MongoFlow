@@ -1,35 +1,47 @@
 namespace MongoFlow;
 
-public sealed class AddOperation<TDocument> : VaultOperation
+internal sealed class AddOperation<TDocument> : VaultOperationBase<TDocument>
 {
-    private readonly TDocument _document;
+    private readonly MongoVault _vault;
+    private readonly TDocument[] _documents;
 
-    public AddOperation(TDocument document)
+    public AddOperation(MongoVault vault,
+        TDocument[] documents) : base(vault, documents)
     {
-        _document = document;
+        _vault = vault;
+        _documents = documents;
+    }
+    
+    public AddOperation(MongoVault vault, TDocument document) : this(vault, [document])
+    {
     }
 
-    public override Type DocumentType => typeof(TDocument);
-
-    public override object? CurrentDocument => _document;
-
-    public override object? OldDocument => null;
-
-    public override OperationType OperationType => OperationType.Add;
-
-    internal override Task<int> ExecuteAsync(VaultOperationContext context,
-        CancellationToken cancellationToken = default)
+    public override VaultOperationType OperationType => VaultOperationType.Add;
+    
+    public override Task<int> ExecuteAsync(IClientSessionHandle session, CancellationToken cancellationToken = default)
     {
-        var collection = context.Vault.GetCollection<TDocument>();
-        return collection.InsertOneAsync(context.Session, _document, cancellationToken: cancellationToken)
-            .ContinueWith(_ => 1, cancellationToken);
+        if (_documents.Length == 0)
+        {
+            return Task.FromResult(0);
+        }
+        
+        var collection = _vault.GetCollection<TDocument>();
+        
+        if (_documents.Length == 1)
+        {
+            return collection.InsertOneAsync(session, _documents[0], cancellationToken: cancellationToken)
+                .ContinueWith(_ => 1, cancellationToken);
+        }
+        
+        return collection.InsertManyAsync(session, _documents, cancellationToken: cancellationToken)
+            .ContinueWith(_ => _documents.Length, cancellationToken);
     }
 
-    public override bool To(OperationType operationType, out VaultOperation? operation)
+    public override bool TryConvert(VaultOperationType operationType, out IVaultOperation? operation)
     {
         operation = operationType switch
         {
-            OperationType.Add => this,
+            VaultOperationType.Add => this,
             _ => null
         };
 

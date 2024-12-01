@@ -131,4 +131,18 @@ internal static class ExpressionExtensions
             CombineRange(expressions, mid + 1, end)
         );
     }
+    
+    public static Expression<Func<T, bool>> CombineOr<T>(this Expression<Func<T, bool>>[] expressions)
+    {
+        var parameter = Expression.Parameter(typeof(T), "x");
+        var combined = expressions
+            .Select(expr => 
+            {
+                var visitor = new ParameterReplacer(expr.Parameters[0], parameter);
+                return visitor.Visit(expr.Body)!;
+            })
+            .Aggregate(Expression.OrElse);
+
+        return Expression.Lambda<Func<T, bool>>(combined, parameter);
+    }
 }

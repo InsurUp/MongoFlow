@@ -1,4 +1,3 @@
-using MongoDB.Bson;
 using Semver;
 
 namespace MongoFlow;

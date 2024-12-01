@@ -22,12 +22,17 @@ public class MultiTenancyInterceptor<TInterface, TTenantId> : VaultInterceptor w
 
         foreach (var operation in context.Operations)
         {
-            if (operation.OperationType is OperationType.Add && operation.CurrentDocument is TInterface entity)
+            if (operation.OperationType is VaultOperationType.Add)
             {
-                var documentTenantId = tenantIdGetter(entity);
-                if (documentTenantId is null || documentTenantId.Equals(default(TTenantId)))
+                var documents = operation.CachedDocuments.OfType<TInterface>();
+                
+                foreach (var document in documents)
                 {
-                    tenantIdSetter(entity, tenantId.Value);
+                    var documentTenantId = tenantIdGetter(document);
+                    if (documentTenantId is null || documentTenantId.Equals(default(TTenantId)))
+                    {
+                        tenantIdSetter(document, tenantId.Value);
+                    }
                 }
             }
         }

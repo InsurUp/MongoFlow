@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using ExpressionVisitor = System.Linq.Expressions.ExpressionVisitor;
 
 namespace MongoFlow;
 

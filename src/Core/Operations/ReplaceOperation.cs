@@ -1,56 +1,63 @@
 using System.Linq.Expressions;
-using MongoDB.Driver;
 
 namespace MongoFlow;
 
-public sealed class ReplaceOperation<TDocument> : VaultOperation
+internal sealed class ReplaceOperation<TDocument> : VaultOperationBase<TDocument>
 {
-    private readonly Expression<Func<TDocument, bool>> _filter;
-    private readonly TDocument _document;
-    private TDocument? _oldDocument;
+    private readonly MongoVault _vault;
+    private readonly (Expression<Func<TDocument, bool>> Filter, TDocument Document)[] _filterAndDocuments;
 
-    public ReplaceOperation(Expression<Func<TDocument, bool>> filter, TDocument document)
+    public ReplaceOperation(MongoVault vault,
+        (Expression<Func<TDocument, bool>> Filter, TDocument Document)[] filterAndDocuments) 
+        : base(vault, filterAndDocuments.Select(x => x.Document).ToArray())
     {
-        _filter = filter;
-        _document = document;
+        _vault = vault;
+        _filterAndDocuments = filterAndDocuments;
     }
 
-    public override Type DocumentType => typeof(TDocument);
-
-    public override object? CurrentDocument => _document;
-
-    public override object? OldDocument => _oldDocument;
-
-    public override OperationType OperationType => OperationType.Update;
-
-    internal override async Task<int> ExecuteAsync(VaultOperationContext context, CancellationToken cancellationToken = default)
+    public ReplaceOperation(MongoVault vault,
+        Expression<Func<TDocument, bool>> filter, 
+        TDocument document) : base(vault, filter, [document], false)
     {
-        var collection = context.Vault.GetCollection<TDocument>();
+        _vault = vault;
+        _filterAndDocuments = [(filter, document)];
+    }
 
-        if (context.EnableDiagnostic)
+    public override VaultOperationType OperationType => VaultOperationType.Replace;
+
+    public override async Task<int> ExecuteAsync(IClientSessionHandle session, CancellationToken cancellationToken = default)
+    {
+        if (_filterAndDocuments.Length == 0)
         {
-            _oldDocument = await collection.FindOneAndReplaceAsync(context.Session, _filter, _document, new FindOneAndReplaceOptions<TDocument>
-            {
-                ReturnDocument = ReturnDocument.Before
-            }, cancellationToken: cancellationToken);
-
-            return 1;
+            return 0;
         }
+        
+        var collection = _vault.GetCollection<TDocument>();
+        
+        var tasks = _filterAndDocuments.Select(async x =>
+        {
+            var replaceResult = await collection.ReplaceOneAsync(session, x.Filter, x.Document, cancellationToken: cancellationToken);
+            return (int)replaceResult.ModifiedCount;
+        });
 
-        var replaceResult = await collection.ReplaceOneAsync(context.Session, _filter, _document, cancellationToken: cancellationToken);
-
-        return replaceResult.ModifiedCount == 1 ? 1 : 0;
+        var results = await Task.WhenAll(tasks);
+        
+        return results.Sum();
     }
 
-    public override bool To(OperationType operationType, out VaultOperation operation)
+    public override bool TryConvert(VaultOperationType operationType, out IVaultOperation? operation)
     {
         operation = operationType switch
         {
-            OperationType.Add => new AddOperation<TDocument>(_document),
-            OperationType.Delete => new DeleteOperation<TDocument>(_filter, _document),
-            _ => this
+            VaultOperationType.Replace 
+                => this,
+            VaultOperationType.Add 
+                => new AddOperation<TDocument>(_vault, _filterAndDocuments.Select(x => x.Document).ToArray()),
+            VaultOperationType.Delete when _filterAndDocuments.Length == 1
+                => new DeleteOperation<TDocument>(_vault, _filterAndDocuments[0].Filter, [_filterAndDocuments[0].Document], false),
+            _ => null
         };
 
-        return true;
+        return operation is not null;
     }
 }

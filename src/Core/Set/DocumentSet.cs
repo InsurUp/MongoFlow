@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -23,9 +22,9 @@ public sealed class DocumentSet<TDocument>
     public IFindFluent<TDocument, TDocument> Find(Expression<Func<TDocument, bool>> filter)
     {
         var transformedFilter = TransformQueryFilterExpression(filter);
-        
-        return _vault.CurrentTransaction is not null ?
-            _collection.Find(_vault.CurrentTransaction.Session, transformedFilter)
+
+        return _vault.CurrentTransaction is not null
+            ? _collection.Find(_vault.CurrentTransaction.Session, transformedFilter)
             : _collection.Find(transformedFilter);
     }
 
@@ -34,8 +33,8 @@ public sealed class DocumentSet<TDocument>
         var queryFilter = TransformQueryFilterExpression();
         var finalFilter = queryFilter is not null ? filter & queryFilter : filter;
 
-        return _vault.CurrentTransaction is not null ?
-            _collection.Find(_vault.CurrentTransaction.Session, finalFilter)
+        return _vault.CurrentTransaction is not null
+            ? _collection.Find(_vault.CurrentTransaction.Session, finalFilter)
             : _collection.Find(finalFilter);
     }
 
@@ -43,8 +42,8 @@ public sealed class DocumentSet<TDocument>
     {
         var filter = TransformQueryFilterExpression() ?? Builders<TDocument>.Filter.Empty;
 
-        return _vault.CurrentTransaction is not null ?
-            _collection.Find(_vault.CurrentTransaction.Session, filter)
+        return _vault.CurrentTransaction is not null
+            ? _collection.Find(_vault.CurrentTransaction.Session, filter)
             : _collection.Find(filter);
     }
 
@@ -52,8 +51,8 @@ public sealed class DocumentSet<TDocument>
     {
         var filter = TransformQueryFilterExpression();
 
-        var queryable = _vault.CurrentTransaction is not null ?
-            _collection.AsQueryable(_vault.CurrentTransaction.Session)
+        var queryable = _vault.CurrentTransaction is not null
+            ? _collection.AsQueryable(_vault.CurrentTransaction.Session)
             : _collection.AsQueryable();
 
         return filter is not null ? queryable.Where(filter) : queryable;
@@ -62,9 +61,9 @@ public sealed class DocumentSet<TDocument>
     public IAggregateFluent<TDocument> Aggregate()
     {
         var filter = TransformQueryFilterExpression() ?? Builders<TDocument>.Filter.Empty;
-        
-        var aggregate = _vault.CurrentTransaction is not null ?
-            _collection.Aggregate(_vault.CurrentTransaction.Session)
+
+        var aggregate = _vault.CurrentTransaction is not null
+            ? _collection.Aggregate(_vault.CurrentTransaction.Session)
             : _collection.Aggregate();
 
         return aggregate.Match(filter);
@@ -72,7 +71,14 @@ public sealed class DocumentSet<TDocument>
 
     public void Add(TDocument document)
     {
-        var operation = new AddOperation<TDocument>(document);
+        var operation = new AddOperation<TDocument>(_vault, document);
+
+        _vault.AddOperation(operation);
+    }
+
+    public void AddRange(IEnumerable<TDocument> documents)
+    {
+        var operation = new AddOperation<TDocument>(_vault, documents as TDocument[] ?? documents.ToArray());
 
         _vault.AddOperation(operation);
     }
@@ -81,42 +87,61 @@ public sealed class DocumentSet<TDocument>
     {
         var filter = BuildKeyFilter(document);
 
-        var operation = new DeleteOperation<TDocument>(filter, document);
+        var operation = new DeleteOperation<TDocument>(_vault,
+            filter,
+            [document],
+            false);
 
         _vault.AddOperation(operation);
     }
 
-    public async Task DeleteByKeyAsync(object key, CancellationToken cancellationToken = default)
+    public void DeleteAsync(object key)
     {
-        var document = await GetByKeyAsync(key, cancellationToken);
+        var filter = BuildKeyFilter(key);
 
-        if (document is not null)
+        var operation = new DeleteOperation<TDocument>(_vault, filter, [], false);
+        
+        _vault.AddOperation(operation);
+    }
+    
+    public void Delete(TDocument[] documents)
+    {
+        if (documents.Length == 0)
         {
-            Delete(document);
+            return;
         }
+
+        var filters = documents.Select(BuildKeyFilter).ToArray();
+        var expression = filters.CombineOr();
+
+        var operation = new DeleteOperation<TDocument>(_vault, expression, documents, true);
+
+        _vault.AddOperation(operation);
+    }
+    
+    public void DeleteOne(Expression<Func<TDocument, bool>> filter)
+    {
+        var transformedFilter = TransformQueryFilterExpression(filter)!;
+
+        var operation = new DeleteOperation<TDocument>(_vault, transformedFilter, [],false);
+
+        _vault.AddOperation(operation);
     }
 
+    public void DeleteMany(Expression<Func<TDocument, bool>> filter)
+    {
+        var transformedFilter = TransformQueryFilterExpression(filter)!;
+
+        var operation = new DeleteOperation<TDocument>(_vault, transformedFilter,[],true);
+
+        _vault.AddOperation(operation);
+    }
+    
     public void Replace(TDocument document)
     {
         var filter = BuildKeyFilter(document);
 
-        var operation = new ReplaceOperation<TDocument>(filter, document);
-
-        _vault.AddOperation(operation);
-    }
-
-    public void Update(Expression<Func<TDocument, bool>> filter, UpdateDefinition<TDocument> update)
-    {
-        var operation = new UpdateOperation<TDocument>(filter, update);
-
-        _vault.AddOperation(operation);
-    }
-
-    public void UpdateByKey(object key, UpdateDefinition<TDocument> update)
-    {
-        var filter = BuildKeyFilter(key);
-
-        var operation = new UpdateOperation<TDocument>(filter, update);
+        var operation = new ReplaceOperation<TDocument>(_vault, filter, document);
 
         _vault.AddOperation(operation);
     }
@@ -124,8 +149,8 @@ public sealed class DocumentSet<TDocument>
     public async Task<TDocument?> GetByKeyAsync(object key, CancellationToken cancellationToken = default)
     {
         var filter = BuildKeyFilter(key);
-        var find = _vault.CurrentTransaction is not null ?
-            _collection.Find(_vault.CurrentTransaction.Session, filter)
+        var find = _vault.CurrentTransaction is not null
+            ? _collection.Find(_vault.CurrentTransaction.Session, filter)
             : _collection.Find(filter);
 
         return await find.FirstOrDefaultAsync(cancellationToken);
@@ -136,7 +161,8 @@ public sealed class DocumentSet<TDocument>
         return new DocumentSet<TDocument>(_vault, true);
     }
 
-    private Expression<Func<TDocument, bool>>? TransformQueryFilterExpression(Expression<Func<TDocument, bool>>? expression = null)
+    private Expression<Func<TDocument, bool>>? TransformQueryFilterExpression(
+        Expression<Func<TDocument, bool>>? expression = null)
     {
         if (_ignoreQueryFilter)
         {
@@ -150,8 +176,8 @@ public sealed class DocumentSet<TDocument>
             return expression;
         }
 
-        var filters = expression is not null ?
-            [expression, ..queryFilters]
+        var filters = expression is not null
+            ? [expression, ..queryFilters]
             : queryFilters;
 
         return filters.CombineAnd<TDocument>();
@@ -170,12 +196,5 @@ public sealed class DocumentSet<TDocument>
         var key = keyExpression.Compile().Invoke(document);
 
         return BuildKeyFilter(key);
-    }
-
-    public void AddRange(IEnumerable<TDocument> documents)
-    {
-        var operation = new AddRangeOperation<TDocument>(documents);
-
-        _vault.AddOperation(operation);
     }
 }

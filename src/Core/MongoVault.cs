@@ -1,12 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
 
 namespace MongoFlow;
 
 public abstract class MongoVault : IDisposable
 {
     private readonly VaultConfigurationManager _configurationManager;
-    private readonly List<VaultOperation> _operations = [];
+    private readonly List<IVaultOperation> _operations = [];
 
     private MongoVaultTransaction? _transaction;
 
@@ -108,11 +107,9 @@ public abstract class MongoVault : IDisposable
 
         try
         {
-            var operationContext = new VaultOperationContext(session, this, interceptorContext.DiagnosticsEnabled);
-
             foreach (var operation in operations)
             {
-                affected += await operation.ExecuteAsync(operationContext, cancellationToken);
+                affected += await operation.ExecuteAsync(session, cancellationToken);
             }
 
             foreach (var interceptor in interceptors)
@@ -150,11 +147,9 @@ public abstract class MongoVault : IDisposable
         return affected;
     }
 
-    internal void AddOperation(VaultOperation operation)
+    internal void AddOperation(IVaultOperation operation)
     {
-        if (!_operations.Exists(x => x.DocumentType == operation.DocumentType &&
-                                     x.CurrentDocument is not null &&
-                                     x.CurrentDocument == operation.CurrentDocument))
+        if (!_operations.Exists(x => x.DocumentType == operation.DocumentType))
         {
             _operations.Add(operation);
         }

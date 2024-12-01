@@ -9,30 +9,32 @@ public class SoftDeleteInterceptor<TSoftDeleteInterface> : VaultInterceptor
         _options = options;
     }
 
-    public override ValueTask SavingChangesAsync(VaultInterceptorContext context,
-        CancellationToken cancellationToken = default)
+    public override async ValueTask SavingChangesAsync(VaultInterceptorContext context,
+        CancellationToken cancellationToken)
     {
-        for (int i = 0; i < context.Operations.Count; i++)
+        for (var i = 0; i < context.Operations.Count; i++)
         {
             var operation = context.Operations[i];
-
-            if (operation.OperationType is OperationType.Delete && operation.OldDocument is TSoftDeleteInterface softDeleteDocument)
+            
+            if (operation.OperationType is VaultOperationType.Delete &&
+                typeof(TSoftDeleteInterface).IsAssignableFrom(operation.DocumentType))
             {
-                _options.ChangeIsDeleted(softDeleteDocument, true);
-
-                var index = context.Operations.IndexOf(operation);
-
-                if (operation.To(OperationType.Update, out var updateOperation) && updateOperation is not null)
+                var documents = await operation.FetchDocumentsAsync(context.Session, cancellationToken);
+                if (documents.Length == 0)
                 {
-                    context.Operations[index] = updateOperation;
+                    continue;
                 }
-                else
+
+                foreach (var document in documents.OfType<TSoftDeleteInterface>())
                 {
-                    throw new InvalidOperationException("Failed to convert delete operation to update operation.");
+                    _options.ChangeIsDeleted(document, true);
+                }
+                
+                if (operation.TryConvert(VaultOperationType.Replace, out var replaceOperation))
+                {
+                    context.Operations[i] = replaceOperation!;
                 }
             }
         }
-
-        return ValueTask.CompletedTask;
     }
 }

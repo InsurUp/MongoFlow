@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
 using MongoFlow.Bson;
 
 namespace MongoFlow;

@@ -1,4 +1,3 @@
-using MongoDB.Driver;
 using Semver;
 
 namespace MongoFlow;
