@@ -7,7 +7,7 @@
 > [!WARNING]
 > This package is not ready for production use. It is still in development and should not be used in a production environment.
 >
-> We welcome your feedback! You can reach us by [opening a GitHub issue](https://github.com/InsurUp/MongoFlow.Identity/issues).
+> We welcome your feedback! You can reach us by [opening a GitHub issue](https://github.com/InsurUp/MongoFlow/issues).
 
 MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver. It simplifies database operations with features like Unit of work & Repository pattern, query filters, interceptors, and more.
 
