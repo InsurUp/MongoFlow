@@ -50,12 +50,22 @@ public class VaultConfigurationBuilder
 
     public void AddInterceptor<TInterceptor>(params object[] args) where TInterceptor : VaultInterceptor
     {
-        _interceptors.Add(new ServiceVaultInterceptorProvider(typeof(TInterceptor), args));
+        AddInterceptor<TInterceptor>(null, args);
+    }
+    
+    public void AddInterceptor<TInterceptor>(string? name, params object[] args) where TInterceptor : VaultInterceptor
+    {
+        _interceptors.Add(new ServiceVaultInterceptorProvider(typeof(TInterceptor), name, args));
     }
 
     public void AddInterceptor(VaultInterceptor interceptor)
     {
-        _interceptors.Add(new StaticVaultInterceptorProvider(interceptor));
+        AddInterceptor(null, interceptor);
+    }
+    
+    public void AddInterceptor(string? name, VaultInterceptor interceptor)
+    {
+        _interceptors.Add(new StaticVaultInterceptorProvider(interceptor, name));
     }
 
     public void SetDatabase(IMongoDatabase database)
@@ -70,7 +80,7 @@ public class VaultConfigurationBuilder
 
         AddMultiQueryFilters<TInterface>(expression);
 
-        AddInterceptor(new SoftDeleteInterceptor<TInterface>(options));
+        AddInterceptor("soft-delete", new SoftDeleteInterceptor<TInterface>(options));
     }
 
     public void AddMultiTenancy<TInterface, TTenantId>(VaultMultiTenancyOptions<TInterface, TTenantId> options) where TTenantId : struct
@@ -91,7 +101,7 @@ public class VaultConfigurationBuilder
             );
         });
 
-        AddInterceptor(new MultiTenancyInterceptor<TInterface, TTenantId>(options));
+        AddInterceptor("multi-tenancy", new MultiTenancyInterceptor<TInterface, TTenantId>(options));
     }
 
     public void AddMultiQueryFilters<TInterface>(Expression<Func<TInterface, bool>> expression)

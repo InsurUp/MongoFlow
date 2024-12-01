@@ -4,12 +4,16 @@ public sealed class AddRangeOperation<TDocument> : AddRangeOperation
 {
     private readonly IEnumerable<TDocument> _documents;
 
-    public AddRangeOperation(IEnumerable<TDocument> documents)
+    public AddRangeOperation(IEnumerable<TDocument> documents,
+        DisableContext interceptorDisableContext)
     {
         _documents = documents;
+        InterceptorDisableContext = interceptorDisableContext;
     }
 
     public override Type DocumentType => typeof(TDocument);
+
+    public override DisableContext InterceptorDisableContext { get; }
 
     internal override Task<int> ExecuteAsync(VaultOperationContext context,
         CancellationToken cancellationToken = default)

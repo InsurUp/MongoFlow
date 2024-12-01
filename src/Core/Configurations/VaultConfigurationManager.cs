@@ -4,7 +4,7 @@ public abstract class VaultConfigurationManager
 {
     internal abstract VaultConfiguration Configuration { get; }
 
-    internal abstract VaultInterceptor[] ResolveInterceptors();
+    internal abstract (string? Name, VaultInterceptor Interceptor)[] ResolveInterceptors();
 
     internal abstract IServiceProvider ServiceProvider { get; }
     
@@ -36,10 +36,10 @@ public class VaultConfigurationManager<TVault> : VaultConfigurationManager where
 
     internal override VaultConfiguration Configuration { get; }
 
-    internal override VaultInterceptor[] ResolveInterceptors()
+    internal override (string? Name, VaultInterceptor Interceptor)[] ResolveInterceptors()
     {
         return Configuration.Interceptors
-            .Select(interceptorDefinition => interceptorDefinition.GetInterceptor(ServiceProvider))
+            .Select(interceptorDefinition => (interceptorDefinition.Name, interceptorDefinition.GetInterceptor(ServiceProvider)))
             .ToArray();
     }
 }

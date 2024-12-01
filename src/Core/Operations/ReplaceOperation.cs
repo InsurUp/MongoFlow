@@ -9,10 +9,13 @@ public sealed class ReplaceOperation<TDocument> : VaultOperation
     private readonly TDocument _document;
     private TDocument? _oldDocument;
 
-    public ReplaceOperation(Expression<Func<TDocument, bool>> filter, TDocument document)
+    public ReplaceOperation(Expression<Func<TDocument, bool>> filter, 
+        TDocument document,
+        DisableContext interceptorDisableContext)
     {
         _filter = filter;
         _document = document;
+        InterceptorDisableContext = interceptorDisableContext;
     }
 
     public override Type DocumentType => typeof(TDocument);
@@ -22,6 +25,8 @@ public sealed class ReplaceOperation<TDocument> : VaultOperation
     public override object? OldDocument => _oldDocument;
 
     public override OperationType OperationType => OperationType.Update;
+    
+    public override DisableContext InterceptorDisableContext { get; }
 
     internal override async Task<int> ExecuteAsync(VaultOperationContext context, CancellationToken cancellationToken = default)
     {
@@ -46,8 +51,8 @@ public sealed class ReplaceOperation<TDocument> : VaultOperation
     {
         operation = operationType switch
         {
-            OperationType.Add => new AddOperation<TDocument>(_document),
-            OperationType.Delete => new DeleteOperation<TDocument>(_filter, _document),
+            OperationType.Add => new AddOperation<TDocument>(_document, InterceptorDisableContext),
+            OperationType.Delete => new DeleteOperation<TDocument>(_filter, _document, InterceptorDisableContext),
             _ => this
         };
 

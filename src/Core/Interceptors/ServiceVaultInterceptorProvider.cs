@@ -8,11 +8,15 @@ internal sealed class ServiceVaultInterceptorProvider : IVaultInterceptorProvide
     private readonly object[] _args;
 
     public ServiceVaultInterceptorProvider(Type type,
+        string? name,
         object[] args)
     {
         _type = type;
         _args = args;
+        Name = name;
     }
+
+    public string? Name { get; }
 
     public VaultInterceptor GetInterceptor(IServiceProvider serviceProvider)
     {

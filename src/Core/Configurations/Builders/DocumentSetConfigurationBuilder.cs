@@ -18,12 +18,22 @@ public sealed class DocumentSetConfigurationBuilder<TDocument> : DocumentSetConf
 
     public void AddQueryFilter(Expression<Func<TDocument, bool>> expression)
     {
-        AddQueryFilter(new StaticQueryFilterDefinition<TDocument>(expression));
+        AddQueryFilter(null, expression);
+    }
+    
+    public void AddQueryFilter(string? name, Expression<Func<TDocument, bool>> expression)
+    {
+        AddQueryFilter(new StaticQueryFilterDefinition<TDocument>(expression, name));
     }
 
     public void AddQueryFilter(Func<IServiceProvider, Expression<Func<TDocument, bool>>> expression)
     {
-        AddQueryFilter(new ServiceProviderQueryFilterDefinition<TDocument>(expression));
+        AddQueryFilter(null, expression);
+    }
+    
+    public void AddQueryFilter(string? name, Func<IServiceProvider, Expression<Func<TDocument, bool>>> expression)
+    {
+        AddQueryFilter(new ServiceProviderQueryFilterDefinition<TDocument>(expression, name));
     }
 }
 
@@ -63,11 +73,21 @@ public class DocumentSetConfigurationBuilder
 
     public void AddQueryFilter(LambdaExpression expression)
     {
-        Builder.AddQueryFilter(expression);
+        AddQueryFilter(null, expression);
+    }
+    
+    public void AddQueryFilter(string? name, LambdaExpression expression)
+    {
+        Builder.AddQueryFilter(name, expression);
     }
 
     public void AddQueryFilter(Func<IServiceProvider, LambdaExpression> expressionProvider)
     {
-        Builder.AddQueryFilter(expressionProvider);
+        AddQueryFilter(null, expressionProvider);
+    }
+    
+    public void AddQueryFilter(string? name, Func<IServiceProvider, LambdaExpression> expressionProvider)
+    {
+        Builder.AddQueryFilter(name, expressionProvider);
     }
 }

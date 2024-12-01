@@ -45,9 +45,9 @@ public abstract class MongoVault : IDisposable
         return MongoDatabase.GetCollection<TDocument>(setConfiguration.Name);
     }
 
-    public DocumentSet<TDocument> Set<TDocument>(bool ignoreQueryFilter = false)
+    public DocumentSet<TDocument> Set<TDocument>()
     {
-        return new DocumentSet<TDocument>(this, ignoreQueryFilter);
+        return new DocumentSet<TDocument>(this);
     }
 
     public bool IsInTransaction => _transaction is not null || GlobalTransactionManager?.CurrentTransaction is not null;
@@ -97,34 +97,51 @@ public abstract class MongoVault : IDisposable
         }
 
         var interceptors = _configurationManager.ResolveInterceptors();
-        var interceptorContext = new VaultInterceptorContext(this, operations, session, ServiceProvider);
+        List<(VaultInterceptor, VaultInterceptorContext)> interceptorMappings = [];
 
-        foreach (var interceptor in interceptors)
+        foreach (var (name, interceptor) in interceptors)
         {
-            await interceptor.SavingChangesAsync(interceptorContext, cancellationToken);
+            var interceptorOperations = operations
+                .Where(x => !x.InterceptorDisableContext.AllDisabled && !x.InterceptorDisableContext.DisabledItems.Contains(name))
+                .ToList();
+            
+            if (interceptorOperations.Count == 0)
+            {
+                continue;
+            }
+            
+            var interceptorContext = new VaultInterceptorContext(this, interceptorOperations, session, ServiceProvider);
+            
+            interceptorMappings.Add((interceptor, interceptorContext));
+        }
+
+        foreach (var (interceptor, context) in interceptorMappings)
+        {
+            await interceptor.SavingChangesAsync(context, cancellationToken);
         }
 
         var affected = 0;
 
         try
         {
-            var operationContext = new VaultOperationContext(session, this, interceptorContext.DiagnosticsEnabled);
+            var diagnosticEnabled = interceptorMappings.Any(x => x.Item2.DiagnosticsEnabled);
+            var operationContext = new VaultOperationContext(session, this, diagnosticEnabled);
 
             foreach (var operation in operations)
             {
                 affected += await operation.ExecuteAsync(operationContext, cancellationToken);
             }
 
-            foreach (var interceptor in interceptors)
+            foreach (var (interceptor, context) in interceptorMappings)
             {
-                await interceptor.SavedChangesAsync(interceptorContext, affected, cancellationToken);
+                await interceptor.SavedChangesAsync(context, affected, cancellationToken);
             }
         }
         catch (Exception e)
         {
-            foreach (var interceptor in interceptors)
+            foreach (var (interceptor, context) in interceptorMappings)
             {
-                await interceptor.SaveChangesFailedAsync(e, interceptorContext, cancellationToken);
+                await interceptor.SaveChangesFailedAsync(e, context, cancellationToken);
             }
 
             if (CurrentTransaction is null)
