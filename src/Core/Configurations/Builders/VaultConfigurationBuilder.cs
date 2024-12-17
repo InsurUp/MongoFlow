@@ -20,6 +20,8 @@ public class VaultConfigurationBuilder
             _documentSetConfigurationBuilders[type] = new InternalDocumentSetConfigurationBuilder(documentSetProperty);
         }
     }
+    
+    public IEnumerable<VaultProperty> Properties => VaultPropertyCache.GetProperties(_vaultType).Values;
 
     public void ConfigureDocumentType<TDocument>(Action<DocumentSetConfigurationBuilder<TDocument>> configure)
     {
