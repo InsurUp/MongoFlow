@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using MongoFlow.Identity.Wrappers;
 
 namespace MongoFlow.Identity;
 
@@ -38,9 +40,19 @@ public static class MongoFlowIdentityBuilderExtensions
         
         var userStoreType = typeof(MongoUserStore<,,,>).MakeGenericType(typeof(TVault), userType, roleType, keyType);
         var roleStoreType = typeof(MongoRoleStore<,,>).MakeGenericType(typeof(TVault), roleType, keyType);
+        var userManagerType = typeof(UserManager<>).MakeGenericType(userType);
+        var roleManagerType = typeof(RoleManager<>).MakeGenericType(roleType);
+        var userManagerWrapperType = typeof(UserManagerWrapper<>).MakeGenericType(userType);
+        var roleManagerWrapperType = typeof(RoleManagerWrapper<>).MakeGenericType(roleType);
         
         builder.Services.AddScoped(typeof(IUserStore<>).MakeGenericType(userType), userStoreType);
         builder.Services.AddScoped(typeof(IRoleStore<>).MakeGenericType(roleType), roleStoreType);
+
+        builder.Services.RemoveAll(userManagerType);
+        builder.Services.RemoveAll(roleManagerType);
+        
+        builder.Services.AddScoped(userManagerType, serviceProvider => ActivatorUtilities.CreateInstance(serviceProvider, userManagerWrapperType));
+        builder.Services.AddScoped(roleManagerType, serviceProvider => ActivatorUtilities.CreateInstance(serviceProvider, roleManagerWrapperType));
         
         MongoIdentityConfiguration.ConfigureByType(keyType);
         

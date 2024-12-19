@@ -7,17 +7,65 @@ using MongoDB.Driver.Linq;
 namespace MongoFlow.Identity;
 
 public class MongoUserStore<TVault, TUser, TRole, TKey> : 
-    UserStoreBase<TUser, TRole, TKey, IdentityUserClaim<TKey>, IdentityUserRole<TKey>, IdentityUserLogin<TKey>, IdentityUserToken<TKey>, IdentityRoleClaim<TKey>> 
+    UserStoreBase<TUser, TRole, TKey, IdentityUserClaim<TKey>, IdentityUserRole<TKey>, IdentityUserLogin<TKey>, IdentityUserToken<TKey>, IdentityRoleClaim<TKey>>,
+    ICloneUserStore<TUser>
     where TVault : IdentityMongoVault<TUser, TRole, TKey>
     where TUser : MongoUser<TKey>
     where TRole : MongoRole<TKey>
     where TKey : IEquatable<TKey>
 {
     private readonly TVault _vault;
+    private readonly IdentityErrorDescriber _describer;
+    
+    private readonly DocumentSet<TUser> _users;
+    private readonly DocumentSet<TRole> _roles;
 
     public MongoUserStore(TVault vault, IdentityErrorDescriber describer) : base(describer)
     {
         _vault = vault;
+        _describer = describer;
+        _users = _vault.Set<TUser>();
+        _roles = _vault.Set<TRole>();
+    }
+    
+    private MongoUserStore(TVault vault, 
+        IdentityErrorDescriber describer,
+        DisableContext queryFilterDisableContext,
+        DisableContext interceptorDisableContext) : this(vault, describer)
+    {
+        var users = _vault.Set<TUser>();
+        var roles = _vault.Set<TRole>();
+
+        users = queryFilterDisableContext switch
+        {
+            { AllDisabled: true } => users.DisableAllQueryFilters(),
+            { DisabledItems.Length: > 0 } => users.DisableQueryFilters(interceptorDisableContext.DisabledItems),
+            _ => users
+        };
+
+        users = interceptorDisableContext switch
+        {
+            { AllDisabled: true } => users.DisableAllInterceptors(),
+            { DisabledItems.Length: > 0 } => users.DisableInterceptors(interceptorDisableContext.DisabledItems),
+            _ => users
+        };
+        
+        roles = queryFilterDisableContext switch
+        {
+            { AllDisabled: true } => roles.DisableAllQueryFilters(),
+            { DisabledItems.Length: > 0 } => roles.DisableQueryFilters(interceptorDisableContext.DisabledItems),
+            _ => roles
+        };
+        
+        roles = interceptorDisableContext switch
+        {
+            { AllDisabled: true } => roles.DisableAllInterceptors(),
+            { DisabledItems.Length: > 0 } => roles.DisableInterceptors(interceptorDisableContext.DisabledItems),
+            _ => roles
+        };
+
+        _users = users;
+        _roles = roles;
     }
 
     public override async Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken = default)
@@ -26,7 +74,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         
-        _vault.Users.Add(user);
+        _users.Add(user);
         await _vault.SaveAsync(cancellationToken);
         
         return IdentityResult.Success;
@@ -38,7 +86,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
         await _vault.SaveAsync(cancellationToken);
         
         return IdentityResult.Success;
@@ -50,7 +98,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         
-        _vault.Users.Delete(user);
+        _users.Delete(user);
         await _vault.SaveAsync(cancellationToken);
         
         return IdentityResult.Success;
@@ -68,7 +116,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             return null;
         }
         
-        return await _vault.Users.GetByKeyAsync(id, cancellationToken);
+        return await _users.GetByKeyAsync(id, cancellationToken);
     }
 
     public override async Task<TUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
@@ -77,7 +125,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(normalizedUserName);
         
-        return await _vault.Users
+        return await _users
             .Find(x => x.NormalizedUserName == normalizedUserName)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -87,7 +135,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         
-        return await _vault.Users.GetByKeyAsync(userId, cancellationToken);
+        return await _users.GetByKeyAsync(userId, cancellationToken);
     }
 
     protected override async Task<IdentityUserLogin<TKey>?> FindUserLoginAsync(TKey userId, string loginProvider, string providerKey, CancellationToken cancellationToken)
@@ -95,7 +143,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         
-        var result = await _vault.Users.AsQueryable()
+        var result = await _users.AsQueryable()
             .Where(x => x.Id.Equals(userId))
             .SelectMany(x => x.Logins)
             .Where(x => x.LoginProvider == loginProvider && x.ProviderKey == providerKey)
@@ -131,7 +179,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             });
         }
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
         
         return Task.CompletedTask;
     }
@@ -152,7 +200,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             userClaim.ClaimValue = newClaim.Value;
         }
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
         
         return Task.CompletedTask;
     }
@@ -172,7 +220,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             }
         }
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
         
         return Task.CompletedTask;
     }
@@ -183,7 +231,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(claim);
         
-        return await _vault.Users.AsQueryable()
+        return await _users.AsQueryable()
             .Where(x => x.Claims.Any(c => c.ClaimType == claim.Type && c.ClaimValue == claim.Value))
             .ToListAsync(cancellationToken);
     }
@@ -202,7 +250,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(token);
         
-        var user = await _vault.Users.GetByKeyAsync(token.UserId);
+        var user = await _users.GetByKeyAsync(token.UserId);
         if (user is null)
         {
             return;
@@ -210,7 +258,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         
         user.Tokens.Add(token);
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
     }
 
     protected override async Task RemoveUserTokenAsync(IdentityUserToken<TKey> token)
@@ -218,7 +266,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(token);
         
-        var user = await _vault.Users.GetByKeyAsync(token.UserId);
+        var user = await _users.GetByKeyAsync(token.UserId);
         if (user is null)
         {
             return;
@@ -226,10 +274,10 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         
         user.Tokens.Remove(token);
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
     }
 
-    public override IQueryable<TUser> Users => _vault.Users.AsQueryable();
+    public override IQueryable<TUser> Users => _users.AsQueryable();
 
     public override Task AddLoginAsync(TUser user, UserLoginInfo login, CancellationToken cancellationToken = default)
     {
@@ -244,7 +292,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             ProviderDisplayName = login.ProviderDisplayName
         });
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
         
         return Task.CompletedTask;
     }
@@ -263,7 +311,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             user.Logins.Remove(login);
         }
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
         
         return Task.CompletedTask;
     }
@@ -281,7 +329,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(normalizedEmail);
         
-        return await _vault.Users
+        return await _users
             .Find(x => x.NormalizedEmail == normalizedEmail)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -296,7 +344,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         
         var roleIds = user.Roles;
         
-        return await _vault.Roles
+        return await _roles
             .Find(x => x.NormalizedName == normalizedRoleName && roleIds.Contains(x.Id))
             .AnyAsync(cancellationToken);
     }
@@ -307,7 +355,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(normalizedRoleName);
         
-        return await _vault.Roles
+        return await _roles
             .Find(x => x.NormalizedName == normalizedRoleName)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -317,7 +365,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         
-        return await _vault.Users.AsQueryable()
+        return await _users.AsQueryable()
             .Where(x => x.Id.Equals(userId))
             .SelectMany(x => x.Roles)
             .Where(x => x.Equals(roleId))
@@ -341,7 +389,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             return new List<TUser>();
         }
         
-        return await _vault.Users.AsQueryable()
+        return await _users.AsQueryable()
             .Where(x => x.Roles.Contains(role.Id))
             .ToListAsync(cancellationToken);
     }
@@ -362,7 +410,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         
         user.Roles.Add(role.Id);
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
     }
 
     public override async Task RemoveFromRoleAsync(TUser user, 
@@ -382,15 +430,25 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         
         user.Roles.Remove(role.Id);
         
-        _vault.Users.Replace(user);
+        _users.Replace(user);
     }
 
     public override async Task<IList<string>> GetRolesAsync(TUser user, CancellationToken cancellationToken = default)
     {
         var roleIds = user.Roles;
         
-        return await _vault.Roles.Find(x => roleIds.Contains(x.Id) && x.Name != null)
+        return await _roles.Find(x => roleIds.Contains(x.Id) && x.Name != null)
             .Project(x => x.Name!)
             .ToListAsync(cancellationToken);
     }
+    
+    public IUserStore<TUser> Clone(DisableContext queryFilterDisableContext, DisableContext interceptorDisableContext)
+    {
+        return new MongoUserStore<TVault, TUser, TRole, TKey>(_vault, _describer, queryFilterDisableContext, interceptorDisableContext);
+    }
+}
+
+public interface ICloneUserStore<TUser> where TUser : class
+{
+    IUserStore<TUser> Clone(DisableContext queryFilterDisableContext, DisableContext interceptorDisableContext);
 }

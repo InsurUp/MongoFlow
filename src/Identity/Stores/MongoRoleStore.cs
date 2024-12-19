@@ -5,22 +5,52 @@ using MongoDB.Driver.Linq;
 
 namespace MongoFlow.Identity;
 
-public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, IRoleClaimStore<TRole>
+public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, IRoleClaimStore<TRole>, ICloneRoleStore<TRole>
     where TVault : MongoVault
     where TRole : MongoRole<TKey>
     where TKey : IEquatable<TKey>
 {
+    private readonly DocumentSet<TRole> _roles;
+    
+    private readonly IdentityErrorDescriber? _describer;
+    
     public MongoRoleStore(TVault vault, IdentityErrorDescriber? describer = null)
     {
         ArgumentNullException.ThrowIfNull(vault);
+
+        _describer = describer;
         Vault = vault;
         ErrorDescriber = describer ?? new IdentityErrorDescriber();
+        _roles = vault.Set<TRole>();
+    }
+    
+    private MongoRoleStore(TVault vault, 
+        IdentityErrorDescriber? describer, 
+        DisableContext queryFilterDisableContext, 
+        DisableContext interceptorDisableContext)
+        : this(vault, describer)
+    {
+        var roles = vault.Set<TRole>();
+        
+        roles = queryFilterDisableContext switch
+        {
+            { AllDisabled: true } => roles.DisableAllQueryFilters(),
+            { DisabledItems.Length: > 0 } => roles.DisableQueryFilters(interceptorDisableContext.DisabledItems),
+            _ => roles
+        };
+        
+        roles = interceptorDisableContext switch
+        {
+            { AllDisabled: true } => roles.DisableAllInterceptors(),
+            { DisabledItems.Length: > 0 } => roles.DisableInterceptors(interceptorDisableContext.DisabledItems),
+            _ => roles
+        };
+        
+        _roles = roles;
     }
 
     private bool _disposed;
     
-    private DocumentSet<TRole> RoleSet => Vault.Set<TRole>();
-
     public virtual TVault Vault { get; private set; }
 
     public IdentityErrorDescriber ErrorDescriber { get; set; }
@@ -31,7 +61,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, I
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(role);
         
-        RoleSet.Add(role);
+        _roles.Add(role);
         await Vault.SaveAsync(cancellationToken);
         
         return IdentityResult.Success;
@@ -43,7 +73,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, I
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(role);
         
-        RoleSet.Replace(role);
+        _roles.Replace(role);
         await Vault.SaveAsync(cancellationToken);
        
         return IdentityResult.Success;
@@ -55,7 +85,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, I
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(role);
         
-        RoleSet.Delete(role);
+        _roles.Delete(role);
         await Vault.SaveAsync(cancellationToken);
         
         return IdentityResult.Success;
@@ -167,7 +197,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, I
             ClaimValue = claim.Value
         });
         
-        RoleSet.Replace(role);
+        _roles.Replace(role);
         
         return Task.CompletedTask;
     }
@@ -184,11 +214,21 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, I
         if (roleClaim != null)
         {
             role.Claims.Remove(roleClaim);
-            RoleSet.Replace(role);
+            _roles.Replace(role);
         }
         
         return Task.CompletedTask;
     }
 
-    public virtual IQueryable<TRole> Roles => RoleSet.AsQueryable();
+    public virtual IQueryable<TRole> Roles => _roles.AsQueryable();
+    
+    public IRoleStore<TRole> Clone(DisableContext queryFilterDisableContext, DisableContext interceptorDisableContext)
+    {
+        return new MongoRoleStore<TVault, TRole, TKey>(Vault, _describer, queryFilterDisableContext, interceptorDisableContext);
+    }
+}
+
+public interface ICloneRoleStore<TRole> where TRole : class
+{
+    IRoleStore<TRole> Clone(DisableContext queryFilterDisableContext, DisableContext interceptorDisableContext);
 }
