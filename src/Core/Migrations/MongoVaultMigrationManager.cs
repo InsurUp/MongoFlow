@@ -67,19 +67,18 @@ internal sealed class MongoVaultMigrationManager<TVault> : IMongoVaultMigrationM
         }
         
         var mongoClient = _database.Client;
-
-        using var session = await mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
         
-        session.StartTransaction();
-        
-        try
+        foreach (var migration in migrations)
         {
-            foreach (var migration in migrations)
+            using var session = await mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
+            session.StartTransaction();
+            
+            try
             {
                 if (runUp)
                 {
                     await migration.Up(_database, session, cancellationToken);
-                    
+
                     await _collection.InsertOneAsync(session, new MigrationDocument
                     {
                         Id = ObjectId.GenerateNewId(),
@@ -92,19 +91,19 @@ internal sealed class MongoVaultMigrationManager<TVault> : IMongoVaultMigrationM
                 else
                 {
                     await migration.Down(_database, session, cancellationToken);
-                    
-                    await _collection.DeleteOneAsync(session, 
-                        x => x.Version == migration.Version, 
+
+                    await _collection.DeleteOneAsync(session,
+                        x => x.Version == migration.Version,
                         cancellationToken: cancellationToken);
                 }
+                
+                await session.CommitTransactionAsync(cancellationToken);
             }
-            
-            await session.CommitTransactionAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            await session.AbortTransactionAsync(cancellationToken);
-            return MigrateResult.Failed(migrations[^1].Version, ex);
+            catch (Exception ex)
+            {
+                await session.AbortTransactionAsync(cancellationToken);
+                return MigrateResult.Failed(migration.Version, ex);
+            }
         }
         
         return MigrateResult.Succeeded(migrations[^1].Version, migrations);
