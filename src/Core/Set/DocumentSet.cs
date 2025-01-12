@@ -125,14 +125,24 @@ public sealed class DocumentSet<TDocument>
         _vault.AddOperation(operation);
     }
 
-    public async Task<TDocument?> GetByKeyAsync(object key, CancellationToken cancellationToken = default)
+    public async Task<TDocument?> GetByKeyAsync(object key,
+        IClientSessionHandle? session = null,
+        CancellationToken cancellationToken = default)
     {
+        session ??= _vault.CurrentTransaction?.Session;
+        
         var filter = BuildKeyFilter(key);
-        var find = _vault.CurrentTransaction is not null ?
-            _collection.Find(_vault.CurrentTransaction.Session, filter)
+        var find = session is not null ?
+            _collection.Find(session, filter)
             : _collection.Find(filter);
 
         return await find.FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<TDocument?> GetByKeyAsync(object key,
+        CancellationToken cancellationToken = default)
+    {
+        return GetByKeyAsync(key, null, cancellationToken);
     }
 
     public DocumentSet<TDocument> DisableQueryFilters(params string[] names)
