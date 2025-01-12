@@ -193,7 +193,7 @@ public sealed class DocumentSet<TDocument>
         return filters.CombineAnd<TDocument>();
     }
 
-    private Expression<Func<TDocument, bool>> BuildKeyFilter(object key)
+    public Expression<Func<TDocument, bool>> BuildKeyFilter(object key)
     {
         var keyFilter = _documentSetConfiguration.BuildKeyFilterExpression<TDocument>(key);
 
