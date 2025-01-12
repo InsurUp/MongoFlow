@@ -126,7 +126,7 @@ public sealed class DocumentSet<TDocument>
     }
 
     public async Task<TDocument?> GetByKeyAsync(object key,
-        IClientSessionHandle? session = null,
+        IClientSessionHandle? session,
         CancellationToken cancellationToken = default)
     {
         session ??= _vault.CurrentTransaction?.Session;
