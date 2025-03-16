@@ -21,12 +21,13 @@ public sealed class AddOperation<TDocument> : VaultOperation
     
     public override DisableContext InterceptorDisableContext { get; }
 
-    internal override Task<int> ExecuteAsync(VaultOperationContext context,
+    internal override async Task<int> ExecuteAsync(VaultOperationContext context,
         CancellationToken cancellationToken = default)
     {
         var collection = context.Vault.GetCollection<TDocument>();
-        return collection.InsertOneAsync(context.Session, _document, cancellationToken: cancellationToken)
-            .ContinueWith(_ => 1, cancellationToken);
+        await collection.InsertOneAsync(context.Session, _document, cancellationToken: cancellationToken);
+
+        return 1;
     }
 
     public override bool To(OperationType operationType, out VaultOperation? operation)
