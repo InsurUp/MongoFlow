@@ -15,12 +15,13 @@ public sealed class AddRangeOperation<TDocument> : AddRangeOperation
 
     public override DisableContext InterceptorDisableContext { get; }
 
-    internal override Task<int> ExecuteAsync(VaultOperationContext context,
+    internal override async Task<int> ExecuteAsync(VaultOperationContext context,
         CancellationToken cancellationToken = default)
     {
         var collection = context.Vault.GetCollection<TDocument>();
-        return collection.InsertManyAsync(context.Session, _documents, cancellationToken: cancellationToken)
-            .ContinueWith(_ => _documents.TryGetNonEnumeratedCount(out var count) ? count : _documents.Count(), cancellationToken);
+        await collection.InsertManyAsync(context.Session, _documents, cancellationToken: cancellationToken);
+        
+        return _documents.TryGetNonEnumeratedCount(out var count) ? count : _documents.Count();
     }
 
     public override IEnumerable<object> CurrentDocuments => _documents.OfType<object>();
