@@ -7,8 +7,8 @@ using MongoDB.Driver.Linq;
 namespace MongoFlow.Identity;
 
 public class MongoUserStore<TVault, TUser, TRole, TKey> : 
-    UserStoreBase<TUser, TRole, TKey, IdentityUserClaim<TKey>, IdentityUserRole<TKey>, IdentityUserLogin<TKey>, IdentityUserToken<TKey>, IdentityRoleClaim<TKey>>,
-    ICloneUserStore<TUser>
+    UserStoreBase<TUser, TRole, TKey, IdentityUserClaim<TKey>, IdentityUserRole<TKey>, IdentityUserLogin<TKey>, MongoUserToken<TKey>, IdentityRoleClaim<TKey>>,
+    ICloneUserStore<TUser>, IUserPasskeyStore<TUser>
     where TVault : IdentityMongoVault<TUser, TRole, TKey>
     where TUser : MongoUser<TKey>
     where TRole : MongoRole<TKey>
@@ -16,9 +16,9 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
 {
     private readonly TVault _vault;
     private readonly IdentityErrorDescriber _describer;
-    
     private readonly DocumentSet<TUser> _users;
     private readonly DocumentSet<TRole> _roles;
+    private readonly DocumentSet<MongoUserToken<TKey>> _userTokens;
 
     public MongoUserStore(TVault vault, IdentityErrorDescriber describer) : base(describer)
     {
@@ -26,6 +26,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         _describer = describer;
         _users = _vault.Set<TUser>();
         _roles = _vault.Set<TRole>();
+        _userTokens = _vault.Set<MongoUserToken<TKey>>();
     }
     
     private MongoUserStore(TVault vault, 
@@ -35,6 +36,7 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
     {
         var users = _vault.Set<TUser>();
         var roles = _vault.Set<TRole>();
+        var userTokens = _vault.Set<MongoUserToken<TKey>>();
 
         users = queryFilterDisableContext switch
         {
@@ -63,9 +65,24 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             { DisabledItems.Length: > 0 } => roles.DisableInterceptors(interceptorDisableContext.DisabledItems),
             _ => roles
         };
+        
+        userTokens = queryFilterDisableContext switch
+        {
+            { AllDisabled: true } => userTokens.DisableAllQueryFilters(),
+            { DisabledItems.Length: > 0 } => userTokens.DisableQueryFilters(interceptorDisableContext.DisabledItems),
+            _ => userTokens
+        };
+        
+        userTokens = interceptorDisableContext switch
+        {
+            { AllDisabled: true } => userTokens.DisableAllInterceptors(),
+            { DisabledItems.Length: > 0 } => userTokens.DisableInterceptors(interceptorDisableContext.DisabledItems),
+            _ => userTokens
+        };
 
         _users = users;
         _roles = roles;
+        _userTokens = userTokens;
     }
 
     public override async Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken = default)
@@ -152,9 +169,16 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         return result;
     }
 
-    protected override Task<IdentityUserLogin<TKey>?> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
+    protected override async Task<IdentityUserLogin<TKey>?> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
     {
-        return Task.FromResult<IdentityUserLogin<TKey>?>(null);
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        
+        var user = await _users
+            .Find(x => x.Logins.Any(l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey))
+            .FirstOrDefaultAsync(cancellationToken);
+        
+        return user?.Logins.FirstOrDefault(x => x.LoginProvider == loginProvider && x.ProviderKey == providerKey);
     }
 
     public override Task<IList<Claim>> GetClaimsAsync(TUser user, CancellationToken cancellationToken = default)
@@ -236,45 +260,40 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             .ToListAsync(cancellationToken);
     }
 
-    protected override Task<IdentityUserToken<TKey>?> FindTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
+    protected override async Task<MongoUserToken<TKey>?> FindTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         
-        return Task.FromResult(user.Tokens.FirstOrDefault(x => x.LoginProvider == loginProvider && x.Name == name));
+        return await _userTokens
+            .Find(x => x.UserId.Equals(user.Id) && x.LoginProvider == loginProvider && x.Name == name)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
-    protected override async Task AddUserTokenAsync(IdentityUserToken<TKey> token)
+    protected override Task AddUserTokenAsync(MongoUserToken<TKey> token)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(token);
         
-        var user = await _users.GetByKeyAsync(token.UserId);
-        if (user is null)
-        {
-            return;
-        }
+        _userTokens.Add(token);
         
-        user.Tokens.Add(token);
-        
-        _users.Replace(user);
+        return Task.CompletedTask;
     }
 
-    protected override async Task RemoveUserTokenAsync(IdentityUserToken<TKey> token)
+    protected override async Task RemoveUserTokenAsync(MongoUserToken<TKey> token)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(token);
         
-        var user = await _users.GetByKeyAsync(token.UserId);
-        if (user is null)
+        var existingToken = await _userTokens
+            .Find(x => x.UserId.Equals(token.UserId) && x.LoginProvider == token.LoginProvider && x.Name == token.Name)
+            .FirstOrDefaultAsync();
+        
+        if (existingToken is not null)
         {
-            return;
+            _userTokens.Delete(existingToken);
         }
-        
-        user.Tokens.Remove(token);
-        
-        _users.Replace(user);
     }
 
     public override IQueryable<TUser> Users => _users.AsQueryable();
@@ -445,6 +464,141 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
     public IUserStore<TUser> Clone(DisableContext queryFilterDisableContext, DisableContext interceptorDisableContext)
     {
         return new MongoUserStore<TVault, TUser, TRole, TKey>(_vault, _describer, queryFilterDisableContext, interceptorDisableContext);
+    }
+
+    public Task AddOrUpdatePasskeyAsync(TUser user, UserPasskeyInfo passkey, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(passkey);
+
+        var existingPasskey = user.Passkeys.FirstOrDefault(p => p.CredentialId.SequenceEqual(passkey.CredentialId));
+        
+        if (existingPasskey is not null)
+        {
+            existingPasskey.Data = new IdentityPasskeyData
+            {
+                PublicKey = passkey.PublicKey,
+                Name = passkey.Name,
+                CreatedAt = passkey.CreatedAt,
+                SignCount = passkey.SignCount,
+                Transports = passkey.Transports,
+                IsUserVerified = passkey.IsUserVerified,
+                IsBackupEligible = passkey.IsBackupEligible,
+                IsBackedUp = passkey.IsBackedUp,
+                AttestationObject = passkey.AttestationObject,
+                ClientDataJson = passkey.ClientDataJson
+            };
+        }
+        else
+        {
+            user.Passkeys.Add(new IdentityUserPasskey<TKey>
+            {
+                UserId = user.Id,
+                CredentialId = passkey.CredentialId,
+                Data = new IdentityPasskeyData
+                {
+                    PublicKey = passkey.PublicKey,
+                    Name = passkey.Name,
+                    CreatedAt = passkey.CreatedAt,
+                    SignCount = passkey.SignCount,
+                    Transports = passkey.Transports,
+                    IsUserVerified = passkey.IsUserVerified,
+                    IsBackupEligible = passkey.IsBackupEligible,
+                    IsBackedUp = passkey.IsBackedUp,
+                    AttestationObject = passkey.AttestationObject,
+                    ClientDataJson = passkey.ClientDataJson
+                }
+            });
+        }
+        
+        _users.Replace(user);
+        
+        return Task.CompletedTask;
+    }
+
+    public Task<IList<UserPasskeyInfo>> GetPasskeysAsync(TUser user, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        return Task.FromResult<IList<UserPasskeyInfo>>(user.Passkeys
+            .Select(p => new UserPasskeyInfo(
+                p.CredentialId,
+                p.Data.PublicKey,
+                p.Data.CreatedAt,
+                p.Data.SignCount,
+                p.Data.Transports,
+                p.Data.IsUserVerified,
+                p.Data.IsBackupEligible,
+                p.Data.IsBackedUp,
+                p.Data.AttestationObject,
+                p.Data.ClientDataJson)
+            {
+                Name = p.Data.Name
+            })
+            .ToList());
+    }
+
+    public async Task<TUser?> FindByPasskeyIdAsync(byte[] credentialId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(credentialId);
+
+        return await _users
+            .Find(u => u.Passkeys.Any(p => p.CredentialId == credentialId))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<UserPasskeyInfo?> FindPasskeyAsync(TUser user, byte[] credentialId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(credentialId);
+
+        var passkey = user.Passkeys.FirstOrDefault(p => p.CredentialId.SequenceEqual(credentialId));
+        
+        if (passkey is null)
+        {
+            return Task.FromResult<UserPasskeyInfo?>(null);
+        }
+
+        return Task.FromResult<UserPasskeyInfo?>(new UserPasskeyInfo(
+            passkey.CredentialId,
+            passkey.Data.PublicKey,
+            passkey.Data.CreatedAt,
+            passkey.Data.SignCount,
+            passkey.Data.Transports,
+            passkey.Data.IsUserVerified,
+            passkey.Data.IsBackupEligible,
+            passkey.Data.IsBackedUp,
+            passkey.Data.AttestationObject,
+            passkey.Data.ClientDataJson)
+        {
+            Name = passkey.Data.Name
+        });
+    }
+
+    public Task RemovePasskeyAsync(TUser user, byte[] credentialId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(credentialId);
+
+        var passkey = user.Passkeys.FirstOrDefault(p => p.CredentialId.SequenceEqual(credentialId));
+        
+        if (passkey is not null)
+        {
+            user.Passkeys.Remove(passkey);
+            _users.Replace(user);
+        }
+        
+        return Task.CompletedTask;
     }
 }
 
