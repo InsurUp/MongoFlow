@@ -605,6 +605,25 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         
         return Task.CompletedTask;
     }
+    
+    public override async Task SetTokenAsync(TUser user, string loginProvider, string name, string? value, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+
+        ArgumentNullException.ThrowIfNull(user);
+
+        var token = await FindTokenAsync(user, loginProvider, name, cancellationToken).ConfigureAwait(false);
+        if (token == null)
+        {
+            await AddUserTokenAsync(CreateUserToken(user, loginProvider, name, value)).ConfigureAwait(false);
+        }
+        else
+        {
+            token.Value = value;
+            _userTokens.Replace(token);
+        }
+    }
 }
 
 public interface ICloneUserStore<TUser> where TUser : class
