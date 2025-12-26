@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace MongoFlow.Identity;
 
@@ -142,9 +141,8 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(normalizedUserName);
         
-        return await _users
-            .Find(x => x.NormalizedUserName == normalizedUserName)
-            .FirstOrDefaultAsync(cancellationToken);
+        var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedUserName, normalizedUserName);
+        return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
     protected override async Task<TUser?> FindUserAsync(TKey userId, CancellationToken cancellationToken)
@@ -160,13 +158,10 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         
-        var result = await _users.AsQueryable()
-            .Where(x => x.Id.Equals(userId))
-            .SelectMany(x => x.Logins)
-            .Where(x => x.LoginProvider == loginProvider && x.ProviderKey == providerKey)
-            .FirstOrDefaultAsync(cancellationToken);
+        var filter = Builders<TUser>.Filter.Eq(x => x.Id, userId);
+        var user = await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
         
-        return result;
+        return user?.Logins.FirstOrDefault(x => x.LoginProvider == loginProvider && x.ProviderKey == providerKey);
     }
 
     protected override async Task<IdentityUserLogin<TKey>?> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
@@ -174,9 +169,11 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         
-        var user = await _users
-            .Find(x => x.Logins.Any(l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey))
-            .FirstOrDefaultAsync(cancellationToken);
+        var filter = Builders<TUser>.Filter.ElemMatch(
+            x => x.Logins,
+            l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey);
+        
+        var user = await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
         
         return user?.Logins.FirstOrDefault(x => x.LoginProvider == loginProvider && x.ProviderKey == providerKey);
     }
@@ -255,9 +252,11 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(claim);
         
-        return await _users.AsQueryable()
-            .Where(x => x.Claims.Any(c => c.ClaimType == claim.Type && c.ClaimValue == claim.Value))
-            .ToListAsync(cancellationToken);
+        var filter = Builders<TUser>.Filter.ElemMatch(
+            x => x.Claims,
+            c => c.ClaimType == claim.Type && c.ClaimValue == claim.Value);
+        
+        return await _users.Find(filter).ToListAsync(cancellationToken);
     }
 
     protected override async Task<MongoUserToken<TKey>?> FindTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
@@ -266,9 +265,11 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         
-        return await _userTokens
-            .Find(x => x.UserId.Equals(user.Id) && x.LoginProvider == loginProvider && x.Name == name)
-            .FirstOrDefaultAsync(cancellationToken);
+        var filter = Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.UserId, user.Id)
+                   & Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.LoginProvider, loginProvider)
+                   & Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.Name, name);
+        
+        return await _userTokens.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
     protected override Task AddUserTokenAsync(MongoUserToken<TKey> token)
@@ -286,9 +287,11 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(token);
         
-        var existingToken = await _userTokens
-            .Find(x => x.UserId.Equals(token.UserId) && x.LoginProvider == token.LoginProvider && x.Name == token.Name)
-            .FirstOrDefaultAsync();
+        var filter = Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.UserId, token.UserId)
+                   & Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.LoginProvider, token.LoginProvider)
+                   & Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.Name, token.Name);
+        
+        var existingToken = await _userTokens.Find(filter).FirstOrDefaultAsync();
         
         if (existingToken is not null)
         {
@@ -348,9 +351,8 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(normalizedEmail);
         
-        return await _users
-            .Find(x => x.NormalizedEmail == normalizedEmail)
-            .FirstOrDefaultAsync(cancellationToken);
+        var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedEmail, normalizedEmail);
+        return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
     public override async Task<bool> IsInRoleAsync(TUser user, string normalizedRoleName,
@@ -363,9 +365,10 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         
         var roleIds = user.Roles;
         
-        return await _roles
-            .Find(x => x.NormalizedName == normalizedRoleName && roleIds.Contains(x.Id))
-            .AnyAsync(cancellationToken);
+        var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedRoleName)
+                   & Builders<TRole>.Filter.In(x => x.Id, roleIds);
+        
+        return await _roles.Find(filter).AnyAsync(cancellationToken);
     }
 
     protected override async Task<TRole?> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
@@ -374,9 +377,8 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(normalizedRoleName);
         
-        return await _roles
-            .Find(x => x.NormalizedName == normalizedRoleName)
-            .FirstOrDefaultAsync(cancellationToken);
+        var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedRoleName);
+        return await _roles.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
     protected override async Task<IdentityUserRole<TKey>?> FindUserRoleAsync(TKey userId, TKey roleId, CancellationToken cancellationToken)
@@ -384,16 +386,15 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         
-        return await _users.AsQueryable()
-            .Where(x => x.Id.Equals(userId))
-            .SelectMany(x => x.Roles)
-            .Where(x => x.Equals(roleId))
-            .Select(x => new IdentityUserRole<TKey>
-            {
-                UserId = userId,
-                RoleId = x
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var filter = Builders<TUser>.Filter.Eq(x => x.Id, userId);
+        var user = await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
+        
+        if (user?.Roles.Contains(roleId) == true)
+        {
+            return new IdentityUserRole<TKey> { UserId = userId, RoleId = roleId };
+        }
+        
+        return null;
     }
 
     public override async Task<IList<TUser>> GetUsersInRoleAsync(string normalizedRoleName, CancellationToken cancellationToken = default)
@@ -408,9 +409,8 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             return new List<TUser>();
         }
         
-        return await _users.AsQueryable()
-            .Where(x => x.Roles.Contains(role.Id))
-            .ToListAsync(cancellationToken);
+        var filter = Builders<TUser>.Filter.AnyEq(x => x.Roles, role.Id);
+        return await _users.Find(filter).ToListAsync(cancellationToken);
     }
 
     public override async Task AddToRoleAsync(TUser user, string normalizedRoleName,
@@ -456,7 +456,10 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
     {
         var roleIds = user.Roles;
         
-        return await _roles.Find(x => roleIds.Contains(x.Id) && x.Name != null)
+        var filter = Builders<TRole>.Filter.In(x => x.Id, roleIds)
+                   & Builders<TRole>.Filter.Ne(x => x.Name, null);
+        
+        return await _roles.Find(filter)
             .Project(x => x.Name!)
             .ToListAsync(cancellationToken);
     }
@@ -548,9 +551,11 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(credentialId);
 
-        return await _users
-            .Find(u => u.Passkeys.Any(p => p.CredentialId == credentialId))
-            .FirstOrDefaultAsync(cancellationToken);
+        var filter = Builders<TUser>.Filter.ElemMatch(
+            x => x.Passkeys,
+            p => p.CredentialId == credentialId);
+        
+        return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
     public Task<UserPasskeyInfo?> FindPasskeyAsync(TUser user, byte[] credentialId, CancellationToken cancellationToken)

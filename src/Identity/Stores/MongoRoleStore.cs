@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
-using MongoDB.Driver.Linq;
+using MongoDB.Driver;
 
 namespace MongoFlow.Identity;
 
@@ -136,19 +136,21 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, I
         return id.ToString();
     }
 
-    public virtual Task<TRole?> FindByIdAsync(string id, CancellationToken cancellationToken = default)
+    public virtual async Task<TRole?> FindByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         var roleId = ConvertIdFromString(id);
-        return Roles.FirstOrDefaultAsync(u => u.Id.Equals(roleId), cancellationToken)!;
+        var filter = Builders<TRole>.Filter.Eq(x => x.Id, roleId);
+        return await _roles.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
-    public virtual Task<TRole?> FindByNameAsync(string normalizedName, CancellationToken cancellationToken = default)
+    public virtual async Task<TRole?> FindByNameAsync(string normalizedName, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
-        return Roles.FirstOrDefaultAsync(r => r.NormalizedName == normalizedName, cancellationToken)!;
+        var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedName);
+        return await _roles.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
     public virtual Task<string?> GetNormalizedRoleNameAsync(TRole role, CancellationToken cancellationToken = default)
