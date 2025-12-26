@@ -31,11 +31,11 @@ internal static class MongoIdentityConfiguration
             map.UnmapProperty(x => x.UserId);
         });
         
-        BsonClassMap.TryRegisterClassMap<IdentityUserToken<TKey>>(map =>
+        BsonClassMap.TryRegisterClassMap<MongoUserToken<TKey>>(map =>
         {
             map.AutoMap();
             map.SetIgnoreExtraElements(true);
-            map.UnmapProperty(x => x.UserId);
+            map.UnmapProperty(x => x.Id);
         });
         
         BsonClassMap.TryRegisterClassMap<IdentityRoleClaim<TKey>>(map =>
@@ -44,6 +44,13 @@ internal static class MongoIdentityConfiguration
             map.SetIgnoreExtraElements(true);
             map.UnmapProperty(x => x.Id);
             map.UnmapProperty(x => x.RoleId);
+        });
+        
+        BsonClassMap.TryRegisterClassMap<IdentityUserPasskey<TKey>>(map =>
+        {
+            map.AutoMap();
+            map.SetIgnoreExtraElements(true);
+            map.UnmapProperty(x => x.UserId);
         });
     }
     
