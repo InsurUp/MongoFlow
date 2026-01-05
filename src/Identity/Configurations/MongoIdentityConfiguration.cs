@@ -35,7 +35,6 @@ internal static class MongoIdentityConfiguration
         {
             map.AutoMap();
             map.SetIgnoreExtraElements(true);
-            map.UnmapProperty(x => x.Id);
         });
         
         BsonClassMap.TryRegisterClassMap<IdentityRoleClaim<TKey>>(map =>
