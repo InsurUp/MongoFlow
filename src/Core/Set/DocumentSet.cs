@@ -3,7 +3,7 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-public sealed class DocumentSet<TDocument>
+public sealed class DocumentSet<TDocument> : IDocumentSet<TDocument>
 {
     private readonly MongoVault _vault;
     private readonly DocumentSetConfiguration _documentSetConfiguration;
@@ -145,26 +145,26 @@ public sealed class DocumentSet<TDocument>
         return GetByKeyAsync(key, null, cancellationToken);
     }
 
-    public DocumentSet<TDocument> DisableQueryFilters(params string[] names)
+    public IDocumentSet<TDocument> DisableQueryFilters(params string[] names)
     {
         var newDisableContext = _queryFilterDisableContext.Disable(names);
         
         return new DocumentSet<TDocument>(_vault, newDisableContext, _interceptorDisableContext);
     }
 
-    public DocumentSet<TDocument> DisableAllQueryFilters()
+    public IDocumentSet<TDocument> DisableAllQueryFilters()
     {
         return new DocumentSet<TDocument>(_vault, DisableContext.All, _interceptorDisableContext);
     }
     
-    public DocumentSet<TDocument> DisableInterceptors(params string[] names)
+    public IDocumentSet<TDocument> DisableInterceptors(params string[] names)
     {
         var newDisableContext = _interceptorDisableContext.Disable(names);
         
         return new DocumentSet<TDocument>(_vault, _queryFilterDisableContext, newDisableContext);
     }
     
-    public DocumentSet<TDocument> DisableAllInterceptors()
+    public IDocumentSet<TDocument> DisableAllInterceptors()
     {
         return new DocumentSet<TDocument>(_vault, _queryFilterDisableContext, DisableContext.All);
     }
