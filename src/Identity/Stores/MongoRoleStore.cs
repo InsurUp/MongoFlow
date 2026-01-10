@@ -10,7 +10,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>, I
     where TRole : MongoRole<TKey>
     where TKey : IEquatable<TKey>
 {
-    private readonly DocumentSet<TRole> _roles;
+    private readonly IDocumentSet<TRole> _roles;
     
     private readonly IdentityErrorDescriber? _describer;
     

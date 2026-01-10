@@ -35,7 +35,7 @@ public abstract class IdentityMongoVault<TUser, TRole, TKey> : MongoVault
     {
     }
 
-    public DocumentSet<TUser> Users { get; set; } = null!;
-    public DocumentSet<TRole> Roles { get; set; } = null!;
-    public DocumentSet<MongoUserToken<TKey>> UserTokens { get; set; } = null!;
+    public IDocumentSet<TUser> Users { get; set; } = null!;
+    public IDocumentSet<TRole> Roles { get; set; } = null!;
+    public IDocumentSet<MongoUserToken<TKey>> UserTokens { get; set; } = null!;
 }

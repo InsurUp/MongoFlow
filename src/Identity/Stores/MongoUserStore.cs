@@ -15,9 +15,9 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
 {
     private readonly TVault _vault;
     private readonly IdentityErrorDescriber _describer;
-    private readonly DocumentSet<TUser> _users;
-    private readonly DocumentSet<TRole> _roles;
-    private readonly DocumentSet<MongoUserToken<TKey>> _userTokens;
+    private readonly IDocumentSet<TUser> _users;
+    private readonly IDocumentSet<TRole> _roles;
+    private readonly IDocumentSet<MongoUserToken<TKey>> _userTokens;
 
     public MongoUserStore(TVault vault, IdentityErrorDescriber describer) : base(describer)
     {
