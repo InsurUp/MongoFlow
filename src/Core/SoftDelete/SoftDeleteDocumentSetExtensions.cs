@@ -2,7 +2,7 @@ namespace MongoFlow;
 
 public static class SoftDeleteDocumentSetExtensions
 {
-    public static DocumentSet<T> DisableSoftDelete<T>(this DocumentSet<T> documentSet)
+    public static IDocumentSet<T> DisableSoftDelete<T>(this IDocumentSet<T> documentSet)
     {
         return documentSet
             .DisableQueryFilters("soft-delete")

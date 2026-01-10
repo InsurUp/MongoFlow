@@ -45,7 +45,7 @@ public abstract class MongoVault : IDisposable
         return MongoDatabase.GetCollection<TDocument>(setConfiguration.Name);
     }
 
-    public DocumentSet<TDocument> Set<TDocument>()
+    public IDocumentSet<TDocument> Set<TDocument>()
     {
         return new DocumentSet<TDocument>(this);
     }

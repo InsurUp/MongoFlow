@@ -23,7 +23,8 @@ internal static class VaultPropertyCache
         foreach (var property in vaultType.GetProperties())
         {
             if (property.PropertyType.IsGenericType &&
-                property.PropertyType.GetGenericTypeDefinition() == typeof(DocumentSet<>))
+                (property.PropertyType.GetGenericTypeDefinition() == typeof(DocumentSet<>) ||
+                 property.PropertyType.GetGenericTypeDefinition() == typeof(IDocumentSet<>)))
             {
                 var documentType = property.PropertyType.GetGenericArguments()[0];
                 properties[documentType] = new VaultProperty(property.Name, documentType, property);

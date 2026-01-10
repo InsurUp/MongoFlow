@@ -2,7 +2,7 @@ namespace MongoFlow;
 
 public static class MultiTenancyDocumentSetExtensions
 {
-    public static DocumentSet<T> DisableMultiTenancy<T>(this DocumentSet<T> documentSet)
+    public static IDocumentSet<T> DisableMultiTenancy<T>(this IDocumentSet<T> documentSet)
     {
         return documentSet
             .DisableQueryFilters("multi-tenancy")
