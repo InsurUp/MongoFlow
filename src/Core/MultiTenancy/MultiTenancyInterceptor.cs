@@ -22,16 +22,36 @@ public class MultiTenancyInterceptor<TInterface, TTenantId> : VaultInterceptor w
 
         foreach (var operation in context.Operations)
         {
-            if (operation.OperationType is OperationType.Add && operation.CurrentDocument is TInterface entity)
+            // An AddRange operation carries its batch in CurrentDocuments (its CurrentDocument is null and its
+            // OperationType is AddRange), so without unwrapping it the whole batch reaches the database without a
+            // tenant id. Single Adds are stamped the same way through their CurrentDocument.
+            if (operation is AddRangeOperation addRangeOperation)
             {
-                var documentTenantId = tenantIdGetter(entity);
-                if (documentTenantId is null || documentTenantId.Equals(default(TTenantId)))
+                foreach (var document in addRangeOperation.CurrentDocuments)
                 {
-                    tenantIdSetter(entity, tenantId.Value);
+                    StampIfUnset(document);
                 }
+            }
+            else if (operation.OperationType is OperationType.Add && operation.CurrentDocument is TInterface entity)
+            {
+                StampIfUnset(entity);
             }
         }
 
         return ValueTask.CompletedTask;
+
+        void StampIfUnset(object? document)
+        {
+            if (document is not TInterface tenantEntity)
+            {
+                return;
+            }
+
+            var documentTenantId = tenantIdGetter(tenantEntity);
+            if (documentTenantId is null || documentTenantId.Equals(default(TTenantId)))
+            {
+                tenantIdSetter(tenantEntity, tenantId.Value);
+            }
+        }
     }
 }
