@@ -2,12 +2,16 @@ namespace MongoFlow;
 
 public sealed class AddRangeOperation<TDocument> : AddRangeOperation
 {
-    private readonly IEnumerable<TDocument> _documents;
+    private readonly IReadOnlyList<TDocument> _documents;
 
     public AddRangeOperation(IEnumerable<TDocument> documents,
         DisableContext interceptorDisableContext)
     {
-        _documents = documents;
+        // Materialised once, here. Held as the sequence it was handed, a lazy one — AddRange(xs.Select(
+        // ToDocument)) — is enumerated again by every interceptor that walks CurrentDocuments and once
+        // more to execute, producing a fresh set of objects each time. Multi-tenancy then stamps one
+        // set, the next interceptor stamps another, and a third is what actually gets written.
+        _documents = documents as IReadOnlyList<TDocument> ?? documents.ToList();
         InterceptorDisableContext = interceptorDisableContext;
     }
 
@@ -21,7 +25,7 @@ public sealed class AddRangeOperation<TDocument> : AddRangeOperation
         var collection = context.Vault.GetCollection<TDocument>();
         await collection.InsertManyAsync(context.Session, _documents, cancellationToken: cancellationToken);
         
-        return _documents.TryGetNonEnumeratedCount(out var count) ? count : _documents.Count();
+        return _documents.Count;
     }
 
     public override IEnumerable<object> CurrentDocuments => _documents.OfType<object>();
