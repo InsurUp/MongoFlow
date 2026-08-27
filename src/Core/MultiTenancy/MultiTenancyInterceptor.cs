@@ -22,8 +22,17 @@ public class MultiTenancyInterceptor<TInterface, TTenantId> : VaultInterceptor w
 
         foreach (var operation in context.Operations)
         {
-            if (operation.OperationType is OperationType.Add && operation.CurrentDocument is TInterface entity)
+            // Both shapes of insert. AddRange carries its documents in CurrentDocuments and leaves
+            // CurrentDocument null, so reading only the singular one stamped nothing on a range: the rows
+            // went in with no tenant on them, and the query filter then hid them from every read that
+            // followed. The row was there, nothing could see it, and nothing had failed.
+            foreach (var document in Added(operation))
             {
+                if (document is not TInterface entity)
+                {
+                    continue;
+                }
+
                 var documentTenantId = tenantIdGetter(entity);
                 if (documentTenantId is null || documentTenantId.Equals(default(TTenantId)))
                 {
@@ -34,4 +43,11 @@ public class MultiTenancyInterceptor<TInterface, TTenantId> : VaultInterceptor w
 
         return ValueTask.CompletedTask;
     }
+
+    private static IEnumerable<object> Added(VaultOperation operation) => operation switch
+    {
+        AddRangeOperation range => range.CurrentDocuments,
+        { OperationType: OperationType.Add, CurrentDocument: not null } => [operation.CurrentDocument],
+        _ => []
+    };
 }
