@@ -85,6 +85,16 @@ public interface IVaultBuilder<TVault> where TVault : MongoVault
     IVaultBuilder<TVault> QueryFilter<TTarget>(
         Func<IServiceProvider, CancellationToken, ValueTask<Expression<Func<TTarget, bool>>>> filter);
 
+    /// <summary>
+    /// Adds an interceptor that sees operations on every collection. It's created from the request's services once per
+    /// vault instance, so it can depend on scoped services.
+    /// </summary>
+    IVaultBuilder<TVault> AddInterceptor<TInterceptor>(Action<IInterceptorBuilder>? configure = null)
+        where TInterceptor : VaultInterceptor;
+
+    /// <summary>Adds an interceptor instance, shared by every request, that sees operations on every collection.</summary>
+    IVaultBuilder<TVault> AddInterceptor(VaultInterceptor interceptor, Action<IInterceptorBuilder>? configure = null);
+
     /// <summary>Adds a feature created from the root provider.</summary>
     IVaultBuilder<TVault> AddFeature<TFeature>() where TFeature : class, IVaultFeature;
 

@@ -30,6 +30,20 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
 
     /// <summary>Opts this collection out of a feature added to the vault.</summary>
     IVaultCollectionBuilder<TDocument> Without(FeatureKey feature);
+
+    /// <summary>
+    /// Adds an interceptor that sees only this collection's operations. It's created from the request's services once
+    /// per vault instance.
+    /// </summary>
+    IVaultCollectionBuilder<TDocument> AddInterceptor<TInterceptor>(Action<IInterceptorBuilder>? configure = null)
+        where TInterceptor : VaultInterceptor;
+
+    /// <summary>
+    /// Adds an interceptor instance, shared by every request, that sees only this collection's operations. Being
+    /// registered per collection, it can be written against <typeparamref name="TDocument"/>.
+    /// </summary>
+    IVaultCollectionBuilder<TDocument> AddInterceptor(VaultInterceptor interceptor,
+        Action<IInterceptorBuilder>? configure = null);
 }
 
 /// <summary>Configures a keyed collection of <typeparamref name="TDocument"/> looked up by <typeparamref name="TKey"/>.</summary>
@@ -56,4 +70,12 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
 
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> Without(FeatureKey feature);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> AddInterceptor<TInterceptor>(Action<IInterceptorBuilder>? configure = null)
+        where TInterceptor : VaultInterceptor;
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> AddInterceptor(VaultInterceptor interceptor,
+        Action<IInterceptorBuilder>? configure = null);
 }

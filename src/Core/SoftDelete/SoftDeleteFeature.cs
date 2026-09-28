@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -23,20 +24,56 @@ public static class SoftDeleteFeature
         vault.AddFeature(new SoftDeleteFeature<TSoftDelete>(isDeleted));
 }
 
-internal sealed class SoftDeleteFeature<TSoftDelete> : IVaultFeature
+internal sealed class SoftDeleteFeature<TSoftDelete> : IVaultFeature, IVaultCollectionConfiguration
 {
+    private readonly Expression<Func<TSoftDelete, bool>> _isDeleted;
     private readonly Expression<Func<TSoftDelete, bool>> _notDeleted;
+    private readonly Action<TSoftDelete, bool> _setDeleted;
 
     public SoftDeleteFeature(Expression<Func<TSoftDelete, bool>> isDeleted)
     {
         ArgumentNullException.ThrowIfNull(isDeleted);
 
+        _isDeleted = isDeleted;
         _notDeleted = Expression.Lambda<Func<TSoftDelete, bool>>(Expression.Not(isDeleted.Body), isDeleted.Parameters);
+        _setDeleted = MemberExpressions.CreateSetter(isDeleted, nameof(isDeleted));
     }
 
     public FeatureKey Key => SoftDeleteFeature.Key;
 
-    // TODO: Turn deletes into updates that set the flag once the save pipeline lets a feature change operations.
-    public void Configure<TVault>(IVaultBuilder<TVault> vault) where TVault : MongoVault =>
-        vault.QueryFilter(_notDeleted);
+    public void Configure<TVault>(IVaultBuilder<TVault> vault) where TVault : MongoVault => vault
+        .QueryFilter(_notDeleted)
+        .ForEachCollection(this);
+
+    public void Configure<TDocument>(IVaultCollectionBuilder<TDocument> collection)
+    {
+        if (typeof(TDocument).IsAssignableTo(typeof(TSoftDelete)))
+        {
+            collection.AddInterceptor(new SoftDeleteInterceptor<TDocument, TSoftDelete>(_isDeleted, _setDeleted));
+        }
+    }
+}
+
+/// <summary>Turns each delete into an update that sets the flag, and sets it on the deleted document too.</summary>
+internal sealed class SoftDeleteInterceptor<TDocument, TSoftDelete>(
+    Expression<Func<TSoftDelete, bool>> isDeleted,
+    Action<TSoftDelete, bool> setDeleted) : VaultInterceptor
+{
+    private readonly UpdateDefinition<TDocument> _markDeleted =
+        Builders<TDocument>.Update.Set(MemberExpressions.Rebind<TSoftDelete, TDocument, bool>(isDeleted), true);
+
+    public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+    {
+        foreach (var delete in context.Operations.OfType<DeleteOperation<TDocument>>().ToList())
+        {
+            if (delete.Document is TSoftDelete document)
+            {
+                setDeleted(document, true);
+            }
+
+            context.Replace(delete, delete.ToUpdate(_markDeleted));
+        }
+
+        return ValueTask.CompletedTask;
+    }
 }
