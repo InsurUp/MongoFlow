@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Title>MongoFlow</Title>
+    <Authors>InsurUp</Authors>
+    <Description>MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver.</Description>
+    <Summary>MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver.</Summary>
+    <PackageProjectUrl>https://github.com/InsurUp/MongoFlow</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/InsurUp/MongoFlow</RepositoryUrl>
+    <PackageTags>interceptors;interceptor;query-filter;mongodb;mongo;nosql</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.1" />
+    <PackageReference Include="MongoDB.Driver" Version="3.5.2" />
+    <PackageReference Include="Semver" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
