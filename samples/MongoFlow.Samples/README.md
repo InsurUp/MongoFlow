@@ -1,7 +1,8 @@
 # MongoFlow samples
 
-A small insurance platform written against MongoFlow's API, to show how the API reads in a real app. The library has
-interfaces but no implementation yet, so the samples compile but don't run.
+A small insurance platform written against MongoFlow's API, to show how the API reads in a real app. The samples
+compile against the library but haven't been run end to end; running them needs MongoDB 8.0 or later as a replica set,
+at the `Mongo` and `Identity` connection strings.
 
 ## Layout
 
@@ -18,7 +19,7 @@ interfaces but no implementation yet, so the samples compile but don't run.
 
 ## Gaps
 
-None left in the API as far as these samples reach. What's left is the implementation (phase 5) and tests (phase 6).
+None left in the API as far as these samples reach.
 When a new scenario needs something the API can't express, write it the way it should read inside `#if MISSING_API`;
 building with `-p:DefineConstants=MISSING_API` then lists what's missing.
 
