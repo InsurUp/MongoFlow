@@ -18,6 +18,19 @@ public interface IOwnedByUser
     string OwnerUserId { get; }
 }
 
+public interface ITimestamped
+{
+    DateTimeOffset CreatedAt { get; set; }
+
+    DateTimeOffset? UpdatedAt { get; set; }
+}
+
+/// <summary>A document that records domain events for the outbox to store with the change that raised them.</summary>
+public interface IRaisesEvents
+{
+    IReadOnlyList<object> TakeEvents();
+}
+
 /// <summary>
 /// Reading documents of this type needs <see cref="Permission"/>. Users holding only the <c>.own</c> variant of it see
 /// the documents they own.

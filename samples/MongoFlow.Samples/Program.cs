@@ -7,6 +7,7 @@ using MongoFlow.Samples.Configuration;
 using MongoFlow.Samples.Domain;
 using MongoFlow.Samples.Identity;
 using MongoFlow.Samples.Infrastructure;
+using MongoFlow.Samples.Interceptors;
 using MongoFlow.Samples.Vaults;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -17,6 +18,8 @@ builder.Services.AddSingleton<IMongoClient>(_ =>
 builder.Services.AddKeyedSingleton<IMongoClient>("identity", (_, _) =>
     new MongoClient(builder.Configuration.GetConnectionString("Identity") ?? "mongodb://localhost:27018"));
 
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IOutboxSignal, OutboxSignal>();
 builder.Services.AddScoped<ICurrentUser, AnonymousUser>();
 builder.Services.Configure<CustomerOptions>(builder.Configuration.GetSection("Customers"));
 
@@ -41,6 +44,12 @@ builder.Services.AddMongoVault<IAuditVault, AuditVault>(vault => vault
     .UseMultiTenancy(
         (ITenantOwned x) => x.AgencyId,
         services => services.GetRequiredService<ICurrentUser>().AgencyId));
+
+// Written by the audit and outbox interceptors from inside other vaults' saves, which it joins. Platform rules don't
+// apply, which also keeps the audit and outbox interceptors from running on their own writes.
+builder.Services.AddMongoVault<IOutboxVault, OutboxVault>(vault => vault
+    .UseDatabase(prefix + "outbox")
+    .SkipAllDefaultConfigurations());
 
 // Accounts sit above tenants, so the platform rules are skipped but the naming default is kept. The identity
 // package's setup can't be a default, so it's applied here.

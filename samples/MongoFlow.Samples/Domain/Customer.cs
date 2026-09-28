@@ -9,7 +9,7 @@ public enum CustomerStatus
 }
 
 [RequiresPermission("customers.read")]
-public sealed class Customer : ITenantOwned, ISoftDeletable, IOwnedByUser
+public sealed class Customer : ITenantOwned, ISoftDeletable, IOwnedByUser, ITimestamped
 {
     public ObjectId Id { get; set; }
 
@@ -22,11 +22,17 @@ public sealed class Customer : ITenantOwned, ISoftDeletable, IOwnedByUser
 
     public ObjectId? MergedInto { get; set; }
 
+    public int OpenClaims { get; set; }
+
     public required string OwnerUserId { get; init; }
 
     public AgencyId? AgencyId { get; set; }
 
     public bool IsDeleted { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public DateTimeOffset? UpdatedAt { get; set; }
 }
 
 /// <summary>The tenants themselves: platform data, not owned by any agency.</summary>

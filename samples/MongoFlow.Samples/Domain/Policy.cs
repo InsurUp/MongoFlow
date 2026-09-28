@@ -10,10 +10,14 @@ public enum PolicyStatus
     Expired
 }
 
+public sealed record PolicyIssued(string PolicyNumber);
+
 [RequiresPermission("policies.read")]
 [Module("policies")]
-public sealed class Policy : ITenantOwned, ISoftDeletable, IOwnedByUser
+public sealed class Policy : ITenantOwned, ISoftDeletable, IOwnedByUser, ITimestamped, IRaisesEvents
 {
+    private readonly List<object> _events = [];
+
     public ObjectId Id { get; set; }
 
     /// <summary>What people look policies up by, so it's the collection's key rather than <see cref="Id"/>.</summary>
@@ -36,4 +40,18 @@ public sealed class Policy : ITenantOwned, ISoftDeletable, IOwnedByUser
     public AgencyId? AgencyId { get; set; }
 
     public bool IsDeleted { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public DateTimeOffset? UpdatedAt { get; set; }
+
+    public void Raise(object @event) => _events.Add(@event);
+
+    public IReadOnlyList<object> TakeEvents()
+    {
+        var events = _events.ToList();
+        _events.Clear();
+
+        return events;
+    }
 }

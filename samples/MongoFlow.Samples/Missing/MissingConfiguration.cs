@@ -21,12 +21,6 @@ public sealed class PolicyVaultMissingConfiguration : IVaultConfiguration<Policy
             // Driver settings for one collection.
             .Settings(settings => settings.WriteConcern = WriteConcern.WMajority))
         .Collection(x => x.Claims, c => c.Index(index => index.Ascending(claim => claim.PolicyNumber)))
-        // Interceptors, declaring what they need so each save can be planned before it starts.
-        .AddInterceptor<TimestampInterceptor>()
-        .AddInterceptor<AuditTrailInterceptor>(interceptor => interceptor
-            .NeedsOriginals()
-            .For(collection => collection.DocumentType != typeof(AuditLogEntry)))
-        .AddInterceptor<OutboxInterceptor>()
         // Migrations for this vault only, not every migration in the assembly.
         .Migrations(migrations => migrations
             .FromNamespaceOf<PolicyMigrations.V1CreateCollections>()
@@ -85,9 +79,6 @@ public static class MissingRegistration
 {
     public static void Register(IServiceCollection services)
     {
-        // Transactions across vaults, which requires them to share a client.
-        services.AddMongoVaultTransactions();
-
         // An identity package can't ship a default that reaches its generic base vault: defaults take one type
         // parameter, and IVaultCollection<TUser, ...> is invariant, so a constraint can't expose Users either.
         services.AddDefaultVaultConfiguration(typeof(Identity.UserVaultConfiguration<,>));

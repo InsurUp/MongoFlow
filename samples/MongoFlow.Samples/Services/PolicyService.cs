@@ -67,7 +67,9 @@ public sealed class PolicyService(IPolicyVault vault)
     // Unit of work: nothing is written until SaveAsync, which sends everything queued as one bulk write.
     public async Task IssueAsync(Policy policy, CancellationToken cancellationToken)
     {
-        vault.Policies.Add(policy); // multi-tenancy will set AgencyId once the save pipeline exists
+        policy.Raise(new PolicyIssued(policy.PolicyNumber)); // stored by the outbox in the same transaction
+        vault.Policies.Add(policy);                           // multi-tenancy sets AgencyId, timestamps set CreatedAt
+
         await vault.SaveAsync(cancellationToken);
     }
 
