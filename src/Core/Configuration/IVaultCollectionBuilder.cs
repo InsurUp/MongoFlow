@@ -1,4 +1,6 @@
 using System.Linq.Expressions;
+using System.Numerics;
+using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -31,6 +33,25 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
     /// <summary>Opts this collection out of a feature added to the vault.</summary>
     IVaultCollectionBuilder<TDocument> Without(FeatureKey feature);
 
+    /// <summary>Declares an index, created by <see cref="IVaultMigrator.MigrateAllAsync"/>.</summary>
+    /// <remarks>An existing index with the same keys but different options makes the migration fail.</remarks>
+    IVaultCollectionBuilder<TDocument> Index(
+        Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
+        Action<CreateIndexOptions<TDocument>>? options = null);
+
+    /// <summary>Driver settings for the collection, such as read preference and read concern.</summary>
+    /// <remarks>
+    /// A write concern set here doesn't affect saves: every save runs in a transaction, whose write concern applies
+    /// instead.
+    /// </remarks>
+    IVaultCollectionBuilder<TDocument> Settings(Action<MongoCollectionSettings> configure);
+
+    /// <summary>
+    /// Options used when <see cref="IVaultMigrator.MigrateAllAsync"/> creates the collection, such as time-series,
+    /// capped or a validator. An existing collection is left as it is.
+    /// </summary>
+    IVaultCollectionBuilder<TDocument> CreateWith(Action<CreateCollectionOptions<TDocument>> configure);
+
     /// <summary>
     /// Adds an interceptor that sees only this collection's operations. It's created from the request's services once
     /// per vault instance.
@@ -50,10 +71,24 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
 public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuilder<TDocument>
 {
     /// <summary>
-    /// The member documents are looked up by, such as <c>p =&gt; p.PolicyNumber</c>. Without it, the key is the member
-    /// the driver maps to <c>_id</c>, whose type must be <typeparamref name="TKey"/>; that is checked at startup.
+    /// What documents are looked up by: a member, such as <c>p =&gt; p.PolicyNumber</c>, or for a composite key a
+    /// <typeparamref name="TKey"/> built from members, such as <c>t =&gt; new TokenKey(t.UserId, t.Provider)</c>, whose
+    /// constructor arguments are matched to those members. Without it, the key is the member the driver maps to
+    /// <c>_id</c>, whose type must be <typeparamref name="TKey"/>; that is checked at startup.
     /// </summary>
-    IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key);
+    /// <param name="key">The key member, or a new <typeparamref name="TKey"/> of members.</param>
+    /// <param name="unique">
+    /// Declares a unique index on the key, since lookups by key expect one document. Turn it off when uniqueness is per
+    /// tenant, and declare a compound unique index instead.
+    /// </param>
+    IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key, bool unique = true);
+
+    /// <summary>
+    /// Optimistic concurrency. Replacing or deleting a document fails with <see cref="ConcurrencyException"/> if its
+    /// token changed since it was read. Replaces and updates increment the token.
+    /// </summary>
+    IVaultCollectionBuilder<TDocument, TKey> ConcurrencyToken<TToken>(Expression<Func<TDocument, TToken>> token)
+        where TToken : INumber<TToken>;
 
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> Name(string name);
@@ -70,6 +105,17 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
 
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> Without(FeatureKey feature);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> Index(
+        Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
+        Action<CreateIndexOptions<TDocument>>? options = null);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> Settings(Action<MongoCollectionSettings> configure);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> CreateWith(Action<CreateCollectionOptions<TDocument>> configure);
 
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> AddInterceptor<TInterceptor>(Action<IInterceptorBuilder>? configure = null)

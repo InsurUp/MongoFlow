@@ -4,7 +4,8 @@ namespace MongoFlow;
 
 /// <remarks>
 /// Delegates run once, at startup, when the vault is configured. The <see cref="IServiceProvider"/> overloads receive the
-/// root provider, for singletons and options; per-request services belong in query filters.
+/// root provider, for singletons and options; per-request services belong in query filters. <c>AddMongoVault</c> also
+/// registers <see cref="IVaultTransactions"/> (scoped) and <see cref="IVaultMigrator"/> (singleton).
 /// </remarks>
 public static class MongoVaultServiceCollectionExtensions
 {

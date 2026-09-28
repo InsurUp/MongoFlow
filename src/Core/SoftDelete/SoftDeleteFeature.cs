@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -21,25 +22,71 @@ public static class SoftDeleteFeature
     public static IVaultBuilder<TVault> UseSoftDelete<TVault, TSoftDelete>(this IVaultBuilder<TVault> vault,
         Expression<Func<TSoftDelete, bool>> isDeleted)
         where TVault : MongoVault =>
-        vault.AddFeature(new SoftDeleteFeature<TSoftDelete>(isDeleted));
+        vault.AddFeature(new SoftDeleteFeature<TSoftDelete, bool>(
+            isDeleted,
+            Negate(isDeleted),
+            _ => true,
+            nameof(isDeleted)));
+
+    /// <summary>
+    /// Adds the built-in soft-delete feature, recording when a document was deleted: reads skip documents with a
+    /// timestamp, and a delete sets it to now from the <see cref="TimeProvider"/> in DI, or the system clock.
+    /// </summary>
+    /// <param name="vault">The vault to add the feature to.</param>
+    /// <param name="deletedAt">A settable member with a typed parameter, such as <c>(IDeletedAt x) =&gt; x.DeletedAt</c>.</param>
+    public static IVaultBuilder<TVault> UseSoftDelete<TVault, TSoftDelete>(this IVaultBuilder<TVault> vault,
+        Expression<Func<TSoftDelete, DateTime?>> deletedAt)
+        where TVault : MongoVault =>
+        vault.AddFeature(new SoftDeleteFeature<TSoftDelete, DateTime?>(
+            deletedAt,
+            IsNull(deletedAt),
+            services => Clock(services).GetUtcNow().UtcDateTime,
+            nameof(deletedAt)));
+
+    /// <inheritdoc cref="UseSoftDelete{TVault, TSoftDelete}(IVaultBuilder{TVault}, Expression{Func{TSoftDelete, DateTime?}})"/>
+    public static IVaultBuilder<TVault> UseSoftDelete<TVault, TSoftDelete>(this IVaultBuilder<TVault> vault,
+        Expression<Func<TSoftDelete, DateTimeOffset?>> deletedAt)
+        where TVault : MongoVault =>
+        vault.AddFeature(new SoftDeleteFeature<TSoftDelete, DateTimeOffset?>(
+            deletedAt,
+            IsNull(deletedAt),
+            services => Clock(services).GetUtcNow(),
+            nameof(deletedAt)));
+
+    private static Expression<Func<T, bool>> Negate<T>(Expression<Func<T, bool>> member) =>
+        Expression.Lambda<Func<T, bool>>(Expression.Not(member.Body), member.Parameters);
+
+    private static Expression<Func<T, bool>> IsNull<T, TValue>(Expression<Func<T, TValue>> member) =>
+        Expression.Lambda<Func<T, bool>>(
+            Expression.Equal(member.Body, Expression.Constant(null, member.Body.Type)),
+            member.Parameters);
+
+    private static TimeProvider Clock(IServiceProvider services) =>
+        services.GetService<TimeProvider>() ?? TimeProvider.System;
 }
 
-internal sealed class SoftDeleteFeature<TSoftDelete> : IVaultFeature, IVaultCollectionConfiguration
+/// <summary>Soft delete over a member holding <typeparamref name="TValue"/>: a flag, or a deletion timestamp.</summary>
+internal sealed class SoftDeleteFeature<TSoftDelete, TValue> : IVaultFeature, IVaultCollectionConfiguration
 {
-    private readonly Expression<Func<TSoftDelete, bool>> _isDeleted;
+    private readonly Expression<Func<TSoftDelete, TValue>> _member;
     private readonly Expression<Func<TSoftDelete, bool>> _notDeleted;
-    private readonly Action<TSoftDelete, bool> _setDeleted;
+    private readonly Func<IServiceProvider, TValue> _deletedValue;
+    private readonly Action<TSoftDelete, TValue> _setMember;
 
-    public SoftDeleteFeature(Expression<Func<TSoftDelete, bool>> isDeleted)
+    public SoftDeleteFeature(Expression<Func<TSoftDelete, TValue>> member,
+        Expression<Func<TSoftDelete, bool>> notDeleted,
+        Func<IServiceProvider, TValue> deletedValue,
+        string parameterName)
     {
-        ArgumentNullException.ThrowIfNull(isDeleted);
+        ArgumentNullException.ThrowIfNull(member, parameterName);
 
-        _isDeleted = isDeleted;
-        _notDeleted = Expression.Lambda<Func<TSoftDelete, bool>>(Expression.Not(isDeleted.Body), isDeleted.Parameters);
-        _setDeleted = MemberExpressions.CreateSetter(isDeleted, nameof(isDeleted));
+        _member = member;
+        _notDeleted = notDeleted;
+        _deletedValue = deletedValue;
+        _setMember = MemberExpressions.CreateSetter(member, parameterName);
     }
 
-    public FeatureKey Key => SoftDeleteFeature.Key;
+    public static FeatureKey Key => SoftDeleteFeature.Key;
 
     public void Configure<TVault>(IVaultBuilder<TVault> vault) where TVault : MongoVault => vault
         .QueryFilter(_notDeleted)
@@ -49,29 +96,39 @@ internal sealed class SoftDeleteFeature<TSoftDelete> : IVaultFeature, IVaultColl
     {
         if (typeof(TDocument).IsAssignableTo(typeof(TSoftDelete)))
         {
-            collection.AddInterceptor(new SoftDeleteInterceptor<TDocument, TSoftDelete>(_isDeleted, _setDeleted));
+            collection.AddInterceptor(
+                new SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(_member, _setMember, _deletedValue));
         }
     }
 }
 
-/// <summary>Turns each delete into an update that sets the flag, and sets it on the deleted document too.</summary>
-internal sealed class SoftDeleteInterceptor<TDocument, TSoftDelete>(
-    Expression<Func<TSoftDelete, bool>> isDeleted,
-    Action<TSoftDelete, bool> setDeleted) : VaultInterceptor
+/// <summary>Turns each delete into an update that marks the document deleted, and marks the deleted document too.</summary>
+internal sealed class SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(
+    Expression<Func<TSoftDelete, TValue>> member,
+    Action<TSoftDelete, TValue> setMember,
+    Func<IServiceProvider, TValue> deletedValue) : VaultInterceptor
 {
-    private readonly UpdateDefinition<TDocument> _markDeleted =
-        Builders<TDocument>.Update.Set(MemberExpressions.Rebind<TSoftDelete, TDocument, bool>(isDeleted), true);
+    private readonly Expression<Func<TDocument, TValue>> _field = MemberExpressions.Rebind<TSoftDelete, TDocument, TValue>(member);
 
     public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
     {
-        foreach (var delete in context.Operations.OfType<DeleteOperation<TDocument>>().ToList())
+        var deletes = context.Operations.OfType<DeleteOperation<TDocument>>().ToList();
+        if (deletes.Count == 0)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        var value = deletedValue(context.Services);
+        var markDeleted = Builders<TDocument>.Update.Set(_field, value);
+
+        foreach (var delete in deletes)
         {
             if (delete.Document is TSoftDelete document)
             {
-                setDeleted(document, true);
+                setMember(document, value);
             }
 
-            context.Replace(delete, delete.ToUpdate(_markDeleted));
+            context.Replace(delete, delete.ToUpdate(markDeleted));
         }
 
         return ValueTask.CompletedTask;
