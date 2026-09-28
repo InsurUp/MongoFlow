@@ -3,66 +3,36 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-public class UpdateOperation<TDocument> : VaultOperation
+/// <summary>Applies an update definition to the document with a key, or to every document matching a filter.</summary>
+public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
 {
-    private readonly Expression<Func<TDocument, bool>> _filter;
-    private readonly UpdateDefinition<TDocument> _update;
-    private TDocument? _currentDocument;
-    private TDocument? _oldDocument;
-
-    public UpdateOperation(Expression<Func<TDocument, bool>> filter, 
-        UpdateDefinition<TDocument> update,
-        DisableContext interceptorDisableContext)
+    internal UpdateOperation(IVaultCollectionInfo collection,
+        CollectionNamespace @namespace,
+        IReadOnlySet<FeatureKey> disabledFeatures,
+        object? key,
+        Expression<Func<TDocument, bool>>? filter,
+        UpdateDefinition<TDocument> update)
+        : base(collection, @namespace, disabledFeatures)
     {
-        _filter = filter;
-        _update = update;
-        InterceptorDisableContext = interceptorDisableContext;
-    }
-
-    public override Type DocumentType => typeof(TDocument);
-    public override object? CurrentDocument => _currentDocument;
-
-    public override object? OldDocument => _oldDocument;
-
-    public override OperationType OperationType => OperationType.Update;
-    
-    public override DisableContext InterceptorDisableContext { get; }
-
-    internal override async Task<int> ExecuteAsync(VaultOperationContext context, CancellationToken cancellationToken = default)
-    {
-        var collection = context.Vault.GetCollection<TDocument>();
-
-        if (context.EnableDiagnostic)
+        if ((key is null) == (filter is null))
         {
-            _currentDocument = await collection.Find(context.Session, _filter).FirstOrDefaultAsync(cancellationToken);
-            if (_currentDocument is null)
-            {
-                return 0;
-            }
-
-            _oldDocument = await collection.FindOneAndUpdateAsync(context.Session, _filter, _update, new FindOneAndUpdateOptions<TDocument>
-            {
-                ReturnDocument = ReturnDocument.After
-            }, cancellationToken: cancellationToken);
-
-            return 1;
+            throw new ArgumentException("An update targets either a key or a filter.");
         }
 
-        var result = await collection.UpdateOneAsync(context.Session, _filter, _update, cancellationToken: cancellationToken);
-
-        return result.ModifiedCount == 1 ? 1 : 0;
+        Key = key;
+        Filter = filter;
+        Update = update;
     }
 
-    public override bool To(OperationType operationType, out VaultOperation? operation)
-    {
-        operation = operationType switch
-        {
-            OperationType.Add when _currentDocument is not null => new AddOperation<TDocument>(_currentDocument, InterceptorDisableContext),
-            OperationType.Delete => new DeleteOperation<TDocument>(_filter, _currentDocument, InterceptorDisableContext),
-            OperationType.Update => this,
-            _ => null
-        };
+    public override OperationKind Kind => OperationKind.Update;
 
-        return operation is not null;
-    }
+    public override bool IsSetBased => Filter is not null;
+
+    /// <summary>The key of the one document to update, or <see langword="null"/> when the operation is set-based.</summary>
+    public object? Key { get; }
+
+    /// <summary>The documents to update, or <see langword="null"/> when the operation targets a key.</summary>
+    public Expression<Func<TDocument, bool>>? Filter { get; }
+
+    public UpdateDefinition<TDocument> Update { get; }
 }

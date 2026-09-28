@@ -1,55 +1,46 @@
 using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
-using MongoFlow.Bson;
 
 namespace MongoFlow;
 
+/// <remarks>
+/// Delegates run once, at startup, when the vault is configured. The <see cref="IServiceProvider"/> overloads receive the
+/// root provider, for singletons and options; per-request services belong in query filters.
+/// </remarks>
 public static class MongoVaultServiceCollectionExtensions
 {
     public static IServiceCollection AddMongoVault<TVault>(this IServiceCollection services,
-        Action<MongoVaultOptionsBuilder<TVault>>? optionsAction = null) where TVault : MongoVault
-    {
-        var optionsBuilder = new MongoVaultOptionsBuilder<TVault>(services);
+        Action<IVaultBuilder<TVault>>? configure = null)
+        where TVault : MongoVault =>
+        throw new NotImplementedException();
 
-        optionsAction?.Invoke(optionsBuilder);
-
-        var options = optionsBuilder.Build();
-
-        services.AddScoped<VaultConfigurationManager<TVault>>(serviceProvider =>
-            new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), options, serviceProvider));
-        services.AddSingleton(new VaultConfigurationProvider<TVault>(options));
-        services.AddScoped<TVault>();
-        
-        BsonConfiguration.Configure();
-
-        return services;
-    }
+    public static IServiceCollection AddMongoVault<TVault>(this IServiceCollection services,
+        Action<IServiceProvider, IVaultBuilder<TVault>> configure)
+        where TVault : MongoVault =>
+        throw new NotImplementedException();
 
     public static IServiceCollection AddMongoVault<TInterface, TVault>(this IServiceCollection services,
-        Action<MongoVaultOptionsBuilder<TVault>>? optionsAction = null) where TVault : MongoVault, TInterface where TInterface : class
-    {
-        var optionsBuilder = new MongoVaultOptionsBuilder<TVault>(services);
+        Action<IVaultBuilder<TVault>>? configure = null)
+        where TInterface : class
+        where TVault : MongoVault, TInterface =>
+        throw new NotImplementedException();
 
-        optionsAction?.Invoke(optionsBuilder);
+    public static IServiceCollection AddMongoVault<TInterface, TVault>(this IServiceCollection services,
+        Action<IServiceProvider, IVaultBuilder<TVault>> configure)
+        where TInterface : class
+        where TVault : MongoVault, TInterface =>
+        throw new NotImplementedException();
 
-        var options = optionsBuilder.Build();
-
-        services.AddScoped<VaultConfigurationManager<TVault>>(serviceProvider =>
-            new VaultConfigurationManager<TVault>(serviceProvider.GetRequiredService<VaultConfigurationProvider<TVault>>(), options, serviceProvider));
-        services.AddSingleton(new VaultConfigurationProvider<TVault>(options));
-        services.AddScoped<TVault>();
-        services.AddScoped<TInterface, TVault>(serviceProvider => serviceProvider.GetRequiredService<TVault>());
-        
-        BsonConfiguration.Configure();
-
-        return services;
-    }
-    
-    public static IServiceCollection AddMongoGlobalTransaction(this IServiceCollection services, Func<IServiceProvider, MongoClient> mongoClientFactory)
-    {
-        services.AddScoped<IMongoGlobalTransactionManager>(serviceProvider =>
-            new MongoGlobalTransactionManager(mongoClientFactory(serviceProvider)));
-
-        return services;
-    }
+    /// <summary>
+    /// Applies a configuration to every vault, before the vault's own configuration. Registration order relative to
+    /// <c>AddMongoVault</c> does not matter.
+    /// </summary>
+    /// <param name="configurationType">
+    /// An open generic class with one type parameter that implements <see cref="IVaultConfiguration{TVault}"/>, such as
+    /// <c>typeof(AuditConfiguration&lt;&gt;)</c>. It is closed over each vault type; vaults that don't satisfy its
+    /// constraints are skipped, so constraints can limit a default to some vaults.
+    /// </param>
+    /// <exception cref="ArgumentException"><paramref name="configurationType"/> is not such a class.</exception>
+    public static IServiceCollection AddDefaultVaultConfiguration(this IServiceCollection services,
+        Type configurationType) =>
+        throw new NotImplementedException();
 }

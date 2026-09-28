@@ -18,6 +18,8 @@ jobs:
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
 
     - name: Get version from tag
       id: get_version
