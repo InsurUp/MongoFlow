@@ -7,8 +7,8 @@ namespace MongoFlow.Samples.Services;
 /// <summary>A transaction spanning two vaults.</summary>
 public sealed class ClaimService(IPolicyVault policies, CustomerVault customers, IVaultTransactions transactions)
 {
-    // Filing a claim records it, bumps the policy's version and counts it on the customer. Both saves join the
-    // transaction, so all three changes commit together or not at all.
+    // Filing a claim records it, flags the policy and counts it on the customer. Both saves join the transaction, so all
+    // three changes commit together or not at all.
     public async Task FileAsync(Claim claim, CancellationToken cancellationToken)
     {
         await using var transaction = await transactions.BeginAsync(cancellationToken);
@@ -17,7 +17,7 @@ public sealed class ClaimService(IPolicyVault policies, CustomerVault customers,
             ?? throw new KeyNotFoundException(claim.PolicyNumber);
 
         policies.Claims.Add(claim);
-        policies.Policies.UpdateByKey(policy.PolicyNumber, Builders<Policy>.Update.Inc(p => p.Version, 1));
+        policies.Policies.UpdateByKey(policy.PolicyNumber, Builders<Policy>.Update.Set(p => p.HasOpenClaim, true));
         await policies.SaveAsync(cancellationToken);
 
         customers.Customers.UpdateByKey(policy.CustomerId, Builders<Customer>.Update.Inc(c => c.OpenClaims, 1));

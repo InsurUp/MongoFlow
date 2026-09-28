@@ -33,6 +33,9 @@ public sealed class Policy : ITenantOwned, ISoftDeletable, IOwnedByUser, ITimest
 
     public DateTime EndsAt { get; set; }
 
+    public bool HasOpenClaim { get; set; }
+
+    /// <summary>The concurrency token: a replace fails if it changed since the policy was read.</summary>
     public int Version { get; set; }
 
     public required string OwnerUserId { get; init; }

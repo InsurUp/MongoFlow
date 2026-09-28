@@ -9,9 +9,7 @@ namespace MongoFlow.Samples.Interceptors;
 /// </summary>
 public sealed class TimestampFeature : IVaultFeature, IVaultCollectionConfiguration
 {
-    public static readonly FeatureKey FeatureKey = new("timestamps");
-
-    public FeatureKey Key => FeatureKey;
+    public static FeatureKey Key { get; } = new("timestamps");
 
     public void Configure<TVault>(IVaultBuilder<TVault> vault) where TVault : MongoVault => vault.ForEachCollection(this);
 

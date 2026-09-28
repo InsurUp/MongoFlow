@@ -14,11 +14,13 @@ public abstract class UserAccount
     public string? PasswordHash { get; set; }
 }
 
-/// <summary>
-/// Login tokens, looked up by user and provider together. MongoFlow has no composite keys, so the collection is keyless.
-/// </summary>
+/// <summary>Login tokens are looked up by user and provider together.</summary>
+public readonly record struct TokenKey(ObjectId UserId, string Provider);
+
 public sealed class UserToken
 {
+    public ObjectId Id { get; set; }
+
     public ObjectId UserId { get; set; }
 
     public required string Provider { get; set; }
@@ -28,23 +30,24 @@ public sealed class UserToken
     public DateTime ExpiresAt { get; set; }
 }
 
-/// <summary>A vault base class the package ships; apps derive from it with their own user type.</summary>
-public abstract class UserVault<TUser> : MongoVault where TUser : UserAccount
+/// <summary>
+/// A vault base class the package ships. Apps derive from it with their own user type, passing their vault as
+/// <typeparamref name="TSelf"/>, and the base configures every derived vault: nothing to apply at registration.
+/// </summary>
+public abstract class UserVault<TSelf, TUser> : MongoVault, IConfigurableVault<TSelf>
+    where TSelf : UserVault<TSelf, TUser>
+    where TUser : UserAccount
 {
     public IVaultCollection<TUser, ObjectId> Users { get; init; } = null!;
 
-    public IVaultCollection<UserToken> Tokens { get; init; } = null!;
-}
+    public IVaultCollection<UserToken, TokenKey> Tokens { get; init; } = null!;
 
-/// <summary>
-/// The package's setup. It needs <typeparamref name="TUser"/> as well as <typeparamref name="TVault"/>, so it can't be
-/// registered as a default, which takes exactly one type parameter. Apps have to apply it to their vault by hand.
-/// </summary>
-public sealed class UserVaultConfiguration<TVault, TUser> : IVaultConfiguration<TVault>
-    where TVault : UserVault<TUser>
-    where TUser : UserAccount
-{
-    public void Configure(IVaultBuilder<TVault> vault) => vault
-        .Collection(x => x.Users, c => c.Name("users"))
-        .Collection(x => x.Tokens, c => c.Name("user_tokens"));
+    public static void Configure(IVaultBuilder<TSelf> vault) => vault
+        .Collection(x => x.Users, users => users
+            .Name("users")
+            .Index(i => i.Ascending(u => u.NormalizedEmail), o => o.Unique = true))
+        .Collection(x => x.Tokens, tokens => tokens
+            .Name("user_tokens")
+            .Key(t => new TokenKey(t.UserId, t.Provider)) // composite; also declares its unique index
+            .Index(i => i.Ascending(t => t.ExpiresAt), o => o.ExpireAfter = TimeSpan.Zero));
 }

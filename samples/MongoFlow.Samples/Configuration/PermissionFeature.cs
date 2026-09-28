@@ -10,11 +10,7 @@ namespace MongoFlow.Samples.Configuration;
 /// </summary>
 public sealed class PermissionFeature : IVaultFeature, IVaultCollectionConfiguration
 {
-    // Callers need the key without an instance, to switch the feature off, but IVaultFeature asks for an instance
-    // property, so the static one needs a different name.
-    public static readonly FeatureKey FeatureKey = new("permissions");
-
-    public FeatureKey Key => FeatureKey;
+    public static FeatureKey Key { get; } = new("permissions");
 
     public void Configure<TVault>(IVaultBuilder<TVault> vault) where TVault : MongoVault => vault.ForEachCollection(this);
 

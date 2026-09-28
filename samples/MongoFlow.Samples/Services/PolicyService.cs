@@ -78,7 +78,7 @@ public sealed class PolicyService(IPolicyVault vault)
         var policy = await FindAsync(policyNumber, cancellationToken) ?? throw new KeyNotFoundException(policyNumber);
 
         policy.Status = PolicyStatus.Cancelled;
-        vault.Policies.Replace(policy);
+        vault.Policies.Replace(policy); // fails with ConcurrencyException if someone saved it since the read
 
         await vault.SaveAsync(cancellationToken);
     }
@@ -92,7 +92,7 @@ public sealed class PolicyService(IPolicyVault vault)
 
     public async Task RenewAsync(string policyNumber, DateTime until, CancellationToken cancellationToken)
     {
-        vault.Policies.UpdateByKey(policyNumber, Builders<Policy>.Update.Set(p => p.EndsAt, until).Inc(p => p.Version, 1));
+        vault.Policies.UpdateByKey(policyNumber, Builders<Policy>.Update.Set(p => p.EndsAt, until)); // Version goes up by itself
         await vault.SaveAsync(cancellationToken);
     }
 

@@ -14,7 +14,8 @@ public sealed class PlatformDefaults<TVault> : IVaultConfiguration<TVault> where
         .UseSoftDelete((ISoftDeletable x) => x.IsDeleted)
         .UseMultiTenancy(
             (ITenantOwned x) => x.AgencyId,
-            services => services.GetRequiredService<ICurrentUser>().AgencyId)
+            services => services.GetRequiredService<ICurrentUser>().AgencyId,
+            allTenants: services => services.GetRequiredService<ICurrentUser>().IsPlatformAdmin)
         .AddFeature<PermissionFeature>()
         .AddFeature<ModuleFeature>()
         .AddFeature<TimestampFeature>()

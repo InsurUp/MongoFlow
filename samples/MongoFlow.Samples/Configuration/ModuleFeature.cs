@@ -7,9 +7,7 @@ namespace MongoFlow.Samples.Configuration;
 /// <summary>Hides documents of a <see cref="ModuleAttribute"/> module from agencies that haven't bought it.</summary>
 public sealed class ModuleFeature : IVaultFeature, IVaultCollectionConfiguration
 {
-    public static readonly FeatureKey FeatureKey = new("modules");
-
-    public FeatureKey Key => FeatureKey;
+    public static FeatureKey Key { get; } = new("modules");
 
     public void Configure<TVault>(IVaultBuilder<TVault> vault) where TVault : MongoVault => vault.ForEachCollection(this);
 

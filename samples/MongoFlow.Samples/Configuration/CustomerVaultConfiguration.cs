@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using MongoFlow.Samples.Vaults;
 
 namespace MongoFlow.Samples.Configuration;
@@ -20,6 +21,9 @@ public sealed class CustomerVaultConfiguration(IOptions<CustomerOptions> options
         {
             // Duplicates merged into another record stay in the database for history but are never shown.
             customers.QueryFilter(customer => customer.Status != Domain.CustomerStatus.Merged);
+
+            // An email is unique within an agency, not across the platform.
+            customers.Index(i => i.Ascending(c => c.AgencyId).Ascending(c => c.Email), o => o.Unique = true);
 
             if (options.Value.HardDeleteCustomers)
             {

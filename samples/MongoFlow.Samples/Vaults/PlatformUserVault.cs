@@ -7,4 +7,4 @@ public sealed class PlatformUser : UserAccount
     public string? DisplayName { get; set; }
 }
 
-public sealed class PlatformUserVault : UserVault<PlatformUser>;
+public sealed class PlatformUserVault : UserVault<PlatformUserVault, PlatformUser>;

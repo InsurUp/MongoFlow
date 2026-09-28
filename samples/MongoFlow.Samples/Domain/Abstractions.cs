@@ -13,6 +13,12 @@ public interface ISoftDeletable
     bool IsDeleted { get; set; }
 }
 
+/// <summary>Soft deletion that records when, rather than just whether.</summary>
+public interface IDeletedAt
+{
+    DateTime? DeletedAt { get; set; }
+}
+
 public interface IOwnedByUser
 {
     string OwnerUserId { get; }

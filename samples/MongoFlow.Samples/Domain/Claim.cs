@@ -10,7 +10,7 @@ public enum ClaimStatus
 
 [RequiresPermission("claims.read")]
 [Module("claims")]
-public sealed class Claim : ITenantOwned
+public sealed class Claim : ITenantOwned, IDeletedAt
 {
     public Guid Id { get; set; }
 
@@ -21,4 +21,6 @@ public sealed class Claim : ITenantOwned
     public ClaimStatus Status { get; set; }
 
     public AgencyId? AgencyId { get; set; }
+
+    public DateTime? DeletedAt { get; set; }
 }

@@ -5,7 +5,6 @@ using MongoDB.Driver;
 using MongoFlow;
 using MongoFlow.Samples.Configuration;
 using MongoFlow.Samples.Domain;
-using MongoFlow.Samples.Identity;
 using MongoFlow.Samples.Infrastructure;
 using MongoFlow.Samples.Interceptors;
 using MongoFlow.Samples.Vaults;
@@ -51,13 +50,16 @@ builder.Services.AddMongoVault<IOutboxVault, OutboxVault>(vault => vault
     .UseDatabase(prefix + "outbox")
     .SkipAllDefaultConfigurations());
 
-// Accounts sit above tenants, so the platform rules are skipped but the naming default is kept. The identity
-// package's setup can't be a default, so it's applied here.
+// Accounts sit above tenants, so the platform rules are skipped but the naming default is kept. The identity package's
+// base class configures the vault itself.
 builder.Services.AddMongoVault<PlatformUserVault>((services, vault) => vault
     .UseDatabase(services.GetRequiredKeyedService<IMongoClient>("identity").GetDatabase(prefix + "identity"))
-    .SkipDefaultConfiguration<PlatformDefaults<PlatformUserVault>>()
-    .UseConfiguration<UserVaultConfiguration<PlatformUserVault, PlatformUser>>());
+    .SkipDefaultConfiguration<PlatformDefaults<PlatformUserVault>>());
 
 var app = builder.Build();
+
+// Collections, pending migrations, then indexes, for every registered vault. A multi-instance deployment would run this
+// from one instance only.
+await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
 
 await app.RunAsync();
