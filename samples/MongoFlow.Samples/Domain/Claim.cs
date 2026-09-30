@@ -1,13 +1,5 @@
 namespace MongoFlow.Samples.Domain;
 
-public enum ClaimStatus
-{
-    Open,
-    Approved,
-    Rejected,
-    Paid
-}
-
 [RequiresPermission("claims.read")]
 [Module("claims")]
 public sealed class Claim : ITenantOwned, IDeletedAt

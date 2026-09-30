@@ -3,28 +3,24 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-/// <summary>A vault instance's state: its scope's services, its collections and its queued operations.</summary>
+/// <summary>A vault instance's state: its scope's services and its queued operations.</summary>
 internal sealed class VaultRuntime
 {
-    private readonly object[] _collections;
     private readonly VaultInterceptor?[] _interceptors;
     private readonly List<VaultOperation> _queue = [];
     private readonly HashSet<object> _inserted = new(ReferenceEqualityComparer.Instance);
     private VaultTransactions? _transactions;
 
-    public VaultRuntime(VaultModel model, IServiceProvider services, MongoVault vault)
+    public VaultRuntime(VaultModel model,
+        IServiceProvider services,
+        MongoVault vault)
     {
         Model = model;
         Services = services;
         Vault = vault;
         _interceptors = new VaultInterceptor?[model.Interceptors.Count];
-        _collections = model.Collections.Select(collection => collection.CreateCollection(this)).ToArray();
 
         vault.Attach(this);
-        foreach (var collection in model.Collections)
-        {
-            model.SetCollection(vault, collection, _collections[collection.Index]);
-        }
     }
 
     public VaultModel Model { get; }
@@ -59,24 +55,29 @@ internal sealed class VaultRuntime
 
     /// <summary>The session reads run in: the scope's open transaction's, or none.</summary>
     public async ValueTask<IClientSessionHandle?> GetSessionAsync(CancellationToken cancellationToken) =>
-        Transactions.Active is { } transaction ? await transaction.JoinAsync(Model.Client, cancellationToken) : null;
+        Transactions.Active is { } transaction
+            ? await transaction.JoinAsync(Model.Client, cancellationToken)
+            : null;
 
     public VaultInterceptor GetInterceptor(int index) =>
         _interceptors[index] ??= Model.Interceptors[index].Create(Services);
 
     public IVaultCollection<TDocument> GetCollection<TDocument>() =>
-        (IVaultCollection<TDocument>)_collections[Find(typeof(TDocument)).Index];
+        Find(typeof(TDocument)) is CollectionModel<TDocument> collection
+            ? collection.CreateCollection(this, FeatureKeys.None)
+            : throw new InvalidOperationException($"{Model.VaultType.Name} declares no collection of {typeof(TDocument).Name}.");
 
     public IVaultCollection<TDocument, TKey> GetCollection<TDocument, TKey>()
     {
         var collection = Find(typeof(TDocument));
 
-        return _collections[collection.Index] as IVaultCollection<TDocument, TKey>
-            ?? throw new InvalidOperationException(
+        return collection is KeyedCollectionModel<TDocument, TKey> keyed
+            ? keyed.CreateKeyedCollection(this, FeatureKeys.None)
+            : throw new InvalidOperationException(
                 $"{Model.VaultType.Name}.{collection.PropertyName} isn't keyed by {typeof(TKey).Name}.");
     }
 
-    private CollectionModel Find(Type documentType) =>
+    private ICollectionModel Find(Type documentType) =>
         Model.CollectionsByDocument.TryGetValue(documentType, out var collection)
             ? collection
             : throw new InvalidOperationException($"{Model.VaultType.Name} declares no collection of {documentType.Name}.");

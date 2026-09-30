@@ -1,27 +1,33 @@
 namespace MongoFlow;
 
-internal sealed class VaultRegistration<TVault> where TVault : MongoVault
-{
-    public List<Action<IServiceProvider, IVaultBuilder<TVault>>> Configurations { get; } = [];
-}
-
-internal sealed record DefaultVaultConfiguration(Type Type);
-
-/// <summary>Builds a vault's model once, from the root provider, the first time it's needed.</summary>
+/// <summary>
+/// Builds a vault's model once, from the root provider, the first time it's needed, and fills the collection properties
+/// of each new instance: the one part of the model that needs the vault type.
+/// </summary>
 internal sealed class VaultModelProvider<TVault> where TVault : MongoVault
 {
-    private readonly Lazy<VaultModel> _model;
+    private readonly Lazy<(VaultModel Model, IReadOnlyList<CollectionBinding<TVault>> Bindings)> _built;
 
     public VaultModelProvider(IServiceProvider services,
         VaultRegistration<TVault> registration,
         IEnumerable<DefaultVaultConfiguration> defaults)
     {
-        _model = new Lazy<VaultModel>(() => Build(services, registration, defaults.ToList()));
+        _built = new Lazy<(VaultModel, IReadOnlyList<CollectionBinding<TVault>>)>(() =>
+            Build(services, registration, defaults.ToList()));
     }
 
-    public VaultModel Model => _model.Value;
+    public VaultModel Model => _built.Value.Model;
 
-    private static VaultModel Build(IServiceProvider services,
+    /// <summary>Fills <paramref name="vault"/>'s collection properties with collections bound to <paramref name="runtime"/>.</summary>
+    public void Attach(TVault vault, VaultRuntime runtime)
+    {
+        foreach (var binding in _built.Value.Bindings)
+        {
+            binding.Attach(vault, runtime);
+        }
+    }
+
+    private static (VaultModel, IReadOnlyList<CollectionBinding<TVault>>) Build(IServiceProvider services,
         VaultRegistration<TVault> registration,
         IReadOnlyList<DefaultVaultConfiguration> defaults)
     {
@@ -43,34 +49,5 @@ internal sealed class VaultModelProvider<TVault> where TVault : MongoVault
         }
 
         return builder.Build();
-    }
-}
-
-internal static class ConfigurableVault
-{
-    /// <summary>Calls the vault's static <see cref="IConfigurableVault{TSelf}.Configure"/>, if it has one.</summary>
-    public static void Configure<TVault>(IVaultBuilder<TVault> builder) where TVault : MongoVault
-    {
-        var isConfigurable = typeof(TVault).GetInterfaces().Any(contract =>
-            contract.IsGenericType &&
-            contract.GetGenericTypeDefinition() == typeof(IConfigurableVault<>) &&
-            contract.GetGenericArguments()[0] == typeof(TVault));
-
-        if (!isConfigurable)
-        {
-            return;
-        }
-
-        var configure = typeof(Invoker<>)
-            .MakeGenericType(typeof(TVault))
-            .GetMethod(nameof(Invoker<>.Configure))!
-            .CreateDelegate<Action<IVaultBuilder<TVault>>>();
-
-        configure(builder);
-    }
-
-    private static class Invoker<TVault> where TVault : MongoVault, IConfigurableVault<TVault>
-    {
-        public static void Configure(IVaultBuilder<TVault> builder) => TVault.Configure(builder);
     }
 }

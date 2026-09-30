@@ -59,8 +59,3 @@ internal static class MemberExpressions
         return member;
     }
 }
-
-internal sealed class ParameterReplacer(ParameterExpression parameter, Expression replacement) : ExpressionVisitor
-{
-    protected override Expression VisitParameter(ParameterExpression node) => node == parameter ? replacement : node;
-}

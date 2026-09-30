@@ -5,14 +5,12 @@ namespace MongoFlow;
 /// <summary>Replaces the document with the same key.</summary>
 public sealed class ReplaceOperation<TDocument> : VaultOperation<TDocument>
 {
-    internal ReplaceOperation(IVaultCollectionInfo collection,
-        CollectionNamespace @namespace,
+    internal ReplaceOperation(CollectionModel<TDocument> model,
         IReadOnlySet<FeatureKey> disabledFeatures,
-        object key,
+        KeyTarget<TDocument> target,
         TDocument document)
-        : base(collection, @namespace, disabledFeatures)
+        : base(model, disabledFeatures, target)
     {
-        Key = key;
         Document = document;
     }
 
@@ -21,5 +19,9 @@ public sealed class ReplaceOperation<TDocument> : VaultOperation<TDocument>
     public override bool IsSetBased => false;
 
     /// <summary>The key read from the document when it was queued.</summary>
-    public object Key { get; }
+    public object Key => Target!.Key;
+
+    internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
+        CancellationToken cancellationToken) =>
+        TypedModel.CreateWriteModelAsync(this, run, cancellationToken);
 }

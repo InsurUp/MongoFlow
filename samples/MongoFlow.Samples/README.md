@@ -15,7 +15,7 @@ at the `Mongo` and `Identity` connection strings.
 | `Program.cs` | Registration (defaults, per-vault databases, a second cluster, skipping defaults) and migrating every vault at startup |
 | `Migrations/` | A data fix through the vault, a schema change with the driver, and a migration outside a transaction |
 | `Services/` | Reads (key lookups, LINQ, find, aggregation, features switched off), writes (unit of work, key and set-based operations), and a transaction spanning two vaults |
-| `Interceptors/` | Timestamps (typed, per collection, adding to update definitions), an audit trail (needs originals, writes to another vault in the same transaction, switchable as a feature), and a transactional outbox |
+| `Interceptors/` | Timestamps (typed, per collection, adding to update definitions), an audit trail (writes to another vault in the same transaction, switchable as a feature), and a transactional outbox |
 
 ## Gaps
 

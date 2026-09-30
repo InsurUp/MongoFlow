@@ -5,41 +5,6 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-internal abstract class VaultModelBuilderBase
-{
-    private readonly Stack<FeatureKey> _owners = new();
-    private readonly List<InterceptorRegistration> _interceptors = [];
-
-    /// <summary>The layer settings are recorded into; see <see cref="MongoFlow.Layer"/>.</summary>
-    public Layer Layer { get; set; } = Layer.Own;
-
-    /// <summary>The feature being configured, which owns the filters and interceptors added meanwhile.</summary>
-    public FeatureKey? Owner => _owners.Count > 0 ? _owners.Peek() : null;
-
-    protected IReadOnlyList<InterceptorRegistration> Interceptors => _interceptors;
-
-    public void Register(Type? type, VaultInterceptor? instance, CollectionModelBuilder? collection,
-        Action<IInterceptorBuilder>? configure)
-    {
-        var registration = new InterceptorRegistration
-        {
-            Layer = Layer,
-            Order = _interceptors.Count,
-            Type = type,
-            Instance = instance,
-            Collection = collection,
-            Owner = Owner
-        };
-
-        configure?.Invoke(registration);
-        _interceptors.Add(registration);
-    }
-
-    protected void PushOwner(FeatureKey feature) => _owners.Push(feature);
-
-    protected void PopOwner() => _owners.Pop();
-}
-
 internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultBuilder<TVault> where TVault : MongoVault
 {
     private readonly IServiceProvider _services;
@@ -238,7 +203,8 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         Apply(configuration, () => (IVaultConfiguration<TVault>)ActivatorUtilities.CreateInstance(_services, configuration));
     }
 
-    public VaultModel Build()
+    /// <summary>The vault's model, and how to fill its collection properties.</summary>
+    public (VaultModel Model, IReadOnlyList<CollectionBinding<TVault>> Bindings) Build()
     {
         var duplicate = _collections.GroupBy(collection => collection.DocumentType).FirstOrDefault(group => group.Count() > 1);
         if (duplicate is not null)
@@ -261,15 +227,21 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             }
         }
 
-        var collections = _collections.Select((collection, index) => collection.Build(database, index)).ToArray();
+        var collections = _collections.Select(collection => collection.Build(database)).ToArray();
 
         var interceptors = Interceptors
             .OrderBy(registration => registration.Layer)
             .ThenBy(registration => registration.Order)
-            .Select(registration => registration.Build(collections))
+            .Select(registration => registration.Build(_collections))
             .ToArray();
 
-        return new VaultModel(typeof(TVault), database, collections, interceptors, _migrations.Build());
+        var model = new VaultModel(typeof(TVault),
+            database,
+            collections,
+            interceptors,
+            _migrations.Build());
+
+        return (model, _collections.Select(collection => collection.Bind<TVault>()).ToArray());
     }
 
     private void Apply(Type configurationType, Func<IVaultConfiguration<TVault>> create)
@@ -304,10 +276,8 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             throw new ArgumentException($"Expected a collection property, such as x => x.Policies, but got {selector}.", "collection");
         }
 
-        var match = _collections.FirstOrDefault(collection => IsSameProperty(collection.Property, property))
+        return _collections.FirstOrDefault(collection => IsSameProperty(collection.Property, property)) as TBuilder
             ?? throw new ArgumentException($"{property.Name} isn't a collection declared on {typeof(TVault).Name}.", "collection");
-
-        return (TBuilder)match;
     }
 
     private static bool IsSameProperty(PropertyInfo declared, PropertyInfo selected)

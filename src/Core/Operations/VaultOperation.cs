@@ -33,12 +33,6 @@ public abstract class VaultOperation
     public object? Document => GetDocument();
 
     /// <summary>
-    /// The stored document before the change. Read, in one query per collection, only when an interceptor declared it
-    /// needs originals for this collection and kind. Always <see langword="null"/> for inserts and set-based operations.
-    /// </summary>
-    public object? Original => GetOriginal();
-
-    /// <summary>
     /// <see langword="true"/> for operations that target a filter rather than a key, which can change many documents.
     /// </summary>
     public abstract bool IsSetBased { get; }
@@ -49,27 +43,12 @@ public abstract class VaultOperation
     /// <summary>The features switched off on the collection view the operation was queued through.</summary>
     internal IReadOnlySet<FeatureKey> DisabledFeatures { get; }
 
+    /// <summary>Whether a replace or delete that matched nothing means the document changed after it was read.</summary>
+    internal abstract bool HasConcurrencyToken { get; }
+
+    /// <summary>The model this operation adds to the save's bulk write.</summary>
+    internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
+        CancellationToken cancellationToken);
+
     private protected abstract object? GetDocument();
-
-    private protected abstract object? GetOriginal();
-}
-
-public abstract class VaultOperation<TDocument> : VaultOperation
-{
-    private protected VaultOperation(IVaultCollectionInfo collection,
-        CollectionNamespace @namespace,
-        IReadOnlySet<FeatureKey> disabledFeatures)
-        : base(collection, @namespace, disabledFeatures)
-    {
-    }
-
-    /// <inheritdoc cref="VaultOperation.Document"/>
-    public new TDocument? Document { get; private protected init; }
-
-    /// <inheritdoc cref="VaultOperation.Original"/>
-    public new TDocument? Original { get; internal set; }
-
-    private protected override object? GetDocument() => Document;
-
-    private protected override object? GetOriginal() => Original;
 }

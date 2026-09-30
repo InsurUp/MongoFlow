@@ -2,16 +2,6 @@ using MongoDB.Bson;
 
 namespace MongoFlow.Samples.Domain;
 
-public enum PolicyStatus
-{
-    Draft,
-    Active,
-    Cancelled,
-    Expired
-}
-
-public sealed record PolicyIssued(string PolicyNumber);
-
 [RequiresPermission("policies.read")]
 [Module("policies")]
 public sealed class Policy : ITenantOwned, ISoftDeletable, IOwnedByUser, ITimestamped, IRaisesEvents

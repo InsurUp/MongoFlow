@@ -1,5 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-
 namespace MongoFlow;
 
 internal sealed class InterceptorRegistration : IInterceptorBuilder
@@ -17,15 +15,7 @@ internal sealed class InterceptorRegistration : IInterceptorBuilder
 
     public FeatureKey? Owner { get; init; }
 
-    public bool NeedsOriginals { get; private set; }
-
     public Func<IVaultCollectionInfo, bool>? Predicate { get; private set; }
-
-    IInterceptorBuilder IInterceptorBuilder.NeedsOriginals()
-    {
-        NeedsOriginals = true;
-        return this;
-    }
 
     IInterceptorBuilder IInterceptorBuilder.For(Func<IVaultCollectionInfo, bool> collections)
     {
@@ -36,31 +26,14 @@ internal sealed class InterceptorRegistration : IInterceptorBuilder
         return this;
     }
 
-    public InterceptorModel Build(IReadOnlyList<CollectionModel> collections)
+    public InterceptorModel Build(IReadOnlyList<CollectionModelBuilder> collections)
     {
-        var appliesTo = collections
-            .Select(collection => (Collection is null ? Predicate?.Invoke(collection) ?? true : Collection.Model == collection) &&
-                                  (Owner is not { } owner || !collection.Without.Contains(owner)))
-            .ToArray();
+        var visible = collections
+            .Where(collection => (Collection is null ? Predicate?.Invoke(collection) ?? true : Collection == collection) &&
+                                 (Owner is not { } owner || !collection.OptedOut.Contains(owner)))
+            .Select(collection => collection.Model!)
+            .ToHashSet<IVaultCollectionInfo>(ReferenceEqualityComparer.Instance);
 
-        return new InterceptorModel(Type, Instance, Owner, NeedsOriginals, appliesTo);
+        return new InterceptorModel(Type, Instance, Owner, visible);
     }
-}
-
-internal sealed class InterceptorModel(
-    Type? type,
-    VaultInterceptor? instance,
-    FeatureKey? owner,
-    bool needsOriginals,
-    bool[] appliesTo)
-{
-    public FeatureKey? Owner { get; } = owner;
-
-    public bool NeedsOriginals { get; } = needsOriginals;
-
-    /// <summary>Whether the interceptor sees operations on a collection, by the collection's index in the vault.</summary>
-    public bool AppliesTo(CollectionModel collection) => appliesTo[collection.Index];
-
-    public VaultInterceptor Create(IServiceProvider services) =>
-        instance ?? (VaultInterceptor)ActivatorUtilities.CreateInstance(services, type!);
 }

@@ -6,10 +6,6 @@ using MongoFlow.Samples.Vaults;
 
 namespace MongoFlow.Samples.Services;
 
-public sealed record PolicySummary(string PolicyNumber, PolicyStatus Status, decimal Premium);
-
-public sealed record PremiumByStatus(PolicyStatus Status, decimal Total);
-
 /// <summary>Everyday reads and writes against a keyed collection.</summary>
 public sealed class PolicyService(IPolicyVault vault)
 {
@@ -121,25 +117,4 @@ public sealed class PolicyService(IPolicyVault vault)
 
     // The driver, with no filters or features.
     public IMongoCollection<Policy> Raw => vault.Policies.MongoCollection;
-}
-
-/// <summary>Keyless collections can be queried and appended to, but have no key operations.</summary>
-public sealed class AuditReader(IAuditVault vault)
-{
-    public async Task<List<AuditLogEntry>> RecentAsync(string collection, CancellationToken cancellationToken)
-    {
-        var entries = await vault.Entries.QueryAsync(cancellationToken);
-
-        return await entries
-            .Where(entry => entry.Collection == collection)
-            .OrderByDescending(entry => entry.At)
-            .Take(50)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task PruneAsync(DateTime before, CancellationToken cancellationToken)
-    {
-        vault.Entries.DeleteMany(entry => entry.At < before);
-        await vault.SaveAsync(cancellationToken);
-    }
 }

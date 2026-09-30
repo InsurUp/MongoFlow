@@ -4,12 +4,6 @@ using MongoFlow.Samples.Vaults;
 
 namespace MongoFlow.Samples.Interceptors;
 
-/// <summary>Wakes the dispatcher that publishes stored outbox messages.</summary>
-public interface IOutboxSignal
-{
-    void Notify();
-}
-
 /// <summary>
 /// Transactional outbox: events raised by saved documents are stored in the same transaction as the change, and the
 /// dispatcher is woken only once they're committed.

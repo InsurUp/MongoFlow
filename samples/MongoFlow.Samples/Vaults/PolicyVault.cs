@@ -3,13 +3,6 @@ using MongoFlow.Samples.Domain;
 
 namespace MongoFlow.Samples.Vaults;
 
-public interface IPolicyVault : IMongoVault
-{
-    IVaultCollection<Policy, string> Policies { get; }
-
-    IVaultCollection<Claim, Guid> Claims { get; }
-}
-
 /// <summary>
 /// Configures its own shape: keys, indexes, concurrency, a collection name inherited from an older system, and its
 /// migrations. Anything environment-specific, like the database, stays at registration.

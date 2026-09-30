@@ -119,10 +119,10 @@ public static class MongoVaultServiceCollectionExtensions
 
     private static TVault CreateVault<TVault>(IServiceProvider services) where TVault : MongoVault
     {
-        var model = services.GetRequiredService<VaultModelProvider<TVault>>().Model;
+        var provider = services.GetRequiredService<VaultModelProvider<TVault>>();
         var vault = ActivatorUtilities.CreateInstance<TVault>(services);
 
-        _ = new VaultRuntime(model, services, vault);
+        provider.Attach(vault, new VaultRuntime(provider.Model, services, vault));
 
         return vault;
     }

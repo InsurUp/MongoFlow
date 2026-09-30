@@ -4,12 +4,6 @@ using MongoFlow.Samples.Vaults;
 
 namespace MongoFlow.Samples.Configuration;
 
-public sealed class CustomerOptions
-{
-    /// <summary>Erase customers for real on delete, as data-protection law requires in some markets.</summary>
-    public bool HardDeleteCustomers { get; set; }
-}
-
 /// <summary>
 /// Setup for one vault kept outside the vault class, because it depends on options. It's created from the root
 /// provider once, at startup.

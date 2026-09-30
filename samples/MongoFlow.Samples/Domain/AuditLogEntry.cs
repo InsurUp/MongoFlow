@@ -18,9 +18,7 @@ public sealed class AuditLogEntry : ITenantOwned
 
     public string? UserId { get; init; }
 
-    public BsonDocument? Before { get; init; }
-
-    public BsonDocument? After { get; init; }
+    public BsonDocument? Document { get; init; }
 
     public AgencyId? AgencyId { get; set; }
 }

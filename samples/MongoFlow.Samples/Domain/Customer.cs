@@ -2,12 +2,6 @@ using MongoDB.Bson;
 
 namespace MongoFlow.Samples.Domain;
 
-public enum CustomerStatus
-{
-    Active,
-    Merged
-}
-
 [RequiresPermission("customers.read")]
 public sealed class Customer : ITenantOwned, ISoftDeletable, IOwnedByUser, ITimestamped
 {
@@ -33,16 +27,4 @@ public sealed class Customer : ITenantOwned, ISoftDeletable, IOwnedByUser, ITime
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset? UpdatedAt { get; set; }
-}
-
-/// <summary>The tenants themselves: platform data, not owned by any agency.</summary>
-public sealed class Agency
-{
-    public ObjectId Id { get; set; }
-
-    public AgencyId AgencyId { get; set; }
-
-    public required string Name { get; set; }
-
-    public IReadOnlyList<string> Modules { get; set; } = [];
 }

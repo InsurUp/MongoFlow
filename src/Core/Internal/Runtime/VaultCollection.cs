@@ -54,7 +54,7 @@ internal class VaultCollection<TDocument>(
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        Runtime.Enqueue(new InsertOperation<TDocument>(model, model.Namespace, Disabled, document));
+        Runtime.Enqueue(new InsertOperation<TDocument>(model, Disabled, document));
     }
 
     public void AddRange(IEnumerable<TDocument> documents)
@@ -72,14 +72,14 @@ internal class VaultCollection<TDocument>(
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(update);
 
-        Runtime.Enqueue(new UpdateOperation<TDocument>(model, model.Namespace, Disabled, null, filter, update));
+        Runtime.Enqueue(new UpdateOperation<TDocument>(model, Disabled, null, filter, update));
     }
 
     public void DeleteMany(Expression<Func<TDocument, bool>> filter)
     {
         ArgumentNullException.ThrowIfNull(filter);
 
-        Runtime.Enqueue(new DeleteOperation<TDocument>(model, model.Namespace, Disabled, null, filter, default));
+        Runtime.Enqueue(new DeleteOperation<TDocument>(model, Disabled, null, filter, default));
     }
 
     protected static IReadOnlySet<FeatureKey> With(IReadOnlySet<FeatureKey> disabled, FeatureKey feature)
@@ -88,63 +88,4 @@ internal class VaultCollection<TDocument>(
 
         return new HashSet<FeatureKey>(disabled) { feature };
     }
-}
-
-internal sealed class KeyedVaultCollection<TDocument, TKey>(
-    VaultRuntime runtime,
-    KeyedCollectionModel<TDocument, TKey> model,
-    IReadOnlySet<FeatureKey> disabled) : VaultCollection<TDocument>(runtime, model, disabled), IVaultCollection<TDocument, TKey>
-{
-    public override IVaultCollection<TDocument> Without(FeatureKey feature) => WithoutKeyed(feature);
-
-    IVaultCollection<TDocument, TKey> IVaultCollection<TDocument, TKey>.Without(FeatureKey feature) => WithoutKeyed(feature);
-
-    public async Task<TDocument?> GetByKeyAsync(TKey key, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(key);
-
-        var filter = FilterExpressions.Combine(
-            model.Key.Filter(key),
-            await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken))!;
-
-        var session = await Runtime.GetSessionAsync(cancellationToken);
-        var find = session is null ? model.MongoCollection.Find(filter) : model.MongoCollection.Find(session, filter);
-
-        return await find.FirstOrDefaultAsync(cancellationToken);
-    }
-
-    public void Replace(TDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-
-        Runtime.Enqueue(new ReplaceOperation<TDocument>(model, model.Namespace, Disabled, KeyOf(document), document));
-    }
-
-    public void Delete(TDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-
-        Runtime.Enqueue(new DeleteOperation<TDocument>(model, model.Namespace, Disabled, KeyOf(document), null, document));
-    }
-
-    public void DeleteByKey(TKey key)
-    {
-        ArgumentNullException.ThrowIfNull(key);
-
-        Runtime.Enqueue(new DeleteOperation<TDocument>(model, model.Namespace, Disabled, key, null, default));
-    }
-
-    public void UpdateByKey(TKey key, UpdateDefinition<TDocument> update)
-    {
-        ArgumentNullException.ThrowIfNull(key);
-        ArgumentNullException.ThrowIfNull(update);
-
-        Runtime.Enqueue(new UpdateOperation<TDocument>(model, model.Namespace, Disabled, key, null, update));
-    }
-
-    private KeyedVaultCollection<TDocument, TKey> WithoutKeyed(FeatureKey feature) =>
-        new(Runtime, model, With(Disabled, feature));
-
-    private object KeyOf(TDocument document) =>
-        model.Key.Get(document) ?? throw new ArgumentException($"The document's key is null, so {model.Name} can't find it.", nameof(document));
 }

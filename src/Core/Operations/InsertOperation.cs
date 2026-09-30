@@ -7,11 +7,10 @@ namespace MongoFlow;
 /// </summary>
 public sealed class InsertOperation<TDocument> : VaultOperation<TDocument>
 {
-    internal InsertOperation(IVaultCollectionInfo collection,
-        CollectionNamespace @namespace,
+    internal InsertOperation(CollectionModel<TDocument> model,
         IReadOnlySet<FeatureKey> disabledFeatures,
         TDocument document)
-        : base(collection, @namespace, disabledFeatures)
+        : base(model, disabledFeatures, target: null)
     {
         Document = document;
     }
@@ -19,4 +18,8 @@ public sealed class InsertOperation<TDocument> : VaultOperation<TDocument>
     public override OperationKind Kind => OperationKind.Insert;
 
     public override bool IsSetBased => false;
+
+    internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
+        CancellationToken cancellationToken) =>
+        ValueTask.FromResult(TypedModel.CreateWriteModel(this));
 }
