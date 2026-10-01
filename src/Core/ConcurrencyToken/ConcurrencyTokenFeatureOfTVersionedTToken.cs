@@ -17,7 +17,7 @@ internal sealed class ConcurrencyTokenFeature<TVersioned, TToken> : IVaultFeatur
 
         _token = token;
         _get = token.Compile();
-        _set = MemberExpressions.CreateSetter(token, nameof(token));
+        _set = token.CreateSetter(nameof(token));
     }
 
     public static FeatureKey Key => ConcurrencyTokenFeature.Key;

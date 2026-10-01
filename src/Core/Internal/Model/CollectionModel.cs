@@ -43,9 +43,23 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
             return ValueTask.FromResult<Expression<Func<TDocument, bool>>?>(null);
         }
 
-        return _hasAsyncFilters
-            ? ResolveAsync(services, disabled, cancellationToken)
-            : ValueTask.FromResult(FilterExpressions.Combine(Active(disabled).Select(filter => filter.Resolve(services))));
+        if (_hasAsyncFilters)
+        {
+            return ResolveAsync(services, disabled, cancellationToken);
+        }
+
+        // A disabled filter stays null, which Combine skips.
+        var resolved = new Expression<Func<TDocument, bool>>?[_filters.Length];
+
+        for (var i = 0; i < _filters.Length; i++)
+        {
+            if (IsActive(_filters[i], disabled))
+            {
+                resolved[i] = _filters[i].Resolve(services);
+            }
+        }
+
+        return ValueTask.FromResult(FilterExpressions.Combine(resolved));
     }
 
     public BulkWriteModel CreateWriteModel(InsertOperation<TDocument> insert) =>
@@ -107,20 +121,22 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         IReadOnlySet<FeatureKey> disabled,
         CancellationToken cancellationToken)
     {
-        var resolved = new List<Expression<Func<TDocument, bool>>?>();
+        var resolved = new Expression<Func<TDocument, bool>>?[_filters.Length];
 
-        foreach (var filter in Active(disabled))
+        for (var i = 0; i < _filters.Length; i++)
         {
-            resolved.Add(await filter.ResolveAsync(services, cancellationToken));
+            if (IsActive(_filters[i], disabled))
+            {
+                resolved[i] = await _filters[i].ResolveAsync(services, cancellationToken);
+            }
         }
 
         return FilterExpressions.Combine(resolved);
     }
 
-    private IEnumerable<QueryFilterEntry<TDocument>> Active(IReadOnlySet<FeatureKey> disabled) =>
-        disabled.Count == 0
-            ? _filters
-            : _filters.Where(filter => filter.Owner is not { } owner || !disabled.Contains(owner));
+    private static bool IsActive(QueryFilterEntry<TDocument> filter,
+        IReadOnlySet<FeatureKey> disabled) =>
+        filter.Owner is not { } owner || !disabled.Contains(owner);
 
     /// <summary>The operation's key or filter, joined with the query filters it was queued under.</summary>
     private async ValueTask<FilterDefinition<TDocument>> TargetAsync(VaultOperation<TDocument> operation,

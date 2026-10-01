@@ -4,16 +4,14 @@ namespace MongoFlow;
 
 internal static class FilterExpressions
 {
-    public static Expression<Func<T, bool>> MatchNothing<T>() => _ => false;
-
     /// <summary>
-    /// Joins filters with AND onto one parameter. Filters that are the constant <see langword="true"/> are dropped; one
-    /// that is the constant <see langword="false"/> makes the result match nothing. Returns <see langword="null"/> when
-    /// nothing is left to filter by.
+    /// Joins filters with AND, onto the first filter's parameter. Filters that are null or the constant
+    /// <see langword="true"/> are dropped, and one that is the constant <see langword="false"/> is the result. Returns
+    /// <see langword="null"/> when nothing is left to filter by, and the one filter left as it is.
     /// </summary>
-    public static Expression<Func<T, bool>>? Combine<T>(IEnumerable<Expression<Func<T, bool>>?> filters)
+    public static Expression<Func<T, bool>>? Combine<T>(params ReadOnlySpan<Expression<Func<T, bool>>?> filters)
     {
-        ParameterExpression? parameter = null;
+        Expression<Func<T, bool>>? first = null;
         Expression? body = null;
 
         foreach (var filter in filters)
@@ -25,18 +23,18 @@ internal static class FilterExpressions
                     continue;
 
                 case ConstantExpression { Value: false }:
-                    return MatchNothing<T>();
+                    return filter;
             }
 
-            parameter ??= Expression.Parameter(typeof(T), "x");
-            var next = new ParameterReplacer(filter.Parameters[0], parameter).Visit(filter.Body);
+            if (first is null)
+            {
+                first = filter;
+                continue;
+            }
 
-            body = body is null ? next : Expression.AndAlso(body, next);
+            body = Expression.AndAlso(body ?? first.Body, ParameterReplacer.Inline(filter, first.Parameters[0]));
         }
 
-        return body is null ? null : Expression.Lambda<Func<T, bool>>(body, parameter!);
+        return body is null ? first : Expression.Lambda<Func<T, bool>>(body, first!.Parameters[0]);
     }
-
-    public static Expression<Func<T, bool>>? Combine<T>(params Expression<Func<T, bool>>?[] filters) =>
-        Combine((IEnumerable<Expression<Func<T, bool>>?>)filters);
 }

@@ -20,7 +20,7 @@ internal sealed class SoftDeleteFeature<TSoftDelete, TValue> : IVaultFeature, IV
         _member = member;
         _notDeleted = notDeleted;
         _deletedValue = deletedValue;
-        _setMember = MemberExpressions.CreateSetter(member, parameterName);
+        _setMember = member.CreateSetter(parameterName);
     }
 
     public static FeatureKey Key => SoftDeleteFeature.Key;

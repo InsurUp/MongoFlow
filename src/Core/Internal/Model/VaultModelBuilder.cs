@@ -258,7 +258,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
     {
         ArgumentNullException.ThrowIfNull(selector);
 
-        if (MemberExpressions.GetMember(selector, "collection").Member is not PropertyInfo property)
+        if (selector.GetMember("collection").Member is not PropertyInfo property)
         {
             throw new ArgumentException($"Expected a collection property, such as x => x.Policies, but got {selector}.", "collection");
         }

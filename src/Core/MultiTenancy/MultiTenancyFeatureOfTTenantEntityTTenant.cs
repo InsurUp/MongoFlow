@@ -22,7 +22,7 @@ internal sealed class MultiTenancyFeature<TTenantEntity, TTenant> : IVaultFeatur
 
         _tenantId = tenantId;
         _getTenantId = tenantId.Compile();
-        _setTenantId = MemberExpressions.CreateSetter(tenantId, nameof(tenantId));
+        _setTenantId = tenantId.CreateSetter(nameof(tenantId));
         _currentTenantId = currentTenantId;
         _allTenants = allTenants;
         _isUnset = isUnset;
