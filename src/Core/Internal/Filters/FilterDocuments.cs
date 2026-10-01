@@ -28,13 +28,15 @@ internal static class FilterDocuments
         new(field.FieldName, field.FieldSerializer.ToBsonValue(value));
 
     /// <summary>
-    /// Joins filters with <c>$and</c>. Null filters are dropped. Returns <see langword="null"/> when nothing is left to
-    /// filter by, and the one filter left as it is.
+    /// Joins filters into one, with their fields side by side, which the server matches faster than <c>$and</c>; or with
+    /// <c>$and</c> when two of them constrain the same field. Null filters are dropped. Returns <see langword="null"/>
+    /// when nothing is left to filter by, and the one filter left as it is. The filters aren't changed: a save shares its
+    /// rendered query filters between operations.
     /// </summary>
     public static BsonDocument? And(params ReadOnlySpan<BsonDocument?> filters)
     {
         BsonDocument? first = null;
-        BsonArray? all = null;
+        BsonDocument? joined = null;
 
         foreach (var filter in filters)
         {
@@ -49,10 +51,34 @@ internal static class FilterDocuments
                 continue;
             }
 
-            all ??= new BsonArray { first };
-            all.Add(filter);
+            joined ??= new BsonDocument(first);
+
+            foreach (var element in filter)
+            {
+                if (joined.Contains(element.Name))
+                {
+                    return AndEach(filters);
+                }
+
+                joined.Add(element);
+            }
         }
 
-        return all is null ? first : new BsonDocument("$and", all);
+        return joined ?? first;
+    }
+
+    private static BsonDocument AndEach(ReadOnlySpan<BsonDocument?> filters)
+    {
+        var all = new BsonArray();
+
+        foreach (var filter in filters)
+        {
+            if (filter is not null)
+            {
+                all.Add(filter);
+            }
+        }
+
+        return new BsonDocument("$and", all);
     }
 }

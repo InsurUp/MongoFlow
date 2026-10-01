@@ -7,13 +7,15 @@ namespace MongoFlow.Benchmarks;
 /// <summary>
 /// What saving updates by key costs over the driver writing them itself: by key from a vault resolved for the request;
 /// with the built-in features, whose query filters every write carries and whose token every update increments; and
-/// made with the documents read, which the concurrency token checks. Every save increments each document's total, so
-/// saves repeat on the documents seeded once.
+/// made with the documents read, which the concurrency token checks. The second driver row writes what the features add
+/// (their filters and the token's increment), so the rows after it show MongoFlow's own cost apart from the server's work
+/// on the features' filters. Every save increments each document's total, so saves repeat on the documents seeded once.
 /// </summary>
 [MemoryDiagnoser]
 public class UpdateByKeyBenchmarks : IDisposable
 {
     private static readonly UpdateDefinition<Order> Increment = Builders<Order>.Update.Inc(x => x.Total, 1);
+    private static readonly UpdateDefinition<Order> IncrementAndToken = Builders<Order>.Update.Inc(x => x.Total, 1).Inc(x => x.Version, 1);
 
     private BenchmarkDatabase _database = null!;
     private ServiceProvider _plain = null!;
@@ -45,6 +47,22 @@ public class UpdateByKeyBenchmarks : IDisposable
             models[i] = new BulkWriteUpdateOneModel<Order>(_database.Orders.CollectionNamespace,
                 Builders<Order>.Filter.Eq(x => x.Id, i + 1),
                 Increment);
+        }
+
+        return ClientBulkWrites.WriteAsync(_database.Client, models);
+    }
+
+    [Benchmark(Description = "Driver: features' filters")]
+    public Task<ClientBulkWriteResult> DriverWithFeaturesFilters()
+    {
+        var models = new BulkWriteModel[Count];
+        for (var i = 0; i < Count; i++)
+        {
+            models[i] = new BulkWriteUpdateOneModel<Order>(_database.Orders.CollectionNamespace,
+                Builders<Order>.Filter.Eq(x => x.Id, i + 1) &
+                Builders<Order>.Filter.Ne(x => x.IsDeleted, true) &
+                Builders<Order>.Filter.Eq(x => x.TenantId, Tenant.Current),
+                IncrementAndToken);
         }
 
         return ClientBulkWrites.WriteAsync(_database.Client, models);
