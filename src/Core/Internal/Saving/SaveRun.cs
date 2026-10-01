@@ -135,6 +135,7 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     public void Replace(VaultOperation operation, VaultOperation replacement)
     {
         ThrowIfNotSaving(nameof(Replace));
+        ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(replacement);
 
         if (!ReferenceEquals(operation.Collection, replacement.Collection))
@@ -148,6 +149,7 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     public void Remove(VaultOperation operation)
     {
         ThrowIfNotSaving(nameof(Remove));
+        ArgumentNullException.ThrowIfNull(operation);
 
         Operations.RemoveAt(IndexOf(operation));
     }
@@ -165,8 +167,6 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
 
     private int IndexOf(VaultOperation operation)
     {
-        ArgumentNullException.ThrowIfNull(operation);
-
         for (var i = 0; i < Operations.Count; i++)
         {
             if (ReferenceEquals(Operations[i], operation))
