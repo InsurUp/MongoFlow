@@ -20,6 +20,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
+    <PackageReference Include="Prest" Version="0.2.0" />
   </ItemGroup>
 
   <ItemGroup>
