@@ -82,7 +82,9 @@ dotnet run -c Release --project benchmarks/MongoFlow.Benchmarks -- --filter '*So
 dotnet run -c Release --project benchmarks/MongoFlow.Benchmarks -- --list flat
 ```
 
-Reports land in `benchmarks/artifacts/results/` (committed); logs elsewhere in `benchmarks/artifacts/` aren't.
+Reports land in `benchmarks/artifacts/results/` (committed); logs elsewhere in `benchmarks/artifacts/` aren't. CI can run
+every benchmark once (`--job dry`) when started by hand with `benchmarks` checked, to check they still run; timings from a
+shared runner aren't worth keeping.
 
 ## Don'ts
 

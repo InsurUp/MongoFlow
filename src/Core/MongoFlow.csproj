@@ -15,6 +15,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IsPackable>true</IsPackable>
+    <!-- Local packs; a release takes its version from the tag. -->
+    <Version>1.0.0-beta.1</Version>
+    <PackageReleaseNotes>https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

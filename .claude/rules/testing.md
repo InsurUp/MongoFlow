@@ -116,6 +116,11 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
     `VaultTransaction`): they handle thrown objects that aren't exceptions.
 - Every bug fix comes with a regression test that fails before the fix.
 
+### CI
+
+`.github/workflows/ci.yml` runs both lanes on both frameworks, in Release, on every push to `main` and every pull
+request, merges their coverage into the run's summary, and uploads the results, with any `*.received.*` snapshots.
+
 ### Commands
 
 With SDK 11 RC, a relative `--project` path to a multi-target project is resolved against the project's own folder
