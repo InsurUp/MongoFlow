@@ -95,7 +95,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
             Property,
             KeyType,
             database.GetCollection<TDocument>(_name.TryGet(out var name) ? name : Property.Name),
-            _filters.All.Where(filter => filter.Owner is not { } owner || !_without.Contains(owner)).ToArray());
+            [.. _filters.All.Where(filter => filter.Owner is not { } owner || !_without.Contains(owner))]);
 
         return Model = CreateModel(definition);
     }

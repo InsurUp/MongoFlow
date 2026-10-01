@@ -10,6 +10,9 @@ internal abstract class QueryFilterEntry<TDocument>(FeatureKey? owner)
 
     public abstract bool IsAsync { get; }
 
+    /// <summary>The filter when it's the same for every request, or <see langword="null"/> when it's resolved per query.</summary>
+    public virtual Expression<Func<TDocument, bool>>? Static => null;
+
     /// <summary>Resolves a filter that isn't asynchronous.</summary>
     public abstract Expression<Func<TDocument, bool>> Resolve(IServiceProvider services);
 

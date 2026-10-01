@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 using MongoDB.Driver;
@@ -7,8 +8,13 @@ namespace MongoFlow;
 /// <summary>A vault collection as built at startup: shared by every vault instance, never changed.</summary>
 internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> definition) : ICollectionModel
 {
-    private readonly QueryFilterEntry<TDocument>[] _filters = definition.Filters.ToArray();
+    private readonly ImmutableArray<QueryFilterEntry<TDocument>> _filters = definition.Filters;
     private readonly bool _hasAsyncFilters = definition.Filters.Any(filter => filter.IsAsync);
+    private readonly bool _onlyStatic = definition.Filters.All(filter => filter.Static is not null);
+
+    // The static filters joined once, at startup; the whole filter when every filter is static.
+    private readonly Expression<Func<TDocument, bool>>? _staticFilter =
+        FilterExpressions.Combine([.. definition.Filters.Select(filter => filter.Static)]);
 
     public Type DocumentType => typeof(TDocument);
 
@@ -41,6 +47,12 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         if (_filters.Length == 0)
         {
             return ValueTask.FromResult<Expression<Func<TDocument, bool>>?>(null);
+        }
+
+        // Every request gets the same filter, so it isn't joined again.
+        if (_onlyStatic && disabled.Count == 0)
+        {
+            return ValueTask.FromResult(_staticFilter);
         }
 
         if (_hasAsyncFilters)

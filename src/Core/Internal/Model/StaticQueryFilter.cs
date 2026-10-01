@@ -9,6 +9,8 @@ internal sealed class StaticQueryFilter<TDocument, TTarget>(Expression<Func<TTar
 
     public override bool IsAsync => false;
 
+    public override Expression<Func<TDocument, bool>>? Static => _filter;
+
     public override Expression<Func<TDocument, bool>> Resolve(IServiceProvider services) => _filter;
 
     public override ValueTask<Expression<Func<TDocument, bool>>> ResolveAsync(IServiceProvider services,
