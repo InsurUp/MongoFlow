@@ -80,57 +80,6 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     public BsonDocument Render(Expression<Func<TDocument, bool>> filter) => ((FilterDefinition<TDocument>)filter).Render(RenderArgs);
 
-    public BulkWriteModel CreateWriteModel(InsertOperation<TDocument> insert) =>
-        new BulkWriteInsertOneModel<TDocument>(Namespace, insert.Document!);
-
-    public async ValueTask<BulkWriteModel> CreateWriteModelAsync(ReplaceOperation<TDocument> replace,
-        SaveRun run,
-        CancellationToken cancellationToken)
-    {
-        var filter = await WriteFilterAsync(replace, run, cancellationToken);
-
-        return new BulkWriteReplaceOneModel<TDocument>(Namespace, filter, replace.Document!);
-    }
-
-    public async ValueTask<BulkWriteModel> CreateWriteModelAsync(UpdateOperation<TDocument> update,
-        SaveRun run,
-        CancellationToken cancellationToken)
-    {
-        var filter = await WriteFilterAsync(update, run, cancellationToken, update.Filter);
-
-        return update.IsSetBased
-            ? new BulkWriteUpdateManyModel<TDocument>(Namespace, filter, update.Update)
-            : new BulkWriteUpdateOneModel<TDocument>(Namespace, filter, update.Update);
-    }
-
-    public async ValueTask<BulkWriteModel> CreateWriteModelAsync(DeleteOperation<TDocument> delete,
-        SaveRun run,
-        CancellationToken cancellationToken)
-    {
-        var filter = await WriteFilterAsync(delete, run, cancellationToken, delete.Filter);
-
-        return delete.IsSetBased
-            ? new BulkWriteDeleteManyModel<TDocument>(Namespace, filter)
-            : new BulkWriteDeleteOneModel<TDocument>(Namespace, filter);
-    }
-
-    /// <summary>Whether the operation's target, without its condition, matches a stored document.</summary>
-    public async Task<bool> TargetExistsAsync(VaultOperation<TDocument> operation,
-        SaveRun run,
-        CancellationToken cancellationToken)
-    {
-        var filter = await FilterAsync(operation, run, null, null, cancellationToken);
-
-        return await MongoCollection.Find(run.Session, filter).Limit(1).AnyAsync(cancellationToken);
-    }
-
-    /// <summary>The operation's target, with its condition if it has one.</summary>
-    private ValueTask<FilterDefinition<TDocument>> WriteFilterAsync(VaultOperation<TDocument> operation,
-        SaveRun run,
-        CancellationToken cancellationToken,
-        Expression<Func<TDocument, bool>>? filter = null) =>
-        FilterAsync(operation, run, filter, operation.Condition, cancellationToken);
-
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,
         FeatureSet disabled,
         CancellationToken cancellationToken)
@@ -151,22 +100,4 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     private static bool IsActive(QueryFilterEntry<TDocument> filter,
         FeatureSet disabled) =>
         filter.Owner is not { } owner || !disabled.Contains(owner);
-
-    /// <summary>
-    /// The operation's key or filter, joined with the query filters it was queued under and <paramref name="condition"/>.
-    /// A key is matched as BSON and the query filters are rendered once per save, so a write by key needs no LINQ
-    /// translation.
-    /// </summary>
-    private async ValueTask<FilterDefinition<TDocument>> FilterAsync(VaultOperation<TDocument> operation,
-        SaveRun run,
-        Expression<Func<TDocument, bool>>? filter,
-        BsonDocument? condition,
-        CancellationToken cancellationToken)
-    {
-        var target = operation.Target?.Match() ?? (filter is null ? null : Render(filter));
-        var queryFilter = await run.QueryFilterAsync(this, operation.DisabledFeatures, cancellationToken);
-        var combined = FilterDocuments.And(target, queryFilter, condition);
-
-        return combined is null ? FilterDefinition<TDocument>.Empty : new BsonDocumentFilterDefinition<TDocument>(combined);
-    }
 }

@@ -39,7 +39,13 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
     public UpdateOperation<TDocument> ToUpdate(UpdateDefinition<TDocument> update) =>
         new(TypedModel, DisabledFeatures, Target, Filter, update, Document) { Condition = Condition };
 
-    internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
-        CancellationToken cancellationToken) =>
-        TypedModel.CreateWriteModelAsync(this, run, cancellationToken);
+    internal override async ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
+        CancellationToken cancellationToken)
+    {
+        var filter = await WriteFilterAsync(run, Filter, cancellationToken);
+
+        return IsSetBased
+            ? new BulkWriteDeleteManyModel<TDocument>(Namespace, filter)
+            : new BulkWriteDeleteOneModel<TDocument>(Namespace, filter);
+    }
 }

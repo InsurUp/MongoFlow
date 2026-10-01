@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -28,5 +30,37 @@ public abstract class VaultOperation<TDocument> : VaultOperation
     /// </summary>
     internal BsonDocument? Condition { get; set; }
 
+    /// <summary>Whether the operation's target, without its condition, matches a stored document.</summary>
+    internal async Task<bool> TargetExistsAsync(SaveRun run,
+        CancellationToken cancellationToken)
+    {
+        var filter = await MatchAsync(run, null, null, cancellationToken);
+
+        return await TypedModel.MongoCollection.Find(run.Session, filter).Limit(1).AnyAsync(cancellationToken);
+    }
+
+    /// <summary>What the write matches: its key, or <paramref name="filter"/>, with its query filters and condition.</summary>
+    private protected ValueTask<FilterDefinition<TDocument>> WriteFilterAsync(SaveRun run,
+        Expression<Func<TDocument, bool>>? filter,
+        CancellationToken cancellationToken) =>
+        MatchAsync(run, filter, Condition, cancellationToken);
+
     private protected override object? GetDocument() => Document;
+
+    /// <summary>
+    /// The operation's key or <paramref name="filter"/>, joined with the query filters it was queued under and
+    /// <paramref name="condition"/>. A key is matched as BSON and the query filters are rendered once per save, so a write
+    /// by key needs no LINQ translation.
+    /// </summary>
+    private async ValueTask<FilterDefinition<TDocument>> MatchAsync(SaveRun run,
+        Expression<Func<TDocument, bool>>? filter,
+        BsonDocument? condition,
+        CancellationToken cancellationToken)
+    {
+        var target = Target?.Match() ?? (filter is null ? null : TypedModel.Render(filter));
+        var queryFilter = await run.QueryFilterAsync(TypedModel, DisabledFeatures, cancellationToken);
+        var combined = FilterDocuments.And(target, queryFilter, condition);
+
+        return combined is null ? FilterDefinition<TDocument>.Empty : new BsonDocumentFilterDefinition<TDocument>(combined);
+    }
 }

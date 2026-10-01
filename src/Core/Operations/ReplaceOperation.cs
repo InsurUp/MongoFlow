@@ -21,7 +21,7 @@ public sealed class ReplaceOperation<TDocument> : VaultOperation<TDocument>
     /// <summary>The key read from the document when it was queued.</summary>
     public object Key => Target!.Key;
 
-    internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
+    internal override async ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken) =>
-        TypedModel.CreateWriteModelAsync(this, run, cancellationToken);
+        new BulkWriteReplaceOneModel<TDocument>(Namespace, await WriteFilterAsync(run, null, cancellationToken), Document!);
 }

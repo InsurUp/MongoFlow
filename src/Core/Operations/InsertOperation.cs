@@ -21,5 +21,5 @@ public sealed class InsertOperation<TDocument> : VaultOperation<TDocument>
 
     internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken) =>
-        ValueTask.FromResult(TypedModel.CreateWriteModel(this));
+        ValueTask.FromResult<BulkWriteModel>(new BulkWriteInsertOneModel<TDocument>(Namespace, Document!));
 }
