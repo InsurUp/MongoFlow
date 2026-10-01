@@ -11,8 +11,7 @@ internal sealed class InterceptorSaveContext(SaveRun run, InterceptorModel inter
 
     public override IClientSessionHandle Session => run.Session;
 
-    public override IReadOnlyList<VaultOperation> Operations =>
-        run.Operations.Where(operation => run.Sees(interceptor, operation)).ToList();
+    public override IReadOnlyList<VaultOperation> Operations => run.Operations.Where(interceptor.Sees).ToList();
 
     public override SaveResult? Result => run.Result;
 

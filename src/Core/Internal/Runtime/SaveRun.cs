@@ -11,6 +11,9 @@ namespace MongoFlow;
 /// </remarks>
 internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> operations) : IDisposable
 {
+    // The driver copies what it needs out of the options, so one instance serves every save.
+    private static readonly ClientBulkWriteOptions WriteOptions = new() { IsOrdered = true, VerboseResult = true };
+
     private readonly Dictionary<(IVaultCollectionInfo, string), BsonDocument?> _queryFilters = [];
     private bool _saving;
     private bool _disposed;
@@ -48,7 +51,8 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     {
         if (Operations.Count == 0)
         {
-            return Result = SaveResult.Empty;
+            Result = SaveResult.Empty;
+            return SaveResult.Empty;
         }
 
         using var models = new PooledList<BulkWriteModel>(Operations.Count, clearOnReturn: true);
@@ -57,15 +61,18 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
             models.Add(await t.CreateWriteModelAsync(this, cancellationToken));
         }
 
-        var written = await Runtime.Model.Client.BulkWriteAsync(Session, models,
-            new ClientBulkWriteOptions { IsOrdered = true, VerboseResult = true }, cancellationToken);
+        var written = await Runtime.Model.Client.BulkWriteAsync(Session, models, WriteOptions, cancellationToken);
 
         for (var i = 0; i < Operations.Count; i++)
         {
             Operations[i].Result = ResultOf(Operations[i], written, i);
         }
 
-        return Result = new SaveResult(written.InsertedCount, written.MatchedCount, written.ModifiedCount, written.DeletedCount);
+        var result = new SaveResult(written.InsertedCount, written.MatchedCount, written.ModifiedCount,
+            written.DeletedCount);
+        Result = result;
+
+        return result;
     }
 
     // The hooks after the write run in reverse, so the interceptor that ran last before it, such as the concurrency
@@ -125,10 +132,6 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
         return rendered;
     }
 
-    public bool Sees(InterceptorModel interceptor, VaultOperation operation) =>
-        interceptor.AppliesTo(operation.Collection) &&
-        (interceptor.Owner is not { } owner || !operation.DisabledFeatures.Contains(owner));
-
     public void Replace(VaultOperation operation, VaultOperation replacement)
     {
         ThrowIfNotSaving(nameof(Replace));
@@ -158,7 +161,8 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
         }
     }
 
-    private SaveContext ContextFor(int interceptor) => new InterceptorSaveContext(this, Runtime.Model.Interceptors[interceptor]);
+    private SaveContext ContextFor(int interceptor) =>
+        new InterceptorSaveContext(this, Runtime.Model.Interceptors[interceptor]);
 
     private int IndexOf(VaultOperation operation)
     {
@@ -179,19 +183,20 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     {
         if (!_saving)
         {
-            throw new InvalidOperationException($"{method} can only be called during {nameof(VaultInterceptor.SavingAsync)}.");
+            throw new InvalidOperationException(
+                $"{method} can only be called during {nameof(VaultInterceptor.SavingAsync)}.");
         }
     }
 
     private static OperationResult ResultOf(VaultOperation operation, ClientBulkWriteResult written, int index) =>
         operation.Kind switch
         {
-            OperationKind.Insert => new OperationResult(1, 0, 0, 0),
+            OperationKind.Insert => OperationResult.Of(1, 0, 0, 0),
             OperationKind.Delete => written.DeleteResults.TryGetValue(index, out var deleted)
-                ? new OperationResult(0, 0, 0, deleted.DeletedCount)
-                : new OperationResult(0, 0, 0, 0),
+                ? OperationResult.Of(0, 0, 0, deleted.DeletedCount)
+                : OperationResult.Of(0, 0, 0, 0),
             _ => written.UpdateResults.TryGetValue(index, out var updated)
-                ? new OperationResult(0, updated.MatchedCount, updated.ModifiedCount, 0)
-                : new OperationResult(0, 0, 0, 0)
+                ? OperationResult.Of(0, updated.MatchedCount, updated.ModifiedCount, 0)
+                : OperationResult.Of(0, 0, 0, 0)
         };
 }
