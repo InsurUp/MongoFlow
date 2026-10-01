@@ -1,0 +1,19 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Party: piped,
+      ver: 4
+    },
+    {
+      _id: 2,
+      Party: piped,
+      ver: 1
+    }
+  ],
+  Document: {
+    Id: 1,
+    Party: acme,
+    Version: 4
+  }
+}

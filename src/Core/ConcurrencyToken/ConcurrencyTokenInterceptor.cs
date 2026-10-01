@@ -40,7 +40,7 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
                         Guard(update, document, incremented);
                     }
 
-                    context.Replace(update, update.WithUpdate(Builders<TDocument>.Update.Combine(update.Update, Increment(update))));
+                    update.Update = Incremented(update);
                     break;
 
                 case DeleteOperation<TDocument> { Document: { } deleted } delete:
@@ -111,15 +111,15 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
         new BsonDocument().Add(FilterDocuments.Equal(Field(operation), getToken((TVersioned)(object)document!)));
 
     /// <summary>
-    /// <c>{ $inc: { Version: 1 } }</c>, as BSON, so the driver doesn't translate the token's member for every update. Each
-    /// update gets one of its own: combining updates merges later ones into the documents of earlier ones.
+    /// The update with <c>{ $inc: { Version: 1 } }</c> added, as BSON, so the driver doesn't translate the token's member
+    /// for every update.
     /// </summary>
-    private BsonDocumentUpdateDefinition<TDocument> Increment(VaultOperation<TDocument> operation)
+    private IncrementedUpdateDefinition<TDocument> Incremented(UpdateOperation<TDocument> operation)
     {
         var field = Field(operation);
-        var one = _one ??= field.FieldSerializer.ToBsonValue(TToken.One);
 
-        return new BsonDocumentUpdateDefinition<TDocument>(new BsonDocument("$inc", new BsonDocument(field.FieldName, one)));
+        return new IncrementedUpdateDefinition<TDocument>(operation.Update, field.FieldName,
+            _one ??= field.FieldSerializer.ToBsonValue(TToken.One));
     }
 
     private RenderedFieldDefinition Field(VaultOperation<TDocument> operation) =>

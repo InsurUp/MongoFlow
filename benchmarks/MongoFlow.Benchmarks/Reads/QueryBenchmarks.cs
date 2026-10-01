@@ -43,7 +43,7 @@ public class QueryBenchmarks : IDisposable
             case FilterKind.Static:
                 return query.Where(x => !x.IsDeleted).Expression;
 
-            case FilterKind.PerQuery:
+            case FilterKind.PerQuery or FilterKind.Tenant:
                 return query.Where(x => x.TenantId == _tenant.Id).Expression;
 
             case FilterKind.Async:
@@ -87,6 +87,10 @@ public class QueryBenchmarks : IDisposable
             case FilterKind.Async:
                 vault.QueryFilter<ITenantOwned>((services, _) =>
                     ValueTask.FromResult<Expression<Func<ITenantOwned, bool>>>(x => x.TenantId == services.GetRequiredService<Tenant>().Id));
+                break;
+
+            case FilterKind.Tenant:
+                vault.UseMultiTenancy((ITenantOwned x) => x.TenantId, services => services.GetRequiredService<Tenant>().Id);
                 break;
         }
     }

@@ -10,5 +10,5 @@ Apple M4 Max, 1 CPU, 16 logical and 16 physical cores
 ```
 | Method               | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0   | Gen1   | Allocated | Alloc Ratio |
 |--------------------- |---------:|---------:|---------:|------:|--------:|-------:|-------:|----------:|------------:|
-| &#39;Driver: repository&#39; | 907.5 ns | 17.79 ns | 15.77 ns |  1.00 |    0.02 | 0.6590 | 0.0057 |    5512 B |        1.00 |
-| &#39;MongoFlow: vault&#39;   | 130.2 ns |  2.63 ns |  2.33 ns |  0.14 |    0.00 | 0.0715 |      - |     600 B |        0.11 |
+| &#39;Driver: repository&#39; | 901.5 ns | 14.87 ns | 19.85 ns |  1.00 |    0.03 | 0.6590 | 0.0057 |    5512 B |        1.00 |
+| &#39;MongoFlow: vault&#39;   | 114.6 ns |  0.93 ns |  0.82 ns |  0.13 |    0.00 | 0.0783 | 0.0001 |     656 B |        0.12 |

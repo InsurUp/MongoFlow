@@ -82,14 +82,21 @@ internal sealed class VaultRuntime
         }
     }
 
-    /// <summary>Moves the operations queued during a save, such as by its interceptors, into the save.</summary>
-    public void DrainInto(PooledList<VaultOperation> operations)
+    /// <summary>
+    /// Moves the operations queued during a save, such as by its interceptors, into the save. Returns whether there were
+    /// any.
+    /// </summary>
+    public bool DrainInto(PooledList<VaultOperation> operations)
     {
-        if (Drain() is { } queue)
+        if (Drain() is not { } queue)
         {
-            operations.AddRange(queue.Span);
-            queue.Dispose();
+            return false;
         }
+
+        operations.AddRange(queue.Span);
+        queue.Dispose();
+
+        return true;
     }
 
     /// <summary>The session reads run in: the scope's open transaction's, or none.</summary>

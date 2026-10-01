@@ -1,9 +1,14 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace MongoFlow;
 
-/// <summary>Builds a vault's model once, from the root provider, the first time it's needed.</summary>
+/// <summary>
+/// Builds a vault's model once, from the root provider, the first time it's needed, and creates the vault's instances.
+/// </summary>
 internal sealed class VaultModelProvider<TVault> where TVault : MongoVault
 {
     private readonly Lazy<VaultModel> _model;
+    private readonly ObjectFactory<TVault> _createVault = ActivatorUtilities.CreateFactory<TVault>([]);
 
     public VaultModelProvider(IServiceProvider services,
         VaultRegistration<TVault> registration,
@@ -13,6 +18,10 @@ internal sealed class VaultModelProvider<TVault> where TVault : MongoVault
     }
 
     public VaultModel Model => _model.Value;
+
+    /// <summary>Creates an instance from the request's services, with a factory compiled once.</summary>
+    /// <remarks><c>ActivatorUtilities.CreateInstance</c> would look for the constructor every time, a sixth of a resolution.</remarks>
+    public TVault CreateVault(IServiceProvider services) => _createVault(services, null);
 
     private static VaultModel Build(IServiceProvider services,
         VaultRegistration<TVault> registration,

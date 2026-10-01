@@ -23,6 +23,10 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     private int _searchFrom;
     private bool _disposed;
 
+    // What each interceptor sees of the operations, kept until they change, so reading them again copies nothing.
+    private (int Changes, IReadOnlyList<VaultOperation>? Operations)[]? _seen;
+    private int _changes;
+
     public VaultRuntime Runtime { get; } = runtime;
 
     public PooledList<VaultOperation> Operations { get; } = operations;
@@ -43,7 +47,10 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
                 await Runtime.GetInterceptor(i).SavingAsync(ContextFor(i), cancellationToken);
 
                 // Writes an interceptor queued on the vault join the save, for the interceptors after it to see.
-                Runtime.DrainInto(Operations);
+                if (Runtime.DrainInto(Operations))
+                {
+                    _changes++;
+                }
             }
         }
         finally
@@ -159,6 +166,7 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
         }
 
         Operations[IndexOf(operation)] = replacement;
+        _changes++;
     }
 
     public void Remove(VaultOperation operation)
@@ -167,6 +175,32 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
         ArgumentNullException.ThrowIfNull(operation);
 
         Operations.RemoveAt(IndexOf(operation));
+        _changes++;
+    }
+
+    /// <summary>The operations <paramref name="interceptor"/> sees, in queue order.</summary>
+    public IReadOnlyList<VaultOperation> OperationsSeenBy(int interceptor)
+    {
+        _seen ??= new (int, IReadOnlyList<VaultOperation>?)[Runtime.Model.Interceptors.Count];
+        ref var seen = ref _seen[interceptor];
+
+        if (seen.Operations is null || seen.Changes != _changes)
+        {
+            var model = Runtime.Model.Interceptors[interceptor];
+            var operations = new List<VaultOperation>(Operations.Count);
+
+            foreach (var operation in Operations)
+            {
+                if (model.Sees(operation))
+                {
+                    operations.Add(operation);
+                }
+            }
+
+            seen = (_changes, operations.AsReadOnly());
+        }
+
+        return seen.Operations;
     }
 
     public void Dispose()
@@ -178,7 +212,7 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
         }
     }
 
-    private SaveContext ContextFor(int interceptor) => new(this, Runtime.Model.Interceptors[interceptor]);
+    private SaveContext ContextFor(int interceptor) => new(this, interceptor);
 
     private int IndexOf(VaultOperation operation)
     {

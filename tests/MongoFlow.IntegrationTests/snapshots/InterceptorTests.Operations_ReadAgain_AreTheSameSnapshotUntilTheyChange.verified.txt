@@ -1,0 +1,18 @@
+﻿{
+  Reads: {
+    AgainIsTheSame: true,
+    AfterRemovingIsTheSame: false,
+    ReadOnly: true,
+    First: 2,
+    AfterRemoving: 1
+  },
+  Stored: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 10
+      }
+    }
+  ]
+}

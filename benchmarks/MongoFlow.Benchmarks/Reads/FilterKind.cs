@@ -15,6 +15,9 @@ public enum FilterKind
     /// <summary>A per-query filter resolved asynchronously.</summary>
     Async,
 
+    /// <summary>Multi-tenancy's filter, built per query from the current tenant.</summary>
+    Tenant,
+
     /// <summary>A static filter, read through a view with its feature switched off.</summary>
     FeatureOff
 }

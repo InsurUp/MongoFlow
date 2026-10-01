@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace MongoFlow;
 
@@ -11,6 +12,9 @@ internal sealed class MultiTenancyFeature<TTenantEntity, TTenant> : IVaultFeatur
     private readonly Func<IServiceProvider, TTenant> _currentTenantId;
     private readonly Func<IServiceProvider, bool>? _allTenants;
     private readonly Func<TTenant, bool> _isUnset;
+
+    // The == the filter compares with, such as string's, looked up once rather than for every query.
+    private readonly MethodInfo? _equality;
 
     public MultiTenancyFeature(Expression<Func<TTenantEntity, TTenant>> tenantId,
         Func<IServiceProvider, TTenant> currentTenantId,
@@ -26,6 +30,7 @@ internal sealed class MultiTenancyFeature<TTenantEntity, TTenant> : IVaultFeatur
         _currentTenantId = currentTenantId;
         _allTenants = allTenants;
         _isUnset = isUnset;
+        _equality = Expression.Equal(tenantId.Body, Expression.Default(typeof(TTenant))).Method;
     }
 
     public static FeatureKey Key => MultiTenancyFeature.Key;
@@ -53,6 +58,7 @@ internal sealed class MultiTenancyFeature<TTenantEntity, TTenant> : IVaultFeatur
 
         var current = Expression.Constant(_currentTenantId(services), typeof(TTenant));
 
-        return Expression.Lambda<Func<TTenantEntity, bool>>(Expression.Equal(_tenantId.Body, current), _tenantId.Parameters);
+        return Expression.Lambda<Func<TTenantEntity, bool>>(Expression.Equal(_tenantId.Body, current, liftToNull: false, _equality),
+            _tenantId.Parameters);
     }
 }

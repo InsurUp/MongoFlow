@@ -10,10 +10,10 @@ namespace MongoFlow;
 public readonly struct SaveContext
 {
     private readonly SaveRun _run;
-    private readonly InterceptorModel _interceptor;
+    private readonly int _interceptor;
 
     internal SaveContext(SaveRun run,
-        InterceptorModel interceptor)
+        int interceptor)
     {
         _run = run;
         _interceptor = interceptor;
@@ -32,10 +32,15 @@ public readonly struct SaveContext
     /// list, so a change one makes is what the next one sees and what gets written.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// A snapshot, so operations can be replaced or removed while going through it; it's taken again once they change.
+    /// </para>
+    /// <para>
     /// To add a write during <see cref="VaultInterceptor.SavingAsync"/>, queue it on the vault's collections as usual; it's
     /// appended to the list, and interceptors that run later see it.
+    /// </para>
     /// </remarks>
-    public IReadOnlyList<VaultOperation> Operations => _run.Operations.Where(_interceptor.Sees).ToList();
+    public IReadOnlyList<VaultOperation> Operations => _run.OperationsSeenBy(_interceptor);
 
     /// <summary>What the bulk write changed. Available from <see cref="VaultInterceptor.SavedAsync"/> on.</summary>
     public SaveResult? Result => _run.Result;

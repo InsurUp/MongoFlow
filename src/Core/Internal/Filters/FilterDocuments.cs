@@ -33,6 +33,7 @@ internal static class FilterDocuments
     /// when nothing is left to filter by, and the one filter left as it is. The filters aren't changed: a save shares its
     /// rendered query filters between operations.
     /// </summary>
+    /// <remarks>Elements are read by index: enumerating a <see cref="BsonDocument"/> allocates an enumerator.</remarks>
     public static BsonDocument? And(params ReadOnlySpan<BsonDocument?> filters)
     {
         BsonDocument? first = null;
@@ -51,10 +52,18 @@ internal static class FilterDocuments
                 continue;
             }
 
-            joined ??= new BsonDocument(first);
-
-            foreach (var element in filter)
+            if (joined is null)
             {
+                joined = [];
+                for (var i = 0; i < first.ElementCount; i++)
+                {
+                    joined.Add(first.GetElement(i));
+                }
+            }
+
+            for (var i = 0; i < filter.ElementCount; i++)
+            {
+                var element = filter.GetElement(i);
                 if (joined.Contains(element.Name))
                 {
                     return AndEach(filters);

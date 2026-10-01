@@ -148,6 +148,31 @@ public partial class InterceptorTests
         }
     }
 
+    /// <summary>Reads the operations twice, removes the second one, and reads them again.</summary>
+    public sealed class SnapshotReader : VaultInterceptor
+    {
+        public object? Reads { get; private set; }
+
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            var first = context.Operations;
+            var again = context.Operations;
+            context.Remove(first[1]);
+            var afterRemoving = context.Operations;
+
+            Reads = new
+            {
+                AgainIsTheSame = ReferenceEquals(first, again),
+                AfterRemovingIsTheSame = ReferenceEquals(first, afterRemoving),
+                ReadOnly = first is ICollection<VaultOperation> { IsReadOnly: true },
+                First = first.Count,
+                AfterRemoving = afterRemoving.Count
+            };
+
+            return ValueTask.CompletedTask;
+        }
+    }
+
     /// <summary>Queues an audit entry on the vault while it's saved.</summary>
     public sealed class AuditWriter(string message) : VaultInterceptor
     {

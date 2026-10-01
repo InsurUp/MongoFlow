@@ -29,7 +29,11 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
     /// <summary>The documents to update, or <see langword="null"/> when the operation targets a key.</summary>
     public Expression<Func<TDocument, bool>>? Filter { get; }
 
-    public UpdateDefinition<TDocument> Update { get; }
+    /// <summary>
+    /// The changes to make. Built-in features may add to it during <see cref="VaultInterceptor.SavingAsync"/>: the
+    /// concurrency token adds its increment.
+    /// </summary>
+    public UpdateDefinition<TDocument> Update { get; internal set; }
 
     /// <summary>
     /// The same target and document with a different definition, keeping the features switched off. Replace the operation

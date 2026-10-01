@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow.IntegrationTests;
@@ -13,6 +14,7 @@ namespace MongoFlow.IntegrationTests;
 /// <item>writes by key or filter increment without checking, deletes by key or filter neither check nor increment, and
 /// inserts are left alone;</item>
 /// <item>a delete soft delete turns into an update is checked and incremented like an update;</item>
+/// <item>pipeline updates get the increment as a last stage;</item>
 /// <item>with the feature off, writes are neither checked nor incremented.</item>
 /// </list>
 /// </summary>
@@ -101,6 +103,41 @@ public partial class ConcurrencyTokenTests
 
         // Assert
         await Verify(await host.StoredAsync("Counters"));
+    }
+
+    [Test]
+    public async Task UpdateByKey_BsonUpdateSharedWithAWriteWithoutTheToken_IncrementsOnlyItsOwnToken()
+    {
+        // Arrange — one definition for both writes; the driver renders it as the document it holds.
+        await using var host = Mongo.Host<ContractVault>(UseTokens);
+        await host.SeedAsync("Counters", new Counter { Id = 1, Hits = 5, Version = 2 }, new Counter { Id = 2, Hits = 5, Version = 2 });
+        var hit = new BsonDocumentUpdateDefinition<Counter>(new BsonDocument("$inc", new BsonDocument("Hits", 1)));
+        host.Vault.Counters.UpdateByKey(1, hit);
+        host.Vault.Counters.Without(ConcurrencyTokenFeature.Key).UpdateByKey(2, hit);
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { Stored = await host.StoredAsync("Counters"), Definition = hit.Document });
+    }
+
+    [Test]
+    public async Task UpdateAndUpdateByKey_PipelineUpdates_ApplyAndIncrementTheToken()
+    {
+        // Arrange — the second document was stored without a token, which the increment starts from 0, as $inc does.
+        await using var host = await SeededAsync(version: 3);
+        await host.SeedAsync("Contracts", new BsonDocument { ["_id"] = 2, ["Party"] = "globex" });
+        var contract = new Contract { Id = 1, Party = "acme", Version = 3 };
+        var piped = Builders<Contract>.Update.Pipeline(new BsonDocument[] { new("$set", new BsonDocument("Party", "piped")) });
+        host.Vault.Contracts.Update(contract, piped);
+        host.Vault.Contracts.UpdateByKey(2, piped);
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { Stored = await host.StoredAsync("Contracts"), Document = contract });
     }
 
     [Test]

@@ -93,6 +93,22 @@ public partial class InterceptorTests
     }
 
     [Test]
+    public async Task Operations_ReadAgain_AreTheSameSnapshotUntilTheyChange()
+    {
+        // Arrange
+        var reader = new SnapshotReader();
+        await using var host = Mongo.Host<ShopVault>(vault => vault.AddInterceptor(reader));
+        host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
+        host.Vault.Orders.Add(new Order { Id = 2, Customer = "bob", Total = 20 });
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { reader.Reads, Stored = await host.StoredAsync("Orders") });
+    }
+
+    [Test]
     public async Task SavingAsync_QueueingAWrite_JoinsTheSaveForTheInterceptorsAfter()
     {
         // Arrange
