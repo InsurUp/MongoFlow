@@ -161,8 +161,7 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
         }
     }
 
-    private SaveContext ContextFor(int interceptor) =>
-        new InterceptorSaveContext(this, Runtime.Model.Interceptors[interceptor]);
+    private SaveContext ContextFor(int interceptor) => new(this, Runtime.Model.Interceptors[interceptor]);
 
     private int IndexOf(VaultOperation operation)
     {
