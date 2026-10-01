@@ -46,6 +46,7 @@ internal sealed class KeyModel<TDocument, TKey>
 
         var args = FilterDocuments.RenderArgs(collection);
 
-        return new KeyModel<TDocument, TKey>(key, [.. parts.Select(part => (FilterDocuments.RenderField(part.Member, args), part.Read))]);
+        return new KeyModel<TDocument, TKey>(key, 
+            [.. parts.Select(part => (FilterDocuments.RenderField(part.Member, args), part.Read))]);
     }
 }
