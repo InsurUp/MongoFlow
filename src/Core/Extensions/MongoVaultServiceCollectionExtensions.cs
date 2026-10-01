@@ -113,6 +113,7 @@ public static class MongoVaultServiceCollectionExtensions
         services.AddSingleton<VaultModelProvider<TVault>>();
         services.AddScoped(CreateVault<TVault>);
 
+        services.TryAddScoped<OwnedInterceptors>();
         services.TryAddScoped<VaultTransactionManager>();
         services.TryAddScoped<IVaultTransactionManager>(provider => provider.GetRequiredService<VaultTransactionManager>());
 

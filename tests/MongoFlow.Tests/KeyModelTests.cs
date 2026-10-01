@@ -97,6 +97,20 @@ public partial class KeyModelTests
     }
 
     [Test]
+    public async Task Match_CompositeKeyWithPropertiesDifferingInCase_MatchesThePropertyNamedLikeTheParameter()
+    {
+        // Arrange
+        var model = KeyModel<LoginToken, CaseVariantKey>.Create(t => new CaseVariantKey(t.UserId, t.Provider),
+            Collection<LoginToken>());
+
+        // Act
+        var filter = model.Match(new CaseVariantKey("u-1", "github"));
+
+        // Assert
+        await Verify(filter);
+    }
+
+    [Test]
     public async Task Get_CompositeKey_ReadsTheDocumentsKey()
     {
         // Arrange

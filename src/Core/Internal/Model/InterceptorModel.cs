@@ -17,6 +17,20 @@ internal sealed class InterceptorModel(Type? type,
         visible.Contains(operation.Collection) &&
         (Owner is not { } owner || !operation.DisabledFeatures.Contains(owner));
 
-    public VaultInterceptor Create(IServiceProvider services) =>
-        instance ?? (VaultInterceptor)ActivatorUtilities.CreateInstance(services, type!);
+    /// <summary>
+    /// The shared instance, or one created from the request's <paramref name="services"/>; a disposable one is disposed
+    /// with their scope.
+    /// </summary>
+    public VaultInterceptor Create(IServiceProvider services)
+    {
+        if (instance is not null)
+        {
+            return instance;
+        }
+
+        var created = (VaultInterceptor)ActivatorUtilities.CreateInstance(services, type!);
+        services.GetRequiredService<OwnedInterceptors>().Track(created);
+
+        return created;
+    }
 }

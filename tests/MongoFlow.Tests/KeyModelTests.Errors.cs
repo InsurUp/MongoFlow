@@ -63,6 +63,14 @@ public partial class KeyModelTests
     }
 
     [Test]
+    public async Task Create_CompositeParameterNamedLikeSeveralProperties_ThrowsVaultConfigurationException()
+    {
+        // Act & Assert
+        await Throws(() => KeyModel<LoginToken, AmbiguousKey>.Create(t => new AmbiguousKey(t.UserId, t.Provider), Collection<LoginToken>()))
+            .IgnoreStackTrace();
+    }
+
+    [Test]
     public async Task Create_CompositeArgumentConverted_ThrowsVaultConfigurationException()
     {
         // Act & Assert

@@ -75,9 +75,7 @@ internal static class KeyExpressions
             var member = argument.AsMemberOf(parameter) ?? throw NotComposite(key, collection);
 
             var name = constructorParameters[i].Name!;
-            var property = typeof(TKey).GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
-                ?? throw new VaultConfigurationException(
-                    $"The key of {collection} passes {member} as {name}, but {typeof(TKey).Name} has no property of that name.");
+            var property = FindProperty<TKey>(name, member, collection);
 
             if (argument != member)
             {
@@ -97,6 +95,28 @@ internal static class KeyExpressions
         }
 
         return parts;
+    }
+
+    /// <summary>
+    /// The key's property named like a constructor parameter: <c>UserId</c> for <c>userId</c>, or <c>UserId</c> itself
+    /// when the key has properties differing only in case.
+    /// </summary>
+    private static PropertyInfo FindProperty<TKey>(string name,
+        MemberExpression member,
+        string collection)
+    {
+        var properties = typeof(TKey).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        var matches = properties.Where(property => string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)).ToArray();
+
+        return matches switch
+        {
+            [var only] => only,
+            [] => throw new VaultConfigurationException(
+                $"The key of {collection} passes {member} as {name}, but {typeof(TKey).Name} has no property of that name."),
+            _ => matches.FirstOrDefault(property => property.Name == name) ?? throw new VaultConfigurationException(
+                $"The key of {collection} passes {member} as {name}, but {typeof(TKey).Name} has several properties named like " +
+                $"it ({string.Join(", ", matches.Select(property => property.Name))}). Name the parameter exactly like one of them.")
+        };
     }
 
     /// <summary>Compiles <c>key =&gt; (object)key.Property</c>.</summary>

@@ -12,7 +12,6 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
     private readonly Layered<Func<IMongoDatabase>> _database = new();
     private readonly LayeredList<VaultQueryFilter> _filters = new();
     private readonly HashSet<Type> _applied = [];
-    private readonly HashSet<Type> _ownConfigurations = [];
     private readonly HashSet<Type> _skipped = [];
     private bool _skipAll;
 
@@ -185,7 +184,8 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             return; // TVault doesn't satisfy its constraints, so the default isn't meant for this vault.
         }
 
-        if (_skipped.Contains(configuration) || _ownConfigurations.Contains(configuration))
+        // One the vault applied itself is in _applied already, so Apply skips it.
+        if (_skipped.Contains(configuration))
         {
             return;
         }
@@ -237,11 +237,6 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         if (!_applied.Add(configurationType))
         {
             return;
-        }
-
-        if (Layer == Layer.Own)
-        {
-            _ownConfigurations.Add(configurationType);
         }
 
         create().Configure(this);

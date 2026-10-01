@@ -33,14 +33,14 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
 
     /// <summary>
     /// Adds an interceptor that sees only this collection's operations. It's created from the request's services once
-    /// per vault instance.
+    /// per vault instance, and disposed with the request's scope.
     /// </summary>
     IVaultCollectionBuilder<TDocument> AddInterceptor<TInterceptor>(Action<IInterceptorBuilder>? configure = null)
         where TInterceptor : VaultInterceptor;
 
     /// <summary>
     /// Adds an interceptor instance, shared by every request, that sees only this collection's operations. Being
-    /// registered per collection, it can be written against <typeparamref name="TDocument"/>.
+    /// registered per collection, it can be written against <typeparamref name="TDocument"/>. MongoFlow doesn't dispose it.
     /// </summary>
     IVaultCollectionBuilder<TDocument> AddInterceptor(VaultInterceptor interceptor,
         Action<IInterceptorBuilder>? configure = null);

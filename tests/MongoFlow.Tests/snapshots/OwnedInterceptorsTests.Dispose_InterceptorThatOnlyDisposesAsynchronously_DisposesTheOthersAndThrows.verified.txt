@@ -1,0 +1,6 @@
+﻿{
+  Message: AsyncDisposable can only be disposed asynchronously. Dispose of the scope with DisposeAsync.,
+  Log: [
+    first disposed
+  ]
+}

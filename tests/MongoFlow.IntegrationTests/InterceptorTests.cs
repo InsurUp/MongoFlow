@@ -12,7 +12,8 @@ namespace MongoFlow.IntegrationTests;
 /// the result; afterwards it can't;</item>
 /// <item>an interceptor sees only the operations of the collections it applies to, and not those queued with its
 /// feature switched off;</item>
-/// <item>one registered by type is created once per vault instance, from the scope's services;</item>
+/// <item>one registered by type is created once per vault instance, from the scope's services, and disposed with the
+/// scope; an instance is never disposed;</item>
 /// <item>the context carries the vault, the scope's services, the session, the result and items shared by every
 /// hook.</item>
 /// </list>
@@ -131,6 +132,28 @@ public partial class InterceptorTests
         await Assert.That(created.Instances).Count().IsEqualTo(2);
         await Assert.That(created.Instances[0].Request).IsSameReferenceAs(host.Services.GetRequiredService<RequestId>());
         await Assert.That(created.Instances[1].Request).IsSameReferenceAs(other.ServiceProvider.GetRequiredService<RequestId>());
+    }
+
+    [Test]
+    public async Task Interceptor_Disposable_IsDisposedWithTheScopeOnlyWhenRegisteredByType()
+    {
+        // Arrange
+        var log = new HookLog();
+        await using var host = Mongo.Host<ShopVault>(
+            vault => vault
+                .AddInterceptor<ScopedDisposable>()
+                .AddInterceptor(new SharedDisposable(log)),
+            services => services.AddSingleton(log));
+        var scope = host.CreateScope();
+        var vault = scope.ServiceProvider.GetRequiredService<ShopVault>();
+        vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
+        await vault.SaveAsync();
+
+        // Act
+        await scope.DisposeAsync();
+
+        // Assert
+        await Assert.That(log.Entries).IsEquivalentTo(["scoped disposed"]);
     }
 
     [Test]

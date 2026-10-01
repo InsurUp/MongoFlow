@@ -102,7 +102,7 @@ internal sealed class VaultRuntime
     /// <summary>The session reads run in: the scope's open transaction's, or none.</summary>
     public async ValueTask<IClientSessionHandle?> GetSessionAsync(CancellationToken cancellationToken) =>
         TransactionManager.Active is { } transaction
-            ? await transaction.JoinAsync(Model.Client, cancellationToken)
+            ? await transaction.GetSessionAsync(Model.Client, cancellationToken)
             : null;
 
     public VaultInterceptor GetInterceptor(int index) =>

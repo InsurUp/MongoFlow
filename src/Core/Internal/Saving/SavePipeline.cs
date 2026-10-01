@@ -56,7 +56,7 @@ internal static class SavePipeline
         {
             await BulkWriteSupport.EnsureAsync(runtime.Model.Database, log, cancellationToken);
 
-            run.Session = await transaction.JoinAsync(runtime.Model.Client, cancellationToken);
+            run.Session = await transaction.GetSessionAsync(runtime.Model.Client, cancellationToken);
             transaction.Enlist(callbacks);
             enlisted = true;
 

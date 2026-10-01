@@ -65,6 +65,22 @@ public partial class KeyModelTests
         public string Provider { get; } = provider;
     }
 
+    /// <summary>A key with a second property named like a parameter but for case, such as an upper-case alias.</summary>
+    public sealed record CaseVariantKey(string UserId, string Provider)
+    {
+        public string Userid => UserId.ToUpperInvariant();
+    }
+
+    /// <summary>A key whose camel-case parameter is named like two of its properties, and exactly like neither.</summary>
+    public sealed class AmbiguousKey(string userId, string provider)
+    {
+        public string UserId { get; } = userId;
+
+        public string Userid => UserId.ToUpperInvariant();
+
+        public string Provider { get; } = provider;
+    }
+
     /// <summary>A key built with no arguments, so it names no member.</summary>
     public sealed class EmptyKey;
 

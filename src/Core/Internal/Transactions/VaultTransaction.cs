@@ -40,7 +40,9 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
         }
     }
 
-    public async ValueTask<IClientSessionHandle> JoinAsync(IMongoClient client, CancellationToken cancellationToken)
+    /// <summary>The transaction's session, started on <paramref name="client"/> by the first vault that asks for it.</summary>
+    public async ValueTask<IClientSessionHandle> GetSessionAsync(IMongoClient client,
+        CancellationToken cancellationToken)
     {
         ThrowIfUnusable();
 

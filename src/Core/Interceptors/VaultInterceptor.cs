@@ -11,6 +11,13 @@ namespace MongoFlow;
 /// the write runs first after it. The built-in concurrency token's runs last before the write, so it guards the writes as
 /// they'll be sent, and first after it, so a rejected write fails the save before other interceptors see it.
 /// </para>
+/// <para>
+/// Registered by type, an interceptor is created from the request's services once per vault instance, when a save first
+/// needs it, and disposed with the request's scope if it implements <see cref="IDisposable"/> or
+/// <see cref="IAsyncDisposable"/>. Registered as an instance, it's shared by every vault instance and request, so it's used
+/// from many threads at once, and MongoFlow never disposes it. Either way, keep what belongs to one save in
+/// <see cref="SaveContext.Items"/> rather than in fields: a vault instance can save more than once.
+/// </para>
 /// </remarks>
 public abstract class VaultInterceptor
 {

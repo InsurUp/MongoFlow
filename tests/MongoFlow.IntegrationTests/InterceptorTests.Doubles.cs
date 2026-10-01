@@ -226,6 +226,18 @@ public partial class InterceptorTests
         }
     }
 
+    /// <summary>Records its disposal; registered by type, so MongoFlow creates it.</summary>
+    public sealed class ScopedDisposable(HookLog log) : VaultInterceptor, IDisposable
+    {
+        public void Dispose() => log.Add("scoped disposed");
+    }
+
+    /// <summary>Records its disposal; registered as an instance, so the app owns it.</summary>
+    public sealed class SharedDisposable(HookLog log) : VaultInterceptor, IDisposable
+    {
+        public void Dispose() => log.Add("shared disposed");
+    }
+
     /// <summary>A feature whose interceptor records what it sees.</summary>
     public sealed class CountingFeature(OperationRecorder recorder) : IVaultFeature
     {
