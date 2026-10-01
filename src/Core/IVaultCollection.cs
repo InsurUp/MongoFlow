@@ -15,7 +15,8 @@ namespace MongoFlow;
 /// the filters already applied.
 /// </para>
 /// <para>
-/// Writes are queued as <see cref="VaultOperation"/>s and sent when the vault is saved.
+/// Writes are queued as <see cref="VaultOperation"/>s and sent when the vault is saved. They can be queued from parallel
+/// tasks, and reads can run in parallel while no transaction is open; see <see cref="IMongoVault"/>.
 /// </para>
 /// </remarks>
 public interface IVaultCollection<TDocument>

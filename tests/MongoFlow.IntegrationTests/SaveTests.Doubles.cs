@@ -17,4 +17,18 @@ public partial class SaveTests
             return ValueTask.CompletedTask;
         }
     }
+
+    /// <summary>Holds a save in its interceptor until the test lets it go.</summary>
+    public sealed class Gate : VaultInterceptor
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override async ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            Entered.SetResult();
+            await Release.Task.WaitAsync(cancellationToken);
+        }
+    }
 }

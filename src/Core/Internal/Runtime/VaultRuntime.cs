@@ -9,10 +9,15 @@ internal sealed class VaultRuntime
 {
     private readonly VaultInterceptor?[] _interceptors;
 
+    // Writes can be queued from parallel tasks, such as reads that each queue an update. Unguarded, two of them could lose
+    // a write, spin forever in the insert set, or write into a pooled array already handed to another request.
+    private readonly Lock _queueLock = new();
+
     // Pooled, and rented on first use, so a vault instance that only reads rents nothing. The save that drains the queue
     // owns it from then on and gives it back when the save ends.
     private PooledList<VaultOperation>? _queue;
     private ComparerSwissHashSet<object>? _inserted;
+    private int _saving;
 
     public VaultRuntime(VaultModel model,
         IServiceProvider services,
@@ -37,18 +42,27 @@ internal sealed class VaultRuntime
 
     public VaultTransactionManager TransactionManager => field ??= Services.GetRequiredService<VaultTransactionManager>();
 
-    public bool IsSaving { get; set; }
+    /// <summary>
+    /// Marks the vault as saving, or returns <see langword="false"/> when it already is: from its own interceptors, or from
+    /// a parallel task.
+    /// </summary>
+    public bool TryStartSaving() => Interlocked.Exchange(ref _saving, 1) == 0;
+
+    public void EndSaving() => Volatile.Write(ref _saving, 0);
 
     public void Enqueue(VaultOperation operation)
     {
-        // Adding the same document twice inserts it once.
-        if (operation is { Kind: OperationKind.Insert, Document: { } document } &&
-            !(_inserted ??= ComparerSwissHashSet<object>.Create(ReferenceEqualityComparer.Instance)).Add(document))
+        lock (_queueLock)
         {
-            return;
-        }
+            // Adding the same document twice inserts it once.
+            if (operation is { Kind: OperationKind.Insert, Document: { } document } &&
+                !(_inserted ??= ComparerSwissHashSet<object>.Create(ReferenceEqualityComparer.Instance)).Add(document))
+            {
+                return;
+            }
 
-        (_queue ??= new PooledList<VaultOperation>(clearOnReturn: true)).Add(operation);
+            (_queue ??= new PooledList<VaultOperation>(clearOnReturn: true)).Add(operation);
+        }
     }
 
     /// <summary>
@@ -57,12 +71,15 @@ internal sealed class VaultRuntime
     /// </summary>
     public PooledList<VaultOperation>? Drain()
     {
-        var queue = _queue;
-        _queue = null;
-        _inserted?.Dispose();
-        _inserted = null;
+        lock (_queueLock)
+        {
+            var queue = _queue;
+            _queue = null;
+            _inserted?.Dispose();
+            _inserted = null;
 
-        return queue;
+            return queue;
+        }
     }
 
     /// <summary>Moves the operations queued during a save, such as by its interceptors, into the save.</summary>

@@ -3,6 +3,12 @@ namespace MongoFlow;
 /// <summary>
 /// What every vault can do, for app interfaces to extend: <c>interface IPolicyVault : IMongoVault</c>.
 /// </summary>
+/// <remarks>
+/// A vault instance belongs to its scope. Writes can be queued on it from parallel tasks, and its reads can run in
+/// parallel while no transaction is open in the scope. A save can't run alongside another save of the same instance.
+/// Inside a transaction, including the one a save opens while it runs, reads and saves share one session, and MongoDB
+/// runs a transaction's operations one at a time: run them one after another.
+/// </remarks>
 public interface IMongoVault
 {
     /// <summary>
@@ -11,7 +17,8 @@ public interface IMongoVault
     /// either way.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// Called from one of this vault's own interceptors, or inside a transaction on a different client.
+    /// Called from one of this vault's own interceptors, while another save of this vault instance runs, or inside a
+    /// transaction on a different client.
     /// </exception>
     Task<SaveResult> SaveAsync(CancellationToken cancellationToken = default);
 

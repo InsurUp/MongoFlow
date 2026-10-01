@@ -62,6 +62,25 @@ public class VaultTransactionTests : IAsyncDisposable
     }
 
     [Test]
+    public async Task BeginAsync_FromParallelThreads_OpensOne()
+    {
+        // Arrange — threads lined up on a barrier, so they begin as close together as they can, many times over.
+        const int Rounds = 200;
+        var threads = Math.Max(Environment.ProcessorCount, 4);
+        var opened = new List<int>();
+
+        // Act
+        for (var round = 0; round < Rounds; round++)
+        {
+            await using var scope = _host.Services.CreateAsyncScope();
+            opened.Add(BeginFromThreads(scope.ServiceProvider.GetRequiredService<IVaultTransactionManager>(), threads));
+        }
+
+        // Assert
+        await Assert.That(opened).All(count => count == 1);
+    }
+
+    [Test]
     public async Task CommitAsync_NothingJoined_EndsWithoutASession()
     {
         // Arrange
@@ -279,4 +298,31 @@ public class VaultTransactionTests : IAsyncDisposable
     }
 
     public ValueTask DisposeAsync() => _host.DisposeAsync();
+
+    /// <summary>How many of <paramref name="count"/> threads beginning a transaction at once opened one.</summary>
+    private static int BeginFromThreads(IVaultTransactionManager transactions,
+        int count)
+    {
+        using var barrier = new Barrier(count);
+        var opened = 0;
+
+        var threads = Enumerable.Range(0, count).Select(_ => new Thread(() =>
+        {
+            barrier.SignalAndWait();
+            try
+            {
+                transactions.BeginAsync().GetAwaiter().GetResult();
+                Interlocked.Increment(ref opened);
+            }
+            catch (InvalidOperationException)
+            {
+                // Another thread opened it.
+            }
+        })).ToList();
+
+        threads.ForEach(thread => thread.Start());
+        threads.ForEach(thread => thread.Join());
+
+        return opened;
+    }
 }
