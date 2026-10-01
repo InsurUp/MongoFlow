@@ -1,0 +1,23 @@
+﻿[
+  {
+    _id: 1,
+    Customer: stamped,
+    Total: {
+      $numberDecimal: 11
+    }
+  },
+  {
+    _id: 2,
+    Customer: stamped,
+    Total: {
+      $numberDecimal: 21
+    }
+  },
+  {
+    _id: 3,
+    Customer: stamped,
+    Total: {
+      $numberDecimal: 31
+    }
+  }
+]

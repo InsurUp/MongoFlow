@@ -46,6 +46,16 @@ public partial class ConcurrencyTokenTests
         public bool IsArchived { get; set; }
     }
 
+    /// <summary>Has a numeric member of its own next to its token, for updates that increment both.</summary>
+    public sealed class Counter : IVersioned
+    {
+        public int Id { get; set; }
+
+        public int Hits { get; set; }
+
+        public int Version { get; set; }
+    }
+
     public sealed class Memo
     {
         public int Id { get; set; }
@@ -62,5 +72,7 @@ public partial class ConcurrencyTokenTests
         public IVaultCollection<ArchivedContract, int> Archives { get; init; } = null!;
 
         public IVaultCollection<Memo, int> Memos { get; init; } = null!;
+
+        public IVaultCollection<Counter, int> Counters { get; init; } = null!;
     }
 }

@@ -88,6 +88,22 @@ public partial class ConcurrencyTokenTests
     }
 
     [Test]
+    public async Task UpdateAndUpdateByKey_WithAnIncrementOfTheirOwn_IncrementTheMemberAndTheToken()
+    {
+        // Arrange — both increments end up under one $inc.
+        await using var host = Mongo.Host<ContractVault>(UseTokens);
+        await host.SeedAsync("Counters", new Counter { Id = 1, Hits = 5, Version = 2 });
+        host.Vault.Counters.UpdateByKey(1, Builders<Counter>.Update.Inc(x => x.Hits, 3));
+        host.Vault.Counters.Update(new Counter { Id = 1, Hits = 5, Version = 3 }, Builders<Counter>.Update.Inc(x => x.Hits, 1));
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(await host.StoredAsync("Counters"));
+    }
+
+    [Test]
     public async Task Update_StaleToken_ThrowsConcurrencyException()
     {
         // Arrange

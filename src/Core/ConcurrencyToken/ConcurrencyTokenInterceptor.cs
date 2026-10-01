@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Numerics;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -17,8 +18,9 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
 {
     private readonly Expression<Func<TDocument, TToken>> _field = MemberExpressions.Rebind<TVersioned, TDocument, TToken>(token);
 
-    // Rendered on first use, with the collection's serializers. Two requests may both render it; they get the same field.
+    // Rendered on first use, with the collection's serializers. Two requests may both render them; they get the same.
     private RenderedFieldDefinition? _renderedField;
+    private BsonValue? _one;
 
     public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
     {
@@ -38,9 +40,7 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
                         Guard(update, document, incremented);
                     }
 
-                    context.Replace(update, update.WithUpdate(Builders<TDocument>.Update.Combine(
-                        update.Update,
-                        Builders<TDocument>.Update.Inc(_field, TToken.One))));
+                    context.Replace(update, update.WithUpdate(Builders<TDocument>.Update.Combine(update.Update, Increment(update))));
                     break;
 
                 case DeleteOperation<TDocument> { Document: { } deleted } delete:
@@ -105,10 +105,21 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
 
     /// <summary><c>{ Version: 3 }</c>: the stored token still has the value <paramref name="document"/> was read with.</summary>
     private BsonDocument Matches(VaultOperation<TDocument> operation,
-        TDocument document)
-    {
-        var field = _renderedField ??= FilterDocuments.RenderField(_field, operation.TypedModel.RenderArgs);
+        TDocument document) =>
+        new BsonDocument().Add(FilterDocuments.Equal(Field(operation), getToken((TVersioned)(object)document!)));
 
-        return new BsonDocument().Add(FilterDocuments.Equal(field, getToken((TVersioned)(object)document!)));
+    /// <summary>
+    /// <c>{ $inc: { Version: 1 } }</c>, as BSON, so the driver doesn't translate the token's member for every update. Each
+    /// update gets one of its own: combining updates merges later ones into the documents of earlier ones.
+    /// </summary>
+    private BsonDocumentUpdateDefinition<TDocument> Increment(VaultOperation<TDocument> operation)
+    {
+        var field = Field(operation);
+        var one = _one ??= field.FieldSerializer.ToBsonValue(TToken.One);
+
+        return new BsonDocumentUpdateDefinition<TDocument>(new BsonDocument("$inc", new BsonDocument(field.FieldName, one)));
     }
+
+    private RenderedFieldDefinition Field(VaultOperation<TDocument> operation) =>
+        _renderedField ??= FilterDocuments.RenderField(_field, operation.TypedModel.RenderArgs);
 }

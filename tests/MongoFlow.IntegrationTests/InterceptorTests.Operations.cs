@@ -41,6 +41,26 @@ public partial class InterceptorTests
     }
 
     [Test]
+    public async Task SavingAsync_ReplacingOperationsInReverse_WritesEachReplacement()
+    {
+        // Arrange
+        await using var host = Mongo.Host<ShopVault>(vault => vault.AddInterceptor(new UpdateStamper("stamped", reverse: true)));
+        await host.SeedAsync("Orders",
+            new Order { Id = 1, Customer = "ada", Total = 10 },
+            new Order { Id = 2, Customer = "bob", Total = 20 },
+            new Order { Id = 3, Customer = "cy", Total = 30 });
+        host.Vault.Orders.UpdateByKey(1, Builders<Order>.Update.Inc(x => x.Total, 1));
+        host.Vault.Orders.UpdateByKey(2, Builders<Order>.Update.Inc(x => x.Total, 1));
+        host.Vault.Orders.UpdateByKey(3, Builders<Order>.Update.Inc(x => x.Total, 1));
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(await host.StoredAsync("Orders"));
+    }
+
+    [Test]
     public async Task SavingAsync_RemovingAnOperation_LeavesItUnwritten()
     {
         // Arrange

@@ -112,12 +112,18 @@ public partial class InterceptorTests
         }
     }
 
-    /// <summary>Adds a change of its own to every update of an order.</summary>
-    public sealed class UpdateStamper(string customer) : VaultInterceptor
+    /// <summary>Adds a change of its own to every update of an order, going through them in queue order or in reverse.</summary>
+    public sealed class UpdateStamper(string customer, bool reverse = false) : VaultInterceptor
     {
         public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
         {
-            foreach (var update in context.Operations.OfType<UpdateOperation<Order>>())
+            var updates = context.Operations.OfType<UpdateOperation<Order>>().ToList();
+            if (reverse)
+            {
+                updates.Reverse();
+            }
+
+            foreach (var update in updates)
             {
                 context.Replace(update, update.WithUpdate(Builders<Order>.Update.Combine(
                     update.Update,

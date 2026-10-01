@@ -16,6 +16,10 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
 
     private readonly Dictionary<(IVaultCollectionInfo, FeatureSet), BsonDocument?> _queryFilters = [];
     private bool _saving;
+
+    // Interceptors mostly replace or remove operations in queue order, so each search starts where the last one ended:
+    // a pass over the save is linear rather than quadratic.
+    private int _searchFrom;
     private bool _disposed;
 
     public VaultRuntime Runtime { get; } = runtime;
@@ -167,11 +171,15 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
 
     private int IndexOf(VaultOperation operation)
     {
-        for (var i = 0; i < Operations.Count; i++)
+        var count = Operations.Count;
+        var start = Math.Min(_searchFrom, count);
+
+        for (var searched = 0; searched < count; searched++)
         {
+            var i = start + searched < count ? start + searched : start + searched - count;
             if (ReferenceEquals(Operations[i], operation))
             {
-                return i;
+                return _searchFrom = i;
             }
         }
 
