@@ -10,6 +10,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     private readonly Layered<string> _name = new();
     private readonly LayeredList<QueryFilterEntry<TDocument>> _filters = new();
     private readonly HashSet<FeatureKey> _without = [];
+    private readonly List<(LambdaExpression Field, FeatureKey? Owner)> _indexed = [];
 
     public CollectionModelBuilder(VaultModelBuilderBase vault, PropertyInfo property)
         : this(vault, property, keyType: null)
@@ -77,6 +78,21 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         return this;
     }
 
+    /// <summary>
+    /// Notes that every read filters on <paramref name="member"/>, such as <c>(ISoftDeletable x) =&gt; x.IsDeleted</c>, so
+    /// an index should include it; the index check warns when none does. For built-in features.
+    /// </summary>
+    public void ExpectIndex(LambdaExpression member)
+    {
+        var source = member.Parameters[0];
+        var parameter = Expression.Parameter(typeof(TDocument), source.Name);
+        var argument = source.Type == typeof(TDocument) ? parameter : (Expression)Expression.Convert(parameter, source.Type);
+
+        // The member alone, looking through a conversion of its value, retyped onto the document.
+        var field = ParameterReplacer.Inline(Expression.Lambda(member.GetMember(nameof(member)), source), argument);
+        _indexed.Add((Expression.Lambda(field, parameter), Vault.Owner));
+    }
+
     public override void Accept(IVaultCollectionConfiguration configuration) => configuration.Configure(this);
 
     public override void Apply(VaultQueryFilter filter)
@@ -95,10 +111,13 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
             Property,
             KeyType,
             database.GetCollection<TDocument>(_name.TryGet(out var name) ? name : Property.Name),
-            [.. _filters.All.Where(filter => filter.Owner is not { } owner || !_without.Contains(owner))]);
+            [.. _filters.All.Where(filter => IsOn(filter.Owner))],
+            [.. _indexed.Where(indexed => IsOn(indexed.Owner)).Select(indexed => (indexed.Field, indexed.Owner?.Name ?? "a query filter"))]);
 
         return Model = CreateModel(definition);
     }
+
+    private bool IsOn(FeatureKey? owner) => owner is not { } feature || !_without.Contains(feature);
 
     protected virtual CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)
     {

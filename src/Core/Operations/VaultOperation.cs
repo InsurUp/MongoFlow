@@ -43,6 +43,9 @@ public abstract class VaultOperation
     /// <summary>The features switched off on the collection view the operation was queued through.</summary>
     internal FeatureSet DisabledFeatures { get; }
 
+    /// <summary>The key of the one document the operation targets, or <see langword="null"/> for inserts and set-based operations.</summary>
+    internal abstract object? TargetKey { get; }
+
     /// <summary>The model this operation adds to the save's bulk write.</summary>
     internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken);

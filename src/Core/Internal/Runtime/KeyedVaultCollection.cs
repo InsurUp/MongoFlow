@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -16,8 +17,15 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
         ArgumentNullException.ThrowIfNull(key);
 
         FilterDefinition<TDocument> filter = new BsonDocumentFilterDefinition<TDocument>(model.Key.Match(key));
+        var queryFilter = await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken);
 
-        if (await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken) is { } queryFilter)
+        var log = Runtime.Model.Logs.Query;
+        if (log.IsEnabled(LogLevel.Trace))
+        {
+            log.ReadingByKey(model.Namespace.CollectionName, key, queryFilter?.ToString() ?? "none");
+        }
+
+        if (queryFilter is not null)
         {
             filter &= queryFilter;
         }

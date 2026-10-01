@@ -1,0 +1,10 @@
+﻿[
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003005,
+    Event: SaveFailed,
+    Message: Saving ShopVault failed after {elapsed} ms.,
+    Exception: ClientBulkWriteException
+  }
+]

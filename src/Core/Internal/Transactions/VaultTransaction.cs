@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -5,7 +6,9 @@ namespace MongoFlow;
 /// <summary>
 /// A transaction vaults join. Its session starts with the first vault that joins, so it runs on that vault's client.
 /// </summary>
-internal sealed class VaultTransaction(VaultTransactionManager owner, IMongoClient? defaultClient) : IVaultTransaction
+internal sealed class VaultTransaction(VaultTransactionManager owner,
+    IMongoClient? defaultClient,
+    LogLevel logLevel) : IVaultTransaction
 {
     private readonly List<SaveCallbacks> _saves = [];
     private IMongoClient? _client;
@@ -67,11 +70,13 @@ internal sealed class VaultTransaction(VaultTransactionManager owner, IMongoClie
         }
         catch (Exception exception)
         {
+            owner.Log.CommitFailed(logLevel, _saves.Count, exception);
             await FailAsync(exception);
             throw;
         }
 
         IsCommitted = true;
+        owner.Log.Committed(logLevel, _saves.Count);
 
         foreach (var save in _saves)
         {
@@ -93,6 +98,7 @@ internal sealed class VaultTransaction(VaultTransactionManager owner, IMongoClie
             await _session.AbortTransactionAsync(CancellationToken.None);
         }
 
+        owner.Log.RolledBack(logLevel, _saves.Count);
         await FailAsync(new InvalidOperationException("The transaction was rolled back."));
     }
 

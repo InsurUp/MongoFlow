@@ -1,0 +1,9 @@
+﻿[
+  {
+    Category: MongoFlow.Model,
+    Level: Debug,
+    EventId: 27001001,
+    Event: ModelBuilt,
+    Message: Built the model of ShopVault on database unit. Collections: Orders, Audit. Interceptors: 1.
+  }
+]

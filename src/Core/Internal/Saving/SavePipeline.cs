@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Prest;
 
 namespace MongoFlow;
@@ -30,15 +32,28 @@ internal static class SavePipeline
         PooledList<VaultOperation> operations,
         CancellationToken cancellationToken)
     {
+        var log = runtime.Model.Logs.Save;
+        var vault = runtime.Model.VaultType.Name;
+        var started = Stopwatch.GetTimestamp();
+
         var outer = runtime.TransactionManager.Active;
-        var transaction = outer ?? runtime.TransactionManager.Start();
+        var transaction = outer ?? runtime.TransactionManager.Start(forSave: true);
         var run = new SaveRun(runtime, operations);
         var callbacks = new SaveCallbacks(run.CommittedAsync, run.FailedAsync, run.Dispose);
         var enlisted = false;
 
+        if (outer is null)
+        {
+            log.SavingAlone(vault, operations.Count);
+        }
+        else
+        {
+            log.SavingInTransaction(vault, operations.Count);
+        }
+
         try
         {
-            await BulkWriteSupport.EnsureAsync(runtime.Model.Database, cancellationToken);
+            await BulkWriteSupport.EnsureAsync(runtime.Model.Database, log, cancellationToken);
 
             run.Session = await transaction.JoinAsync(runtime.Model.Client, cancellationToken);
             transaction.Enlist(callbacks);
@@ -53,10 +68,15 @@ internal static class SavePipeline
                 await transaction.CommitAsync(cancellationToken);
             }
 
+            log.Saved(vault, Stopwatch.GetElapsedTime(started).TotalMilliseconds, result.Inserted, result.Matched, result.Modified,
+                result.Deleted);
+
             return result;
         }
         catch (Exception exception)
         {
+            log.SaveFailed(vault, Stopwatch.GetElapsedTime(started).TotalMilliseconds, exception);
+
             // Each path runs the interceptors' failure hooks. A rollback after the commit does nothing.
             if (outer is null)
             {

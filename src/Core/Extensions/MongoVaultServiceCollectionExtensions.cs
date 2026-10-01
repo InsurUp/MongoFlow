@@ -4,9 +4,15 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace MongoFlow;
 
 /// <remarks>
+/// <para>
 /// Delegates run once, at startup, when the vault is configured. The <see cref="IServiceProvider"/> overloads receive the
 /// root provider, for singletons and options; per-request services belong in query filters. <c>AddMongoVault</c> also
 /// registers <see cref="IVaultTransactionManager"/> (scoped). Calling it again for the same vault adds to its configuration.
+/// </para>
+/// <para>
+/// MongoFlow logs through the <c>ILoggerFactory</c> in DI, if there is one; <see cref="MongoFlowLogEvents"/> lists its
+/// categories and events.
+/// </para>
 /// </remarks>
 public static class MongoVaultServiceCollectionExtensions
 {

@@ -1,4 +1,5 @@
 using System.Reflection;
+using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -10,6 +11,14 @@ internal interface ICollectionModel : IVaultCollectionInfo
 {
     /// <summary>The vault property the collection is declared as.</summary>
     PropertyInfo Property { get; }
+
+    CollectionNamespace Namespace { get; }
+
+    /// <summary>The element names of the key, or <see langword="null"/> for a keyless collection.</summary>
+    IReadOnlyList<string>? KeyFields { get; }
+
+    /// <summary>The fields features filter every read on, rendered with the collection's serializers.</summary>
+    IEnumerable<IndexedField> RenderIndexedFields();
 
     /// <summary>Fills <see cref="Property"/> on <paramref name="vault"/> with a collection bound to <paramref name="runtime"/>.</summary>
     void Attach(MongoVault vault, VaultRuntime runtime);

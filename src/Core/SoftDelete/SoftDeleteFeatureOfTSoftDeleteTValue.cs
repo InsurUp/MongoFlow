@@ -35,6 +35,7 @@ internal sealed class SoftDeleteFeature<TSoftDelete, TValue> : IVaultFeature, IV
         {
             collection.AddInterceptor(
                 new SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(_member, _setMember, _deletedValue));
+            ((CollectionModelBuilder<TDocument>)collection).ExpectIndex(_member);
         }
     }
 }

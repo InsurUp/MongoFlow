@@ -1,0 +1,23 @@
+﻿[
+  {
+    Category: MongoFlow.Query,
+    Level: Trace,
+    EventId: 27005001,
+    Event: Reading,
+    Message: QueryAsync on Orders, with query filters x => Not(Convert(x, ISoftDeletable).IsDeleted).
+  },
+  {
+    Category: MongoFlow.Query,
+    Level: Trace,
+    EventId: 27005001,
+    Event: Reading,
+    Message: FindAsync on Orders, with query filters x => Not(Convert(x, ISoftDeletable).IsDeleted).
+  },
+  {
+    Category: MongoFlow.Query,
+    Level: Trace,
+    EventId: 27005001,
+    Event: Reading,
+    Message: AggregateAsync on Audit, with query filters none.
+  }
+]

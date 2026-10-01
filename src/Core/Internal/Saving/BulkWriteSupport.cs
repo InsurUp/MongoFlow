@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -11,7 +12,9 @@ internal static class BulkWriteSupport
 
     private static readonly ConditionalWeakTable<IMongoClient, object> Supported = new();
 
-    public static async Task EnsureAsync(IMongoDatabase database, CancellationToken cancellationToken)
+    public static async Task EnsureAsync(IMongoDatabase database,
+        ILogger log,
+        CancellationToken cancellationToken)
     {
         if (Supported.TryGetValue(database.Client, out _))
         {
@@ -28,5 +31,6 @@ internal static class BulkWriteSupport
         }
 
         Supported.TryAdd(database.Client, true);
+        log.BulkWritesSupported(wireVersion);
     }
 }

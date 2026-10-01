@@ -5,12 +5,13 @@ namespace MongoFlow.Tests;
 
 /// <summary>
 /// <see cref="BulkWriteSupport.EnsureAsync"/>: a save needs client bulk writes, so a server older than MongoDB 8.0 fails
-/// it with a clear message; a server that has them is asked once per client.
+/// it with a clear message; a server that has them is asked once per client, which is logged.
 /// </summary>
 public class BulkWriteSupportTests
 {
     private readonly Mock<IMongoClient> _client = IMongoClient.Mock();
     private readonly Mock<IMongoDatabase> _database = IMongoDatabase.Mock();
+    private readonly LogSink _log = new();
 
     public BulkWriteSupportTests()
     {
@@ -24,7 +25,7 @@ public class BulkWriteSupportTests
         Hello(new BsonDocument("maxWireVersion", 21));
 
         // Act & Assert
-        await ThrowsTask(() => BulkWriteSupport.EnsureAsync(_database.Object, CancellationToken.None)).IgnoreStackTrace();
+        await ThrowsTask(() => BulkWriteSupport.EnsureAsync(_database.Object, _log.CreateLogger("MongoFlow.Save"), CancellationToken.None)).IgnoreStackTrace();
     }
 
     [Test]
@@ -34,7 +35,7 @@ public class BulkWriteSupportTests
         Hello([]);
 
         // Act & Assert
-        await Assert.That(() => BulkWriteSupport.EnsureAsync(_database.Object, CancellationToken.None))
+        await Assert.That(() => BulkWriteSupport.EnsureAsync(_database.Object, _log.CreateLogger("MongoFlow.Save"), CancellationToken.None))
             .ThrowsExactly<NotSupportedException>();
     }
 
@@ -45,11 +46,12 @@ public class BulkWriteSupportTests
         Hello(new BsonDocument("maxWireVersion", 25));
 
         // Act
-        await BulkWriteSupport.EnsureAsync(_database.Object, CancellationToken.None);
-        await BulkWriteSupport.EnsureAsync(_database.Object, CancellationToken.None);
+        await BulkWriteSupport.EnsureAsync(_database.Object, _log.CreateLogger("MongoFlow.Save"), CancellationToken.None);
+        await BulkWriteSupport.EnsureAsync(_database.Object, _log.CreateLogger("MongoFlow.Save"), CancellationToken.None);
 
         // Assert
         _database.RunCommandAsync<BsonDocument>(Any(), Any(), Any()).WasCalled(Times.Once);
+        await Verify(_log.Snapshot());
     }
 
     private void Hello(BsonDocument reply) =>

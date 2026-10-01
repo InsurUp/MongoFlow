@@ -68,8 +68,10 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
         {
             if (operation is VaultOperation<TDocument> { Condition: not null, Result: { Matched: 0, Deleted: 0 } } guarded)
             {
-                throw new ConcurrencyException(guarded,
-                    await guarded.TargetExistsAsync(context.Run, cancellationToken));
+                var exists = await guarded.TargetExistsAsync(context.Run, cancellationToken);
+
+                context.Run.Runtime.Model.Logs.Save.ConcurrencyConflict(guarded.Namespace.CollectionName, guarded.TargetKey, exists);
+                throw new ConcurrencyException(guarded, exists);
             }
         }
     }

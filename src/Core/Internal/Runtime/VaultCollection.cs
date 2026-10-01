@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -20,6 +21,7 @@ internal class VaultCollection<TDocument>(
     public async ValueTask<IQueryable<TDocument>> QueryAsync(CancellationToken cancellationToken = default)
     {
         var filter = await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken);
+        LogReading(nameof(QueryAsync), filter);
         var session = await Runtime.GetSessionAsync(cancellationToken);
 
         var queryable = session is null ? model.MongoCollection.AsQueryable() : model.MongoCollection.AsQueryable(session);
@@ -32,7 +34,10 @@ internal class VaultCollection<TDocument>(
     {
         ArgumentNullException.ThrowIfNull(filter);
 
-        var combined = FilterExpressions.Combine(filter, await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken));
+        var queryFilter = await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken);
+        LogReading(nameof(FindAsync), queryFilter);
+
+        var combined = FilterExpressions.Combine(filter, queryFilter);
         FilterDefinition<TDocument> definition = combined is null ? FilterDefinition<TDocument>.Empty : combined;
 
         var session = await Runtime.GetSessionAsync(cancellationToken);
@@ -43,6 +48,7 @@ internal class VaultCollection<TDocument>(
     public async ValueTask<IAggregateFluent<TDocument>> AggregateAsync(CancellationToken cancellationToken = default)
     {
         var filter = await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken);
+        LogReading(nameof(AggregateAsync), filter);
         var session = await Runtime.GetSessionAsync(cancellationToken);
 
         var aggregate = session is null ? model.MongoCollection.Aggregate() : model.MongoCollection.Aggregate(session);
@@ -80,5 +86,15 @@ internal class VaultCollection<TDocument>(
         ArgumentNullException.ThrowIfNull(filter);
 
         Runtime.Enqueue(new DeleteOperation<TDocument>(model, Disabled, null, filter, default));
+    }
+
+    private void LogReading(string method,
+        Expression<Func<TDocument, bool>>? queryFilter)
+    {
+        var log = Runtime.Model.Logs.Query;
+        if (log.IsEnabled(LogLevel.Trace))
+        {
+            log.Reading(method, model.Namespace.CollectionName, queryFilter?.ToString() ?? "none");
+        }
     }
 }

@@ -23,6 +23,8 @@ public abstract class VaultOperation<TDocument> : VaultOperation
     /// <summary>The one document the operation targets by key, or <see langword="null"/> for inserts and set-based operations.</summary>
     internal KeyTarget<TDocument>? Target { get; }
 
+    internal override object? TargetKey => Target?.Key;
+
     /// <summary>
     /// A filter the stored document must match as well, such as <c>{ Version: 3 }</c> for a concurrency token still having
     /// the value that was read. A write whose condition fails matches nothing; whoever set the condition decides what that

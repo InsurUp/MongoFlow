@@ -1,0 +1,37 @@
+﻿[
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003001,
+    Event: SavingAlone,
+    Message: Saving ShopVault in a transaction of its own. Operations queued: 3.
+  },
+  {
+    Category: MongoFlow.Save,
+    Level: Trace,
+    EventId: 27003003,
+    Event: Writing,
+    Message: Writing Insert to Orders: key (null), set-based False.
+  },
+  {
+    Category: MongoFlow.Save,
+    Level: Trace,
+    EventId: 27003003,
+    Event: Writing,
+    Message: Writing Update to Orders: key 2, set-based False.
+  },
+  {
+    Category: MongoFlow.Save,
+    Level: Trace,
+    EventId: 27003003,
+    Event: Writing,
+    Message: Writing Delete to Orders: key (null), set-based True.
+  },
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003004,
+    Event: Saved,
+    Message: Saved ShopVault in {elapsed} ms: 1 inserted, 1 matched, 1 modified, 0 deleted.
+  }
+]

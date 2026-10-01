@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Prest;
@@ -59,10 +60,18 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
             return SaveResult.Empty;
         }
 
+        var log = Runtime.Model.Logs.Save;
+        var tracing = log.IsEnabled(LogLevel.Trace);
+
         using var models = new PooledList<BulkWriteModel>(Operations.Count, clearOnReturn: true);
-        foreach (var t in Operations)
+        foreach (var operation in Operations)
         {
-            models.Add(await t.CreateWriteModelAsync(this, cancellationToken));
+            if (tracing)
+            {
+                log.Writing(operation.Kind, operation.Namespace.CollectionName, operation.TargetKey, operation.IsSetBased);
+            }
+
+            models.Add(await operation.CreateWriteModelAsync(this, cancellationToken));
         }
 
         var written = await Runtime.Model.Client.BulkWriteAsync(Session, models, WriteOptions, cancellationToken);
@@ -105,13 +114,15 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     {
         for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
         {
+            var interceptor = Runtime.GetInterceptor(i);
             try
             {
-                await Runtime.GetInterceptor(i).FailedAsync(ContextFor(i), exception, cancellationToken);
+                await interceptor.FailedAsync(ContextFor(i), exception, cancellationToken);
             }
-            catch
+            catch (Exception hookException)
             {
-                // Ignored, see above.
+                // Ignored, see above, but logged: nothing else would show it.
+                Runtime.Model.Logs.Save.FailureHookThrew(interceptor.GetType().Name, Runtime.Model.VaultType.Name, hookException);
             }
         }
     }

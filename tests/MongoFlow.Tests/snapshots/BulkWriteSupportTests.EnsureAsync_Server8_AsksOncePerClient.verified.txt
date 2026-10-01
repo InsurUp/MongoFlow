@@ -1,0 +1,9 @@
+﻿[
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003009,
+    Event: BulkWritesSupported,
+    Message: The server supports client bulk writes, which saves use: wire version 25.
+  }
+]

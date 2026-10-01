@@ -10,7 +10,8 @@ namespace MongoFlow;
 internal sealed class VaultModel(Type vaultType,
     IMongoDatabase database,
     IReadOnlyList<ICollectionModel> collections,
-    IReadOnlyList<InterceptorModel> interceptors)
+    IReadOnlyList<InterceptorModel> interceptors,
+    VaultLogs logs)
 {
     public Type VaultType { get; } = vaultType;
 
@@ -24,4 +25,6 @@ internal sealed class VaultModel(Type vaultType,
         collections.ToDictionary(collection => collection.DocumentType);
 
     public IReadOnlyList<InterceptorModel> Interceptors { get; } = interceptors;
+
+    public VaultLogs Logs { get; } = logs;
 }

@@ -1,0 +1,30 @@
+﻿[
+  {
+    Category: MongoFlow.Transaction,
+    Level: Debug,
+    EventId: 27004001,
+    Event: Began,
+    Message: Began a transaction in the scope.
+  },
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003002,
+    Event: SavingInTransaction,
+    Message: Saving ShopVault in the scope's open transaction. Operations queued: 1.
+  },
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003004,
+    Event: Saved,
+    Message: Saved ShopVault in {elapsed} ms: 1 inserted, 0 matched, 0 modified, 0 deleted.
+  },
+  {
+    Category: MongoFlow.Transaction,
+    Level: Debug,
+    EventId: 27004002,
+    Event: Committed,
+    Message: Committed the transaction. Saves that joined it: 1.
+  }
+]

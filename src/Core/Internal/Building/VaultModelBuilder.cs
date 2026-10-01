@@ -228,7 +228,8 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         return new VaultModel(typeof(TVault),
             database,
             collections,
-            interceptors);
+            interceptors,
+            VaultLogs.From(_services));
     }
 
     private void Apply(Type configurationType, Func<IVaultConfiguration<TVault>> create)

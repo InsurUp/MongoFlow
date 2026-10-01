@@ -12,6 +12,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     private readonly ImmutableArray<QueryFilterEntry<TDocument>> _filters = definition.Filters;
     private readonly bool _hasAsyncFilters = definition.Filters.Any(filter => filter.IsAsync);
     private readonly bool _onlyStatic = definition.Filters.All(filter => filter.Static is not null);
+    private readonly ImmutableArray<(LambdaExpression Field, string Feature)> _indexedFields = definition.IndexedFields;
 
     // The static filters joined once, at startup; the whole filter when every filter is static.
     private readonly Expression<Func<TDocument, bool>>? _staticFilter =
@@ -28,6 +29,8 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     public IMongoCollection<TDocument> MongoCollection { get; } = definition.Collection;
 
     public CollectionNamespace Namespace => MongoCollection.CollectionNamespace;
+
+    public virtual IReadOnlyList<string>? KeyFields => null;
 
     /// <summary>Renders the collection's filters and fields the way the driver renders its writes.</summary>
     public RenderArgs<TDocument> RenderArgs { get; } = FilterDocuments.RenderArgs(definition.Collection);
@@ -79,6 +82,10 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     }
 
     public BsonDocument Render(Expression<Func<TDocument, bool>> filter) => ((FilterDefinition<TDocument>)filter).Render(RenderArgs);
+
+    public IEnumerable<IndexedField> RenderIndexedFields() =>
+        _indexedFields.Select(indexed =>
+            new IndexedField(FilterDocuments.RenderField(indexed.Field, RenderArgs).FieldName, indexed.Feature));
 
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,
         FeatureSet disabled,

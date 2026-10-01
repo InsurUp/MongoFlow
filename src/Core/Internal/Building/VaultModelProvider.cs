@@ -35,6 +35,14 @@ internal sealed class VaultModelProvider<TVault> where TVault : MongoVault
             builder.ApplyDefault(configuration.Type);
         }
 
-        return builder.Build();
+        var model = builder.Build();
+
+        model.Logs.Model.ModelBuilt(typeof(TVault).Name,
+            model.Database.DatabaseNamespace.DatabaseName,
+            model.Collections.Select(collection => collection.Namespace.CollectionName),
+            model.Interceptors.Count);
+        IndexCheck.Start(model);
+
+        return model;
     }
 }

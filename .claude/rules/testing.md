@@ -76,6 +76,13 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
   named so the failpoint singles it out (`Mongo.CreateClient(name)`).
 - Assert what was stored by reading it back (`StoredAsync`), not by trusting the save's result alone.
 
+## Logging
+
+- Register a `LogSink` (in each project's `Fixtures/`) with `AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace)
+  .AddProvider(sink))`, and snapshot `sink.Snapshot(category)`: it scrubs test database names and timings.
+- Refer to events by `MongoFlowLogEvents` constants, never by number. Wait for what logs in the background, such as the
+  index check, with `sink.WaitForAsync(eventId)`, never a delay.
+
 ## Mocks
 
 - TUnit.Mocks, for interfaces only (`IMongoClient`, `IMongoDatabase`, `IClientSessionHandle`, `IVaultConfiguration<T>`).

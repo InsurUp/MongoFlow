@@ -15,7 +15,11 @@ internal sealed class KeyModel<TDocument, TKey>
     {
         _get = key.Compile();
         _parts = parts;
+        FieldNames = [.. parts.Select(part => part.Field.FieldName)];
     }
+
+    /// <summary>The element names the key matches, such as <c>["UserId", "provider"]</c>.</summary>
+    public IReadOnlyList<string> FieldNames { get; }
 
     public TKey Get(TDocument document) => _get(document);
 
