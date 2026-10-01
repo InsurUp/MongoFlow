@@ -22,6 +22,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="MongoDB.Driver" />
     <PackageReference Include="Prest" />
+    <PackageReference Include="Semver" />
   </ItemGroup>
 
   <ItemGroup>

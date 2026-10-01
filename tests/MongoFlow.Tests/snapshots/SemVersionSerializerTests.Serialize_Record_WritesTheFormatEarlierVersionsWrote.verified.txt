@@ -1,0 +1,11 @@
+﻿{
+  _id: {
+    $oid: 66f0c0ffee0000000000abcd
+  },
+  Version: 1.2.0-beta.1,
+  Name: RenamePremium,
+  Description: Rename the premium field,
+  Timestamp: {
+    $date: DateTimeOffset_1
+  }
+}

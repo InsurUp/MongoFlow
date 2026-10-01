@@ -22,6 +22,9 @@ internal sealed class VaultLogs(ILoggerFactory factory)
     /// <summary>Reads and the query filters they run with.</summary>
     public ILogger Query { get; } = factory.CreateLogger(MongoFlowLogEvents.Query.Category);
 
+    /// <summary>Migrations applied and reverted.</summary>
+    public ILogger Migrations { get; } = factory.CreateLogger(MongoFlowLogEvents.Migrations.Category);
+
     public static VaultLogs From(IServiceProvider services) =>
         new(services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance);
 

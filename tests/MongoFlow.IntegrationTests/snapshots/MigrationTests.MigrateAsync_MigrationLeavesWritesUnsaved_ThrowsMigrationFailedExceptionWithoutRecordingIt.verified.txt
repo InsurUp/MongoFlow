@@ -1,0 +1,5 @@
+﻿{
+  Cause: ForgetToSave queued writes on RegistryVault without saving them. Call SaveAsync before the migration returns.,
+  Stored: [],
+  History: []
+}

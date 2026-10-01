@@ -1,0 +1,29 @@
+﻿{
+  Entries: [
+    down 2.0.0,
+    down 1.1.0
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: first,
+      Status: null
+    },
+    {
+      _id: 2,
+      Name: second,
+      Status: null
+    }
+  ],
+  History: [
+    {
+      Version: 1.0.0,
+      Name: SeedEntries,
+      Description: Seed the registry,
+      Timestamp: DateTime_1
+    }
+  ],
+  Indexes: [
+    _id_
+  ]
+}

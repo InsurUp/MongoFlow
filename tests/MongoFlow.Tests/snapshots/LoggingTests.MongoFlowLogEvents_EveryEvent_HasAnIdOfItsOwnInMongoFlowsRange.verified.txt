@@ -113,5 +113,25 @@
     Group: Query,
     Event: ReadingByKey,
     Id: 27005002
+  },
+  {
+    Group: Migrations,
+    Event: Migrating,
+    Id: 27006001
+  },
+  {
+    Group: Migrations,
+    Event: MigrationApplied,
+    Id: 27006002
+  },
+  {
+    Group: Migrations,
+    Event: MigrationFailed,
+    Id: 27006003
+  },
+  {
+    Group: Migrations,
+    Event: UpToDate,
+    Id: 27006004
   }
 ]

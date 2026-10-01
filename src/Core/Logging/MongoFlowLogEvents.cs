@@ -9,7 +9,8 @@ namespace MongoFlow;
 /// range is clear of InsurUp's events (<c>1_0gg_eee</c>), ASP.NET Core's and most libraries' (below 10,000), Npgsql's
 /// (1,000 to 6,999), Entity Framework Core's (10,000 to 39,999) and Orleans' (100,000 to 110,000). Every category starts
 /// with <c>MongoFlow</c>, so one setting covers them all. Below warnings, everything is <c>Debug</c> or <c>Trace</c>,
-/// except an interceptor's failure hook throwing, which is swallowed and so logged as an error.
+/// except an interceptor's failure hook throwing, which is swallowed and so logged as an error, and migrations, which
+/// change the database and run rarely, so they log at <c>Information</c>, and a failed one at <c>Error</c>.
 /// </remarks>
 public static class MongoFlowLogEvents
 {
@@ -116,5 +117,23 @@ public static class MongoFlowLogEvents
 
         /// <summary><c>Trace</c>: <c>GetByKeyAsync</c>, with its key and query filters.</summary>
         public const int ReadingByKey = 27_005_002;
+    }
+
+    /// <summary>Migrations <c>IVaultMigrator</c> applies and reverts.</summary>
+    public static class Migrations
+    {
+        public const string Category = "MongoFlow.Migrations";
+
+        /// <summary><c>Information</c>: a vault is migrated from its current version to a target.</summary>
+        public const int Migrating = 27_006_001;
+
+        /// <summary><c>Information</c>: a migration was applied or reverted, and recorded.</summary>
+        public const int MigrationApplied = 27_006_002;
+
+        /// <summary><c>Error</c>: a migration failed; what it did in its transaction was rolled back.</summary>
+        public const int MigrationFailed = 27_006_003;
+
+        /// <summary><c>Debug</c>: a vault is at the target version already.</summary>
+        public const int UpToDate = 27_006_004;
     }
 }

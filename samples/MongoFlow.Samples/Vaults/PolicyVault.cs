@@ -3,8 +3,8 @@ using MongoFlow.Samples.Domain;
 namespace MongoFlow.Samples.Vaults;
 
 /// <summary>
-/// Configures its own shape: keys, concurrency and a collection name inherited from an older system. Anything
-/// environment-specific, like the database, stays at registration.
+/// Configures its own shape: keys, concurrency, a collection name inherited from an older system, and its migrations,
+/// which also create its indexes. Anything environment-specific, like the database, stays at registration.
 /// </summary>
 public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<PolicyVault>
 {
@@ -15,10 +15,11 @@ public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<P
 
     public static void Configure(IVaultBuilder<PolicyVault> vault) => vault
         .Collection(x => x.Policies, policies => policies
-            .Key(p => p.PolicyNumber)) // needs a unique index on PolicyNumber, created outside MongoFlow
+            .Key(p => p.PolicyNumber)) // its unique index comes from the CreatePolicyIndexes migration
         .Collection(x => x.Claims, claims => claims
             .Name("insurance_claims")) // the vault's own setting, so it beats the snake_case default
         .UseConcurrencyToken((Policy p) => p.Version)
         // Claims record when they were deleted. Customers and policies use the platform's flag.
-        .UseSoftDelete((IDeletedAt x) => x.DeletedAt);
+        .UseSoftDelete((IDeletedAt x) => x.DeletedAt)
+        .Migrations(m => m.AddFromAssemblyOf<PolicyVault>());
 }

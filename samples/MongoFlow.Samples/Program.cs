@@ -58,4 +58,7 @@ builder.Services.AddMongoVault<PlatformUserVault>((services, vault) => vault
 
 var app = builder.Build();
 
+// Pending migrations of every registered vault. A deployment of several instances runs this from one of them.
+await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
+
 await app.RunAsync();

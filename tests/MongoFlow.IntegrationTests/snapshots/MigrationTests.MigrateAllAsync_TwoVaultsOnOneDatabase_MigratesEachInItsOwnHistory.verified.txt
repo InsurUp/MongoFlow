@@ -1,0 +1,21 @@
+﻿{
+  Entries: [
+    up 1.0.0,
+    shop up 1.0.0
+  ],
+  Registry: [
+    {
+      Version: 1.0.0,
+      Name: SeedEntries,
+      Description: Seed the registry,
+      Timestamp: DateTime_1
+    }
+  ],
+  Shop: [
+    {
+      Version: 1.0.0,
+      Name: SeedOrders,
+      Timestamp: DateTime_1
+    }
+  ]
+}

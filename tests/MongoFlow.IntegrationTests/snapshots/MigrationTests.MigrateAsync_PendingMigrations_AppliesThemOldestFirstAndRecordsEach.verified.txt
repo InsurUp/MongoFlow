@@ -1,0 +1,41 @@
+﻿{
+  Entries: [
+    up 1.0.0,
+    up 1.1.0,
+    up 2.0.0
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: first,
+      Status: active
+    },
+    {
+      _id: 2,
+      Name: second,
+      Status: active
+    }
+  ],
+  History: [
+    {
+      Version: 1.0.0,
+      Name: SeedEntries,
+      Description: Seed the registry,
+      Timestamp: DateTime_1
+    },
+    {
+      Version: 1.1.0,
+      Name: ActivateEntries,
+      Timestamp: DateTime_1
+    },
+    {
+      Version: 2.0.0,
+      Name: IndexNames,
+      Timestamp: DateTime_1
+    }
+  ],
+  Indexes: [
+    _id_,
+    Name_1
+  ]
+}

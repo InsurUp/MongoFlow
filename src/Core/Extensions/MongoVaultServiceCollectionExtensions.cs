@@ -7,7 +7,8 @@ namespace MongoFlow;
 /// <para>
 /// Delegates run once, at startup, when the vault is configured. The <see cref="IServiceProvider"/> overloads receive the
 /// root provider, for singletons and options; per-request services belong in query filters. <c>AddMongoVault</c> also
-/// registers <see cref="IVaultTransactionManager"/> (scoped). Calling it again for the same vault adds to its configuration.
+/// registers <see cref="IVaultTransactionManager"/> (scoped) and <see cref="IVaultMigrator"/> (singleton). Calling it again
+/// for the same vault adds to its configuration.
 /// </para>
 /// <para>
 /// MongoFlow logs through the <c>ILoggerFactory</c> in DI, if there is one; <see cref="MongoFlowLogEvents"/> lists its
@@ -112,10 +113,13 @@ public static class MongoVaultServiceCollectionExtensions
         services.AddSingleton(registration);
         services.AddSingleton<VaultModelProvider<TVault>>();
         services.AddScoped(CreateVault<TVault>);
+        services.AddSingleton<VaultMigrationRunner<TVault>>();
+        services.AddSingleton<IVaultMigrationRunner>(provider => provider.GetRequiredService<VaultMigrationRunner<TVault>>());
 
         services.TryAddScoped<OwnedInterceptors>();
         services.TryAddScoped<VaultTransactionManager>();
         services.TryAddScoped<IVaultTransactionManager>(provider => provider.GetRequiredService<VaultTransactionManager>());
+        services.TryAddSingleton<IVaultMigrator, VaultMigrator>();
 
         return registration;
     }

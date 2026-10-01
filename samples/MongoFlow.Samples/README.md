@@ -12,7 +12,8 @@ at the `Mongo` and `Identity` connection strings.
 | `Vaults/` | Vaults that configure themselves: a custom string key with a concurrency token, soft delete by timestamp, a custom struct key |
 | `Identity/` | A vault base class shipped by a library that configures every vault derived from it, including a composite key |
 | `Configuration/` | Two defaults, two features driven by attributes with async filters, a naming convention, and a per-vault configuration that reads options |
-| `Program.cs` | Registration (defaults, per-vault databases, a second cluster, skipping defaults) |
+| `Program.cs` | Registration (defaults, per-vault databases, a second cluster, skipping defaults) and migrating every vault at startup |
+| `Migrations/` | Indexes created through the vault's collections, a data fix through the vault, a schema change with the driver, and migrations outside a transaction |
 | `Services/` | Reads (key lookups, LINQ, find, aggregation, features switched off), writes (unit of work, key and set-based operations), and a transaction spanning two vaults |
 | `Interceptors/` | Timestamps (typed, per collection, adding to update definitions), an audit trail (writes to another vault in the same transaction, switchable as a feature), and a transactional outbox |
 

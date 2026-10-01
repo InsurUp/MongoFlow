@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: JournalVault and ShopVault record their migrations in the same collection, unit.migrations. Give each its own with Migrations(m => m.CollectionName(...)).
+}

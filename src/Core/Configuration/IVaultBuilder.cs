@@ -102,4 +102,7 @@ public interface IVaultBuilder<TVault> where TVault : MongoVault
     IVaultBuilder<TVault> AddFeature<TFeature>() where TFeature : class, IVaultFeature;
 
     IVaultBuilder<TVault> AddFeature<TFeature>(TFeature feature) where TFeature : class, IVaultFeature;
+
+    /// <summary>Declares the vault's migrations, which <see cref="IVaultMigrator"/> applies.</summary>
+    IVaultBuilder<TVault> Migrations(Action<IMigrationBuilder<TVault>> configure);
 }
