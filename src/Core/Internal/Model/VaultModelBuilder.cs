@@ -219,7 +219,8 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         var collections = _collections.Select(collection => collection.Build(database)).ToArray();
 
         var interceptors = Interceptors
-            .OrderBy(registration => registration.Layer)
+            .OrderBy(registration => registration.RunsLast)
+            .ThenBy(registration => registration.Layer)
             .ThenBy(registration => registration.Order)
             .Select(registration => registration.Build(_collections))
             .ToArray();

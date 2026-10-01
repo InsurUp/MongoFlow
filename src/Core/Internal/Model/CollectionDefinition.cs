@@ -7,5 +7,4 @@ internal sealed record CollectionDefinition<TDocument>(
     PropertyInfo Property,
     Type? KeyType,
     IMongoCollection<TDocument> Collection,
-    IReadOnlyList<QueryFilterEntry<TDocument>> Filters,
-    ConcurrencyTokenModel<TDocument>? Token);
+    IReadOnlyList<QueryFilterEntry<TDocument>> Filters);

@@ -34,10 +34,10 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
 
     /// <summary>
     /// The same target and document as an update, keeping the features switched off. This is how soft delete turns a
-    /// delete into setting a flag; a concurrency token still guards a delete made with a document.
+    /// delete into setting a flag.
     /// </summary>
     public UpdateOperation<TDocument> ToUpdate(UpdateDefinition<TDocument> update) =>
-        new(TypedModel, DisabledFeatures, Target, Filter, update, Document);
+        new(TypedModel, DisabledFeatures, Target, Filter, update, Document) { Condition = Condition };
 
     internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken) =>

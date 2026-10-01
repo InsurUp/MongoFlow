@@ -41,7 +41,7 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
     /// with it to add changes of your own, such as <c>Builders&lt;T&gt;.Update.Combine(operation.Update, stamp)</c>.
     /// </summary>
     public UpdateOperation<TDocument> WithUpdate(UpdateDefinition<TDocument> update) =>
-        new(TypedModel, DisabledFeatures, Target, Filter, update, Document);
+        new(TypedModel, DisabledFeatures, Target, Filter, update, Document) { Condition = Condition };
 
     internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken) =>

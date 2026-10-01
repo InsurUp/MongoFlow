@@ -10,7 +10,6 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     private readonly Layered<string> _name = new();
     private readonly LayeredList<QueryFilterEntry<TDocument>> _filters = new();
     private readonly HashSet<FeatureKey> _without = [];
-    private readonly Layered<ConcurrencyTokenModel<TDocument>> _token = new();
 
     public CollectionModelBuilder(VaultModelBuilderBase vault, PropertyInfo property)
         : this(vault, property, keyType: null)
@@ -78,9 +77,6 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         return this;
     }
 
-    /// <summary>Called by the concurrency token feature for collections of its document type.</summary>
-    public void UseConcurrencyToken(ConcurrencyTokenModel<TDocument> token) => _token.Set(Vault.Layer, token);
-
     public override void Accept(IVaultCollectionConfiguration configuration) => configuration.Configure(this);
 
     public override void Apply(VaultQueryFilter filter)
@@ -99,8 +95,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
             Property,
             KeyType,
             database.GetCollection<TDocument>(_name.TryGet(out var name) ? name : Property.Name),
-            _filters.All.Where(filter => filter.Owner is not { } owner || !_without.Contains(owner)).ToArray(),
-            _token.TryGet(out var token) && !_without.Contains(ConcurrencyTokenFeature.Key) ? token : null);
+            _filters.All.Where(filter => filter.Owner is not { } owner || !_without.Contains(owner)).ToArray());
 
         return Model = CreateModel(definition);
     }

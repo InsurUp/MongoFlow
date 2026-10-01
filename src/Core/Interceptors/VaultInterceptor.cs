@@ -4,7 +4,8 @@ namespace MongoFlow;
 /// <remarks>
 /// Register it on a vault to see operations on every collection, or on a collection to see only that collection's. One
 /// registered from <see cref="IVaultFeature.Configure{TVault}"/> belongs to the feature and is skipped for operations
-/// queued with the feature switched off. Interceptors run in registration order.
+/// queued with the feature switched off. Interceptors run in registration order; the built-in concurrency token's runs
+/// after all of them, so it guards the writes as they'll be sent.
 /// </remarks>
 public abstract class VaultInterceptor
 {

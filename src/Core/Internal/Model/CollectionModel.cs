@@ -22,9 +22,6 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     public CollectionNamespace Namespace => MongoCollection.CollectionNamespace;
 
-    /// <summary>The token of the concurrency token feature, unless the collection opted out.</summary>
-    public ConcurrencyTokenModel<TDocument>? Token { get; } = definition.Token;
-
     public virtual IVaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
         IReadOnlySet<FeatureKey> disabled) =>
         new VaultCollection<TDocument>(runtime, this, disabled);
@@ -58,11 +55,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         SaveRun run,
         CancellationToken cancellationToken)
     {
-        var filter = await TargetAsync(replace, run, cancellationToken);
-        if (TokenFor(replace) is { } token)
-        {
-            filter &= Guard(token, replace, replace.Document!, run, increment: true);
-        }
+        var filter = await WriteFilterAsync(replace, run, cancellationToken);
 
         return new BulkWriteReplaceOneModel<TDocument>(Namespace, filter, replace.Document!);
     }
@@ -71,38 +64,25 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         SaveRun run,
         CancellationToken cancellationToken)
     {
-        var filter = await TargetAsync(update, run, cancellationToken, update.Filter);
-        var definition = update.Update;
-        if (TokenFor(update) is { } token)
-        {
-            if (update.Document is { } document)
-            {
-                filter &= Guard(token, update, document, run, increment: true);
-            }
-
-            definition = token.WithIncrement(definition);
-        }
+        var filter = await WriteFilterAsync(update, run, cancellationToken, update.Filter);
 
         return update.IsSetBased
-            ? new BulkWriteUpdateManyModel<TDocument>(Namespace, filter, definition)
-            : new BulkWriteUpdateOneModel<TDocument>(Namespace, filter, definition);
+            ? new BulkWriteUpdateManyModel<TDocument>(Namespace, filter, update.Update)
+            : new BulkWriteUpdateOneModel<TDocument>(Namespace, filter, update.Update);
     }
 
     public async ValueTask<BulkWriteModel> CreateWriteModelAsync(DeleteOperation<TDocument> delete,
         SaveRun run,
         CancellationToken cancellationToken)
     {
-        var filter = await TargetAsync(delete, run, cancellationToken, delete.Filter);
-        if (TokenFor(delete) is { } token && delete.Document is { } document)
-        {
-            filter &= Guard(token, delete, document, run, increment: false);
-        }
+        var filter = await WriteFilterAsync(delete, run, cancellationToken, delete.Filter);
 
         return delete.IsSetBased
             ? new BulkWriteDeleteManyModel<TDocument>(Namespace, filter)
             : new BulkWriteDeleteOneModel<TDocument>(Namespace, filter);
     }
 
+    /// <summary>Whether the operation's target, without its condition, matches a stored document.</summary>
     public async Task<bool> TargetExistsAsync(VaultOperation<TDocument> operation,
         SaveRun run,
         CancellationToken cancellationToken)
@@ -112,29 +92,15 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         return await MongoCollection.Find(run.Session, filter).Limit(1).AnyAsync(cancellationToken);
     }
 
-    /// <summary>The token, unless the feature was switched off on the view <paramref name="operation"/> was queued through.</summary>
-    private ConcurrencyTokenModel<TDocument>? TokenFor(VaultOperation<TDocument> operation) =>
-        Token is not null && !operation.DisabledFeatures.Contains(ConcurrencyTokenFeature.Key) ? Token : null;
-
-    /// <summary>
-    /// Limits <paramref name="operation"/> to the stored document whose token still has <paramref name="document"/>'s
-    /// value, and increments the token on <paramref name="document"/> to match what gets stored, undone if the save fails.
-    /// </summary>
-    private static FilterDefinition<TDocument> Guard(ConcurrencyTokenModel<TDocument> token,
-        VaultOperation<TDocument> operation,
-        TDocument document,
+    /// <summary>The operation's target, with its condition if it has one.</summary>
+    private async ValueTask<FilterDefinition<TDocument>> WriteFilterAsync(VaultOperation<TDocument> operation,
         SaveRun run,
-        bool increment)
+        CancellationToken cancellationToken,
+        Expression<Func<TDocument, bool>>? filter = null)
     {
-        var matches = token.Matches(document);
-        if (increment)
-        {
-            run.AddUndo(token.Increment(document));
-        }
+        var target = await TargetAsync(operation, run, cancellationToken, filter);
 
-        operation.IsGuarded = true;
-
-        return matches;
+        return operation.Condition is { } condition ? target & condition : target;
     }
 
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,

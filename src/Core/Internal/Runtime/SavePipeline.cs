@@ -41,7 +41,7 @@ internal static class SavePipeline
         }
         catch (Exception exception)
         {
-            // Each path runs run.FailedAsync, which also undoes in-memory changes. A rollback after the commit does nothing.
+            // Each path runs the interceptors' failure hooks. A rollback after the commit does nothing.
             if (outer is null)
             {
                 await transaction.RollbackAsync(CancellationToken.None);

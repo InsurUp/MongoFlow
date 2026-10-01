@@ -1,8 +1,8 @@
 namespace MongoFlow;
 
 /// <summary>
-/// A replace, update or delete made with a document matched nothing, because the stored document's concurrency token no
-/// longer has the value that was read, or because the document is gone. The save was rolled back.
+/// A write made with a document matched nothing: the stored document no longer matches what was read, such as its
+/// concurrency token, or it's gone. The save was rolled back.
 /// </summary>
 public sealed class ConcurrencyException : Exception
 {
@@ -19,7 +19,7 @@ public sealed class ConcurrencyException : Exception
     public VaultOperation Operation { get; }
 
     /// <summary>
-    /// <see langword="true"/> when the document is still stored with a different token; <see langword="false"/> when no
+    /// <see langword="true"/> when a document with the key is still stored, but changed; <see langword="false"/> when no
     /// document with its key is visible anymore.
     /// </summary>
     public bool DocumentExists { get; }

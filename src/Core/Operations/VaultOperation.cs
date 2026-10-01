@@ -43,11 +43,8 @@ public abstract class VaultOperation
     /// <summary>The features switched off on the collection view the operation was queued through.</summary>
     internal IReadOnlySet<FeatureKey> DisabledFeatures { get; }
 
-    /// <summary>
-    /// Whether a concurrency token limited the write to the document as it was read, so that matching nothing fails the
-    /// save. Set when the write model is created.
-    /// </summary>
-    internal bool IsGuarded { get; set; }
+    /// <summary>Whether the write carries a condition, so that matching nothing fails the save.</summary>
+    internal abstract bool HasCondition { get; }
 
     /// <summary>The model this operation adds to the save's bulk write.</summary>
     internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,

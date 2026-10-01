@@ -26,16 +26,11 @@ internal sealed class ConcurrencyTokenFeature<TVersioned, TToken> : IVaultFeatur
 
     public void Configure<TDocument>(IVaultCollectionBuilder<TDocument> collection)
     {
-        if (!typeof(TDocument).IsAssignableTo(typeof(TVersioned)))
+        if (typeof(TDocument).IsAssignableTo(typeof(TVersioned)))
         {
-            return;
+            // Last, so it sees the writes as they'll be sent, such as a delete soft delete turned into an update.
+            collection.AddInterceptor(new ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>(_token, _get, _set),
+                interceptor => ((InterceptorRegistration)interceptor).RunsLast = true);
         }
-
-        // The token works on the write models a save builds after every interceptor ran, such as a delete that soft
-        // delete turned into an update; no public extension point reaches them, so the token goes to the model.
-        ((CollectionModelBuilder<TDocument>)collection).UseConcurrencyToken(new ConcurrencyTokenModel<TDocument, TToken>(
-            MemberExpressions.Rebind<TVersioned, TDocument, TToken>(_token),
-            document => _get((TVersioned)(object)document!),
-            (document, value) => _set((TVersioned)(object)document!, value)));
     }
 }
