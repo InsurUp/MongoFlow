@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
@@ -222,6 +223,50 @@ public partial class InterceptorTests
                 });
             }
 
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>Adds a condition to every update of an order.</summary>
+    public sealed class OrderCondition(FilterDefinition<Order> condition) : VaultInterceptor
+    {
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            foreach (var update in context.Operations.OfType<UpdateOperation<Order>>())
+            {
+                update.AddCondition(condition);
+            }
+
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>Adds a condition to an insert, which can't take one.</summary>
+    public sealed class InsertCondition : VaultInterceptor
+    {
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            context.Operations.OfType<InsertOperation<Order>>().First().AddCondition(Builders<Order>.Filter.Empty);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>Records each order operation's condition as it's written, and its result once written.</summary>
+    public sealed class ConditionRecorder : VaultInterceptor
+    {
+        public List<BsonDocument?> Conditions { get; } = [];
+
+        public List<OperationResult?> Results { get; } = [];
+
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            Conditions.AddRange(context.Operations.OfType<VaultOperation<Order>>().Select(operation => operation.Condition));
+            return ValueTask.CompletedTask;
+        }
+
+        public override ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            Results.AddRange(context.Operations.Select(operation => operation.Result));
             return ValueTask.CompletedTask;
         }
     }

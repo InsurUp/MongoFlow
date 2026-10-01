@@ -1,0 +1,21 @@
+﻿{
+  Conditions: [
+    {
+      Customer: ada,
+      Total: {
+        $gt: {
+          $numberDecimal: 5
+        }
+      }
+    }
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 20
+      }
+    }
+  ]
+}

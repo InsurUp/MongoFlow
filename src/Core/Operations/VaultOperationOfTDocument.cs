@@ -26,17 +26,47 @@ public abstract class VaultOperation<TDocument> : VaultOperation
     internal override object? TargetKey => Target?.Key;
 
     /// <summary>
-    /// A filter the stored document must match as well, such as <c>{ Version: 3 }</c> for a concurrency token still having
-    /// the value that was read. A write whose condition fails matches nothing; whoever set the condition decides what that
-    /// means. Only for operations that target one document by key.
+    /// A filter the stored document must match as well, or <see langword="null"/>: such as <c>{ Version: 3 }</c>, which the
+    /// concurrency token adds so the write applies only while the stored token has the value that was read.
     /// </summary>
-    internal BsonDocument? Condition { get; set; }
+    /// <remarks>
+    /// A write whose condition fails matches nothing, and the save goes on. Whoever added the condition checks
+    /// <see cref="VaultOperation.Result"/> in <see cref="VaultInterceptor.SavedAsync"/> and decides what that means, as the
+    /// concurrency token does by throwing <see cref="ConcurrencyException"/>.
+    /// </remarks>
+    public BsonDocument? Condition { get; internal set; }
 
-    /// <summary>Whether the operation's target, without its condition, matches a stored document.</summary>
+    /// <summary>
+    /// Adds <paramref name="condition"/> to <see cref="Condition"/>, joined with AND, so interceptors' conditions don't
+    /// replace each other. It's rendered with the collection's serializers, such as
+    /// <c>Builders&lt;Order&gt;.Filter.Eq(x =&gt; x.Status, "open")</c>. Add conditions during
+    /// <see cref="VaultInterceptor.SavingAsync"/>, before the write.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The operation is an insert, which matches no stored document.</exception>
+    public void AddCondition(FilterDefinition<TDocument> condition)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+
+        AddCondition(condition.Render(TypedModel.RenderArgs));
+    }
+
+    /// <inheritdoc cref="AddCondition(FilterDefinition{TDocument})"/>
+    internal void AddCondition(BsonDocument condition)
+    {
+        if (Kind == OperationKind.Insert)
+        {
+            throw new InvalidOperationException("An insert matches no stored document, so it can't take a condition.");
+        }
+
+        Condition = FilterDocuments.And(Condition, condition);
+    }
+
+    /// <summary>Whether the operation's target matches a stored document, with <paramref name="condition"/> if there's one.</summary>
     internal async Task<bool> TargetExistsAsync(SaveRun run,
+        BsonDocument? condition,
         CancellationToken cancellationToken)
     {
-        var filter = await MatchAsync(run, null, null, cancellationToken);
+        var filter = await MatchAsync(run, null, condition, cancellationToken);
 
         return await TypedModel.MongoCollection.Find(run.Session, filter).Limit(1).AnyAsync(cancellationToken);
     }

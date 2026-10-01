@@ -14,6 +14,8 @@ namespace MongoFlow.IntegrationTests;
 /// feature switched off;</item>
 /// <item>one registered by type is created once per vault instance, from the scope's services, and disposed with the
 /// scope; an instance is never disposed;</item>
+/// <item>conditions interceptors add to a write join, and a write whose conditions fail matches nothing without failing
+/// the save;</item>
 /// <item>the context carries the vault, the scope's services, the session, the result and items shared by every
 /// hook.</item>
 /// </list>

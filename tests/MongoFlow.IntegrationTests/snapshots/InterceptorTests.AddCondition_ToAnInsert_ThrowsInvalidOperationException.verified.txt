@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: An insert matches no stored document, so it can't take a condition.
+}

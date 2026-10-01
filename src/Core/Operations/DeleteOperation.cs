@@ -28,7 +28,7 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
     public Expression<Func<TDocument, bool>>? Filter { get; }
 
     /// <summary>
-    /// The same target and document as an update, keeping the features switched off. This is how soft delete turns a
+    /// The same target, document and condition as an update, keeping the features switched off. This is how soft delete turns a
     /// delete into setting a flag.
     /// </summary>
     public UpdateOperation<TDocument> ToUpdate(UpdateDefinition<TDocument> update) =>

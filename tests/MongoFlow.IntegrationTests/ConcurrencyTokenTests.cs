@@ -14,6 +14,8 @@ namespace MongoFlow.IntegrationTests;
 /// <item>writes by key or filter increment without checking, deletes by key or filter neither check nor increment, and
 /// inserts are left alone;</item>
 /// <item>a delete soft delete turns into an update is checked and incremented like an update;</item>
+/// <item>a guarded write that another interceptor's condition stops isn't a conflict, and the document's token is put
+/// back;</item>
 /// <item>pipeline updates get the increment as a last stage;</item>
 /// <item>with the feature off, writes are neither checked nor incremented.</item>
 /// </list>
@@ -138,6 +140,21 @@ public partial class ConcurrencyTokenTests
 
         // Assert
         await Verify(new { Stored = await host.StoredAsync("Contracts"), Document = contract });
+    }
+
+    [Test]
+    public async Task Update_AnotherInterceptorsConditionFails_PutsTheTokenBackWithoutAConflict()
+    {
+        // Arrange
+        await using var host = await SeededAsync(version: 3, vault => vault.AddInterceptor(new PartyCondition("globex")));
+        var contract = new Contract { Id = 1, Party = "acme", Version = 3 };
+        host.Vault.Contracts.Update(contract, Builders<Contract>.Update.Set(x => x.Party, "renamed"));
+
+        // Act
+        var result = await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { result, Stored = await host.StoredAsync("Contracts"), Document = contract });
     }
 
     [Test]

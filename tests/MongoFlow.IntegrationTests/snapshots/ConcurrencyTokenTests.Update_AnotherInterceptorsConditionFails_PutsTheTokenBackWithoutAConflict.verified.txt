@@ -1,0 +1,20 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Stored: [
+    {
+      _id: 1,
+      Party: acme,
+      ver: 3
+    }
+  ],
+  Document: {
+    Id: 1,
+    Party: acme,
+    Version: 3
+  }
+}
