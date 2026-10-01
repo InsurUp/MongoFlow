@@ -19,7 +19,8 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     public CollectionNamespace Namespace => MongoCollection.CollectionNamespace;
 
-    public ConcurrencyTokenModel<TDocument>? Token { get; protected init; }
+    /// <summary>The token of the concurrency token feature, unless the collection opted out.</summary>
+    public ConcurrencyTokenModel<TDocument>? Token { get; } = definition.Token;
 
     public virtual IVaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
         IReadOnlySet<FeatureKey> disabled) =>
@@ -51,9 +52,9 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         CancellationToken cancellationToken)
     {
         var filter = await TargetAsync(replace, run, cancellationToken);
-        if (Token is not null)
+        if (TokenFor(replace) is { } token)
         {
-            filter &= Guard(replace, replace.Document!, run, increment: true);
+            filter &= Guard(token, replace, replace.Document!, run, increment: true);
         }
 
         return new BulkWriteReplaceOneModel<TDocument>(Namespace, filter, replace.Document!);
@@ -65,14 +66,14 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     {
         var filter = await TargetAsync(update, run, cancellationToken, update.Filter);
         var definition = update.Update;
-        if (Token is not null)
+        if (TokenFor(update) is { } token)
         {
             if (update.Document is { } document)
             {
-                filter &= Guard(update, document, run, increment: true);
+                filter &= Guard(token, update, document, run, increment: true);
             }
 
-            definition = Token.WithIncrement(definition);
+            definition = token.WithIncrement(definition);
         }
 
         return update.IsSetBased
@@ -85,9 +86,9 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         CancellationToken cancellationToken)
     {
         var filter = await TargetAsync(delete, run, cancellationToken, delete.Filter);
-        if (Token is not null && delete.Document is { } document)
+        if (TokenFor(delete) is { } token && delete.Document is { } document)
         {
-            filter &= Guard(delete, document, run, increment: false);
+            filter &= Guard(token, delete, document, run, increment: false);
         }
 
         return delete.IsSetBased
@@ -104,19 +105,24 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         return await MongoCollection.Find(run.Session, filter).Limit(1).AnyAsync(cancellationToken);
     }
 
+    /// <summary>The token, unless the feature was switched off on the view <paramref name="operation"/> was queued through.</summary>
+    private ConcurrencyTokenModel<TDocument>? TokenFor(VaultOperation<TDocument> operation) =>
+        Token is not null && !operation.DisabledFeatures.Contains(ConcurrencyTokenFeature.Key) ? Token : null;
+
     /// <summary>
     /// Limits <paramref name="operation"/> to the stored document whose token still has <paramref name="document"/>'s
     /// value, and increments the token on <paramref name="document"/> to match what gets stored, undone if the save fails.
     /// </summary>
-    private FilterDefinition<TDocument> Guard(VaultOperation<TDocument> operation,
+    private static FilterDefinition<TDocument> Guard(ConcurrencyTokenModel<TDocument> token,
+        VaultOperation<TDocument> operation,
         TDocument document,
         SaveRun run,
         bool increment)
     {
-        var matches = Token!.Matches(document);
+        var matches = token.Matches(document);
         if (increment)
         {
-            run.AddUndo(Token.Increment(document));
+            run.AddUndo(token.Increment(document));
         }
 
         operation.IsGuarded = true;

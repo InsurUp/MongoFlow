@@ -3,12 +3,10 @@ namespace MongoFlow;
 internal sealed class KeyedCollectionModel<TDocument, TKey> : CollectionModel<TDocument>
 {
     public KeyedCollectionModel(CollectionDefinition<TDocument> definition,
-        KeyModel<TDocument, TKey> key,
-        ConcurrencyTokenModel<TDocument>? token)
+        KeyModel<TDocument, TKey> key)
         : base(definition)
     {
         Key = key;
-        Token = token;
     }
 
     public KeyModel<TDocument, TKey> Key { get; }

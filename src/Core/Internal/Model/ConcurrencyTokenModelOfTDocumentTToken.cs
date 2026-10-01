@@ -11,11 +11,16 @@ internal sealed class ConcurrencyTokenModel<TDocument, TToken> : ConcurrencyToke
     private readonly Func<TDocument, TToken> _get;
     private readonly Action<TDocument, TToken> _set;
 
-    public ConcurrencyTokenModel(Expression<Func<TDocument, TToken>> token)
+    /// <param name="token">The token member, read from <typeparamref name="TDocument"/>, for filters and updates.</param>
+    /// <param name="get">Reads the token from a document.</param>
+    /// <param name="set">Writes the token to a document.</param>
+    public ConcurrencyTokenModel(Expression<Func<TDocument, TToken>> token,
+        Func<TDocument, TToken> get,
+        Action<TDocument, TToken> set)
     {
         _token = token;
-        _get = token.Compile();
-        _set = MemberExpressions.CreateSetter(token, nameof(token));
+        _get = get;
+        _set = set;
     }
 
     public override Expression<Func<TDocument, bool>> Matches(TDocument document) =>

@@ -15,10 +15,10 @@ public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<P
 
     public static void Configure(IVaultBuilder<PolicyVault> vault) => vault
         .Collection(x => x.Policies, policies => policies
-            .Key(p => p.PolicyNumber) // its unique index comes from CreatePolicyIndexes
-            .ConcurrencyToken(p => p.Version))
+            .Key(p => p.PolicyNumber)) // its unique index comes from CreatePolicyIndexes
         .Collection(x => x.Claims, claims => claims
             .Name("insurance_claims")) // the vault's own setting, so it beats the snake_case default
+        .UseConcurrencyToken((Policy p) => p.Version)
         // Claims record when they were deleted. Customers and policies use the platform's flag.
         .UseSoftDelete((IDeletedAt x) => x.DeletedAt)
         .Migrations(m => m.AddFromAssemblyOf<PolicyVault>());

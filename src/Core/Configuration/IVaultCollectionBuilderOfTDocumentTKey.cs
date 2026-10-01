@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using System.Numerics;
 
 namespace MongoFlow;
 
@@ -17,14 +16,6 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
     /// </remarks>
     /// <param name="key">The key member, or a new <typeparamref name="TKey"/> of members.</param>
     IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key);
-
-    /// <summary>
-    /// Optimistic concurrency. Replacing, updating or deleting a document (<c>Replace</c>, <c>Update</c>, <c>Delete</c>)
-    /// fails with <see cref="ConcurrencyException"/> if its token changed since it was read, soft deletes included.
-    /// Replaces and updates increment the token, on the document too; a failed or rolled-back save puts it back.
-    /// </summary>
-    IVaultCollectionBuilder<TDocument, TKey> ConcurrencyToken<TToken>(Expression<Func<TDocument, TToken>> token)
-        where TToken : INumber<TToken>;
 
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> Name(string name);

@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using System.Numerics;
 using System.Reflection;
 
 namespace MongoFlow;
@@ -8,22 +7,12 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
     : CollectionModelBuilder<TDocument>(vault, property, typeof(TKey)), IVaultCollectionBuilder<TDocument, TKey>
 {
     private readonly Layered<Expression<Func<TDocument, TKey>>> _key = new();
-    private readonly Layered<ConcurrencyTokenModel<TDocument>> _token = new();
 
     public IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key)
     {
         ArgumentNullException.ThrowIfNull(key);
 
         _key.Set(Vault.Layer, key);
-        return this;
-    }
-
-    public IVaultCollectionBuilder<TDocument, TKey> ConcurrencyToken<TToken>(Expression<Func<TDocument, TToken>> token)
-        where TToken : INumber<TToken>
-    {
-        ArgumentNullException.ThrowIfNull(token);
-
-        _token.Set(Vault.Layer, new ConcurrencyTokenModel<TDocument, TToken>(token));
         return this;
     }
 
@@ -85,8 +74,6 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
         var keyModel = KeyModel<TDocument, TKey>.Create(_key.TryGet(out var key) ? key : null,
             definition.Collection.CollectionNamespace.CollectionName);
 
-        return _keyedModel = new KeyedCollectionModel<TDocument, TKey>(definition,
-            keyModel,
-            _token.TryGet(out var token) ? token : null);
+        return _keyedModel = new KeyedCollectionModel<TDocument, TKey>(definition, keyModel);
     }
 }
