@@ -14,13 +14,11 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
     private readonly HashSet<Type> _applied = [];
     private readonly HashSet<Type> _ownConfigurations = [];
     private readonly HashSet<Type> _skipped = [];
-    private readonly MigrationModelBuilder<TVault> _migrations;
     private bool _skipAll;
 
     public VaultModelBuilder(IServiceProvider services)
     {
         _services = services;
-        _migrations = new MigrationModelBuilder<TVault>(this);
         _collections = typeof(TVault)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Select(CreateCollectionBuilder)
@@ -169,14 +167,6 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         return this;
     }
 
-    public IVaultBuilder<TVault> Migrations(Action<IMigrationBuilder<TVault>> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        configure(_migrations);
-        return this;
-    }
-
     /// <summary>Applies a default configuration, closed over <typeparamref name="TVault"/>, unless the vault skipped it.</summary>
     public void ApplyDefault(Type openConfiguration)
     {
@@ -237,8 +227,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         return new VaultModel(typeof(TVault),
             database,
             collections,
-            interceptors,
-            _migrations.Build());
+            interceptors);
     }
 
     private void Apply(Type configurationType, Func<IVaultConfiguration<TVault>> create)

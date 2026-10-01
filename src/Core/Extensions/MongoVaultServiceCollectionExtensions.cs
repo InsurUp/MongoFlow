@@ -6,8 +6,7 @@ namespace MongoFlow;
 /// <remarks>
 /// Delegates run once, at startup, when the vault is configured. The <see cref="IServiceProvider"/> overloads receive the
 /// root provider, for singletons and options; per-request services belong in query filters. <c>AddMongoVault</c> also
-/// registers <see cref="IVaultTransactions"/> (scoped) and <see cref="IVaultMigrator"/> (singleton). Calling it again
-/// for the same vault adds to its configuration.
+/// registers <see cref="IVaultTransactions"/> (scoped). Calling it again for the same vault adds to its configuration.
 /// </remarks>
 public static class MongoVaultServiceCollectionExtensions
 {
@@ -107,12 +106,9 @@ public static class MongoVaultServiceCollectionExtensions
         services.AddSingleton(registration);
         services.AddSingleton<VaultModelProvider<TVault>>();
         services.AddScoped(CreateVault<TVault>);
-        services.AddSingleton<VaultMigrationRunner<TVault>>();
-        services.AddSingleton<IVaultMigrationRunner>(provider => provider.GetRequiredService<VaultMigrationRunner<TVault>>());
 
         services.TryAddScoped<VaultTransactions>();
         services.TryAddScoped<IVaultTransactions>(provider => provider.GetRequiredService<VaultTransactions>());
-        services.TryAddSingleton<IVaultMigrator, VaultMigrator>();
 
         return registration;
     }
@@ -122,8 +118,10 @@ public static class MongoVaultServiceCollectionExtensions
         var model = services.GetRequiredService<VaultModelProvider<TVault>>().Model;
         var vault = ActivatorUtilities.CreateInstance<TVault>(services);
 
+        var runtime = new VaultRuntime(model, services, vault);
+
         // The runtime fills the vault's collection properties as it's created.
-        vault.Attach(new VaultRuntime(model, services, vault));
+        vault.Attach(runtime);
 
         return vault;
     }

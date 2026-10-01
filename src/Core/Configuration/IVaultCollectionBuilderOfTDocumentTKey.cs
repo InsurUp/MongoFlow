@@ -12,7 +12,8 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
     /// <c>_id</c>, whose type must be <typeparamref name="TKey"/>; that is checked at startup.
     /// </summary>
     /// <remarks>
-    /// Lookups by key expect one document, so a key other than <c>_id</c> needs a unique index; create it in a migration.
+    /// Lookups by key expect one document, so a key other than <c>_id</c> needs a unique index, which MongoFlow doesn't
+    /// create.
     /// </remarks>
     /// <param name="key">The key member, or a new <typeparamref name="TKey"/> of members.</param>
     IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key);
