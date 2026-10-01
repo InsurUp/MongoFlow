@@ -28,7 +28,8 @@ internal sealed class ConcurrencyTokenFeature<TVersioned, TToken> : IVaultFeatur
     {
         if (typeof(TDocument).IsAssignableTo(typeof(TVersioned)))
         {
-            // Last, so it sees the writes as they'll be sent, such as a delete soft delete turned into an update.
+            // Last before the write, so it sees the writes as they'll be sent, such as a delete soft delete turned into an
+            // update; first after it, so it rejects a write that matched nothing before other interceptors see it.
             collection.AddInterceptor(new ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>(_token, _get, _set),
                 interceptor => ((InterceptorRegistration)interceptor).RunsLast = true);
         }

@@ -41,4 +41,7 @@ public abstract class SaveContext
     /// <summary>Drops <paramref name="operation"/> from the save. Only during <see cref="VaultInterceptor.SavingAsync"/>.</summary>
     /// <exception cref="InvalidOperationException">Called after <see cref="VaultInterceptor.SavingAsync"/>.</exception>
     public abstract void Remove(VaultOperation operation);
+
+    /// <summary>The save itself, for built-in features.</summary>
+    internal abstract SaveRun Run { get; }
 }

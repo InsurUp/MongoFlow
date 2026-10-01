@@ -21,4 +21,6 @@ internal sealed class InterceptorSaveContext(SaveRun run, InterceptorModel inter
     public override void Replace(VaultOperation operation, VaultOperation replacement) => run.Replace(operation, replacement);
 
     public override void Remove(VaultOperation operation) => run.Remove(operation);
+
+    internal override SaveRun Run => run;
 }

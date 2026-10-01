@@ -4,8 +4,13 @@ namespace MongoFlow;
 /// <remarks>
 /// Register it on a vault to see operations on every collection, or on a collection to see only that collection's. One
 /// registered from <see cref="IVaultFeature.Configure{TVault}"/> belongs to the feature and is skipped for operations
-/// queued with the feature switched off. Interceptors run in registration order; the built-in concurrency token's runs
-/// after all of them, so it guards the writes as they'll be sent.
+/// queued with the feature switched off.
+/// <para>
+/// <see cref="SavingAsync"/> runs in registration order. The hooks after the write, <see cref="SavedAsync"/>,
+/// <see cref="CommittedAsync"/> and <see cref="FailedAsync"/>, run in reverse, so the interceptor that runs last before
+/// the write runs first after it. The built-in concurrency token's runs last before the write, so it guards the writes as
+/// they'll be sent, and first after it, so a rejected write fails the save before other interceptors see it.
+/// </para>
 /// </remarks>
 public abstract class VaultInterceptor
 {

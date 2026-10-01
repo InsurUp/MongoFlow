@@ -54,6 +54,22 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>
+    /// Fails the save when a guarded write matched nothing: the stored document changed, or is gone. It runs before the
+    /// other interceptors' <see cref="VaultInterceptor.SavedAsync"/>, so none of them sees the rejected write.
+    /// </summary>
+    public override async ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken)
+    {
+        foreach (var operation in context.Operations)
+        {
+            if (operation is VaultOperation<TDocument> { Condition: not null, Result: { Matched: 0, Deleted: 0 } } guarded)
+            {
+                throw new ConcurrencyException(guarded,
+                    await guarded.TypedModel.TargetExistsAsync(guarded, context.Run, cancellationToken));
+            }
+        }
+    }
+
     /// <summary>Puts back the tokens incremented on documents, since their writes were rolled back.</summary>
     public override ValueTask FailedAsync(SaveContext context, Exception exception, CancellationToken cancellationToken)
     {

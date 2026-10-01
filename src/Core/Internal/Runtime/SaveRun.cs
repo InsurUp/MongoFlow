@@ -56,21 +56,17 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
 
         for (var i = 0; i < Operations.Count; i++)
         {
-            var operation = Operations[i];
-            operation.Result = ResultOf(operation, written, i);
-
-            if (operation is { HasCondition: true, Result: { Matched: 0, Deleted: 0 } })
-            {
-                throw new ConcurrencyException(operation, await operation.TargetExistsAsync(this, cancellationToken));
-            }
+            Operations[i].Result = ResultOf(Operations[i], written, i);
         }
 
         return Result = new SaveResult(written.InsertedCount, written.MatchedCount, written.ModifiedCount, written.DeletedCount);
     }
 
+    // The hooks after the write run in reverse, so the interceptor that ran last before it, such as the concurrency
+    // token's, runs first after it.
     public async Task SavedAsync(CancellationToken cancellationToken)
     {
-        for (var i = 0; i < Runtime.Model.Interceptors.Count; i++)
+        for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
         {
             await Runtime.GetInterceptor(i).SavedAsync(ContextFor(i), cancellationToken);
         }
@@ -78,7 +74,7 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
 
     public async Task CommittedAsync(CancellationToken cancellationToken)
     {
-        for (var i = 0; i < Runtime.Model.Interceptors.Count; i++)
+        for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
         {
             await Runtime.GetInterceptor(i).CommittedAsync(ContextFor(i), cancellationToken);
         }
@@ -90,7 +86,7 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
     /// </summary>
     public async Task FailedAsync(Exception exception, CancellationToken cancellationToken)
     {
-        for (var i = 0; i < Runtime.Model.Interceptors.Count; i++)
+        for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
         {
             try
             {

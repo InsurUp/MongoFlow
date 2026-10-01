@@ -43,15 +43,8 @@ public abstract class VaultOperation
     /// <summary>The features switched off on the collection view the operation was queued through.</summary>
     internal IReadOnlySet<FeatureKey> DisabledFeatures { get; }
 
-    /// <summary>Whether the write carries a condition, so that matching nothing fails the save.</summary>
-    internal abstract bool HasCondition { get; }
-
     /// <summary>The model this operation adds to the save's bulk write.</summary>
     internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
-        CancellationToken cancellationToken);
-
-    /// <summary>Whether the operation's key, under the query filters it was queued with, still matches a stored document.</summary>
-    internal abstract Task<bool> TargetExistsAsync(SaveRun run,
         CancellationToken cancellationToken);
 
     private protected abstract object? GetDocument();

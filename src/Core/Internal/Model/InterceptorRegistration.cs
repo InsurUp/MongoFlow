@@ -16,8 +16,8 @@ internal sealed class InterceptorRegistration : IInterceptorBuilder
     public FeatureKey? Owner { get; init; }
 
     /// <summary>
-    /// Runs after every other interceptor, so it sees the operations as they'll be written. Only for built-in features,
-    /// such as the concurrency token.
+    /// Runs after every other interceptor before the write, so it sees the operations as they'll be written, and before
+    /// every other one after it. Only for built-in features, such as the concurrency token.
     /// </summary>
     public bool RunsLast { get; set; }
 

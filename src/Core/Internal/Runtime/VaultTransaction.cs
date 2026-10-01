@@ -117,11 +117,12 @@ internal sealed class VaultTransaction(VaultTransactionManager owner, IMongoClie
         owner.End(this);
     }
 
+    // Newest save first, so a document two saves changed is put back to what the first one read.
     private async Task FailAsync(Exception exception)
     {
-        foreach (var save in _saves)
+        for (var i = _saves.Count - 1; i >= 0; i--)
         {
-            await save.Failed(exception, CancellationToken.None);
+            await _saves[i].Failed(exception, CancellationToken.None);
         }
     }
 

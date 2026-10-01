@@ -23,16 +23,10 @@ public abstract class VaultOperation<TDocument> : VaultOperation
 
     /// <summary>
     /// A filter the stored document must match as well, such as a concurrency token still having the value that was read.
-    /// When it's set and the write matches nothing, the save fails with <see cref="ConcurrencyException"/>. Only for
+    /// A write whose condition fails matches nothing; whoever set the condition decides what that means. Only for
     /// operations that target one document by key.
     /// </summary>
     internal Expression<Func<TDocument, bool>>? Condition { get; set; }
-
-    internal override bool HasCondition => Condition is not null;
-
-    internal override Task<bool> TargetExistsAsync(SaveRun run,
-        CancellationToken cancellationToken) =>
-        TypedModel.TargetExistsAsync(this, run, cancellationToken);
 
     private protected override object? GetDocument() => Document;
 }
