@@ -4,12 +4,10 @@ using MongoDB.Driver;
 namespace MongoFlow;
 
 /// <summary>A vault collection as built at startup: shared by every vault instance, never changed.</summary>
-internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> definition) : ICollectionModel
+internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> definition) : IVaultCollectionInfo
 {
     private readonly QueryFilterEntry<TDocument>[] _filters = definition.Filters.ToArray();
     private readonly bool _hasAsyncFilters = definition.Filters.Any(filter => filter.IsAsync);
-    private readonly List<CreateIndexModel<TDocument>> _indexes = definition.Indexes;
-    private readonly CreateCollectionOptions<TDocument>? _createOptions = definition.CreateOptions;
 
     public Type DocumentType => typeof(TDocument);
 
@@ -87,31 +85,6 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         return delete.IsSetBased
             ? new BulkWriteDeleteManyModel<TDocument>(Namespace, filter)
             : new BulkWriteDeleteOneModel<TDocument>(Namespace, filter);
-    }
-
-    public async Task EnsureCreatedAsync(ISet<string> existing, CancellationToken cancellationToken)
-    {
-        if (!existing.Add(Namespace.CollectionName))
-        {
-            return;
-        }
-
-        try
-        {
-            await MongoCollection.Database.CreateCollectionAsync(Namespace.CollectionName, _createOptions, cancellationToken);
-        }
-        catch (MongoCommandException exception) when (exception.Code == 48)
-        {
-            // NamespaceExists: created in the meantime, such as by another vault sharing the collection.
-        }
-    }
-
-    public async Task EnsureIndexesAsync(CancellationToken cancellationToken)
-    {
-        if (_indexes.Count > 0)
-        {
-            await MongoCollection.Indexes.CreateManyAsync(_indexes, cancellationToken);
-        }
     }
 
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,

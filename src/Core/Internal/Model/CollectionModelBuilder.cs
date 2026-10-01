@@ -17,7 +17,7 @@ internal abstract class CollectionModelBuilder(VaultModelBuilderBase vault, Prop
     public string PropertyName => Property.Name;
 
     /// <summary>The built collection, once <see cref="Build"/> has run.</summary>
-    public ICollectionModel? Model { get; protected set; }
+    public IVaultCollectionInfo? Model { get; protected set; }
 
     /// <summary>The features this collection opted out of in configuration.</summary>
     public abstract IReadOnlySet<FeatureKey> OptedOut { get; }
@@ -26,7 +26,7 @@ internal abstract class CollectionModelBuilder(VaultModelBuilderBase vault, Prop
 
     public abstract void Apply(VaultQueryFilter filter);
 
-    public abstract ICollectionModel Build(IMongoDatabase database);
+    public abstract IVaultCollectionInfo Build(IMongoDatabase database);
 
     /// <summary>How the vault's property is filled with this collection. Called after <see cref="Build"/>.</summary>
     public abstract CollectionBinding<TVault> Bind<TVault>() where TVault : MongoVault;

@@ -1,6 +1,8 @@
+using Semver;
+
 namespace MongoFlow;
 
 internal interface IVaultMigrationRunner
 {
-    Task MigrateAllAsync(CancellationToken cancellationToken);
+    Task MigrateAsync(SemVersion? target, CancellationToken cancellationToken);
 }

@@ -7,29 +7,6 @@ namespace MongoFlow;
 
 internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : IVaultMigrationRunner where TVault : MongoVault
 {
-    public async Task MigrateAllAsync(CancellationToken cancellationToken)
-    {
-        await using var scope = services.CreateAsyncScope();
-        var vault = scope.ServiceProvider.GetRequiredService<TVault>();
-        var model = vault.Runtime.Model;
-
-        var existing = await (await model.Database.ListCollectionNamesAsync(cancellationToken: cancellationToken))
-            .ToListAsync(cancellationToken);
-        var names = existing.ToHashSet();
-
-        foreach (var collection in model.Collections)
-        {
-            await collection.EnsureCreatedAsync(names, cancellationToken);
-        }
-
-        await MigrateAsync(scope.ServiceProvider, vault, target: null, cancellationToken);
-
-        foreach (var collection in model.Collections)
-        {
-            await collection.EnsureIndexesAsync(cancellationToken);
-        }
-    }
-
     public async Task MigrateAsync(SemVersion? target, CancellationToken cancellationToken)
     {
         await using var scope = services.CreateAsyncScope();

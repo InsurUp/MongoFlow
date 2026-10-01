@@ -3,16 +3,12 @@ using Semver;
 namespace MongoFlow;
 
 /// <summary>
-/// Applies vaults' schema and migrations. Registered as a singleton by <c>AddMongoVault</c>; each call runs in its own
+/// Applies vaults' migrations. Registered as a singleton by <c>AddMongoVault</c>; each call runs in its own
 /// DI scope.
 /// </summary>
 public interface IVaultMigrator
 {
-    /// <summary>
-    /// For every registered vault: creates missing collections (with their <c>CreateWith</c> options), applies pending
-    /// migrations up to the highest registered version, then creates declared indexes. Indexes come last so migrations
-    /// can fix data before a unique index requires it.
-    /// </summary>
+    /// <summary>For every registered vault, applies pending migrations up to its highest registered version.</summary>
     /// <exception cref="MigrationFailedException">A migration failed; its transaction was rolled back.</exception>
     Task MigrateAllAsync(CancellationToken cancellationToken = default);
 

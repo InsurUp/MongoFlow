@@ -1,11 +1,10 @@
-using MongoDB.Driver;
 using MongoFlow.Samples.Domain;
 
 namespace MongoFlow.Samples.Vaults;
 
 /// <summary>
-/// Configures its own shape: keys, indexes, concurrency, a collection name inherited from an older system, and its
-/// migrations. Anything environment-specific, like the database, stays at registration.
+/// Configures its own shape: keys, concurrency, a collection name inherited from an older system, and its migrations,
+/// which also create its indexes. Anything environment-specific, like the database, stays at registration.
 /// </summary>
 public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<PolicyVault>
 {
@@ -16,15 +15,10 @@ public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<P
 
     public static void Configure(IVaultBuilder<PolicyVault> vault) => vault
         .Collection(x => x.Policies, policies => policies
-            .Key(p => p.PolicyNumber) // also declares a unique index on PolicyNumber
-            .ConcurrencyToken(p => p.Version)
-            .Index(i => i.Ascending(p => p.AgencyId).Ascending(p => p.Status).Descending(p => p.StartsAt))
-            .Index(i => i.Ascending(p => p.EndsAt), o => o.PartialFilterExpression =
-                Builders<Policy>.Filter.Eq(p => p.Status, PolicyStatus.Active)))
+            .Key(p => p.PolicyNumber) // its unique index comes from CreatePolicyIndexes
+            .ConcurrencyToken(p => p.Version))
         .Collection(x => x.Claims, claims => claims
-            .Name("insurance_claims") // runs after the defaults, so it beats snake_case
-            .Index(i => i.Ascending(c => c.PolicyNumber))
-            .Settings(s => s.ReadConcern = ReadConcern.Majority))
+            .Name("insurance_claims")) // the vault's own setting, so it beats the snake_case default
         // Claims record when they were deleted. Customers and policies use the platform's flag.
         .UseSoftDelete((IDeletedAt x) => x.DeletedAt)
         .Migrations(m => m.AddFromAssemblyOf<PolicyVault>());

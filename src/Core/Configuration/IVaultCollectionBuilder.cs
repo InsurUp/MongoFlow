@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -31,25 +30,6 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
 
     /// <summary>Opts this collection out of a feature added to the vault.</summary>
     IVaultCollectionBuilder<TDocument> Without(FeatureKey feature);
-
-    /// <summary>Declares an index, created by <see cref="IVaultMigrator.MigrateAllAsync"/>.</summary>
-    /// <remarks>An existing index with the same keys but different options makes the migration fail.</remarks>
-    IVaultCollectionBuilder<TDocument> Index(
-        Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
-        Action<CreateIndexOptions<TDocument>>? options = null);
-
-    /// <summary>Driver settings for the collection, such as read preference and read concern.</summary>
-    /// <remarks>
-    /// A write concern set here doesn't affect saves: every save runs in a transaction, whose write concern applies
-    /// instead.
-    /// </remarks>
-    IVaultCollectionBuilder<TDocument> Settings(Action<MongoCollectionSettings> configure);
-
-    /// <summary>
-    /// Options used when <see cref="IVaultMigrator.MigrateAllAsync"/> creates the collection, such as time-series,
-    /// capped or a validator. An existing collection is left as it is.
-    /// </summary>
-    IVaultCollectionBuilder<TDocument> CreateWith(Action<CreateCollectionOptions<TDocument>> configure);
 
     /// <summary>
     /// Adds an interceptor that sees only this collection's operations. It's created from the request's services once

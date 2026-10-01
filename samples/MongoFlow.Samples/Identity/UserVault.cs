@@ -16,11 +16,8 @@ public abstract class UserVault<TSelf, TUser> : MongoVault, IConfigurableVault<T
     public IVaultCollection<UserToken, TokenKey> Tokens { get; init; } = null!;
 
     public static void Configure(IVaultBuilder<TSelf> vault) => vault
-        .Collection(x => x.Users, users => users
-            .Name("users")
-            .Index(i => i.Ascending(u => u.NormalizedEmail), o => o.Unique = true))
+        .Collection(x => x.Users, users => users.Name("users"))
         .Collection(x => x.Tokens, tokens => tokens
             .Name("user_tokens")
-            .Key(t => new TokenKey(t.UserId, t.Provider)) // composite; also declares its unique index
-            .Index(i => i.Ascending(t => t.ExpiresAt), o => o.ExpireAfter = TimeSpan.Zero));
+            .Key(t => new TokenKey(t.UserId, t.Provider))); // composite
 }

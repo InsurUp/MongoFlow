@@ -1,21 +1,20 @@
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
-using MongoDB.Driver;
 
 namespace MongoFlow;
 
 internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderBase vault, PropertyInfo property)
     : CollectionModelBuilder<TDocument>(vault, property, typeof(TKey)), IVaultCollectionBuilder<TDocument, TKey>
 {
-    private readonly Layered<(Expression<Func<TDocument, TKey>> Key, bool Unique)> _key = new();
+    private readonly Layered<Expression<Func<TDocument, TKey>>> _key = new();
     private readonly Layered<ConcurrencyTokenModel<TDocument>> _token = new();
 
-    public IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key, bool unique = true)
+    public IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key)
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        _key.Set(Vault.Layer, (key, unique));
+        _key.Set(Vault.Layer, key);
         return this;
     }
 
@@ -61,27 +60,6 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
         return this;
     }
 
-    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.Index(
-        Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
-        Action<CreateIndexOptions<TDocument>>? options)
-    {
-        Index(keys, options);
-        return this;
-    }
-
-    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.Settings(Action<MongoCollectionSettings> configure)
-    {
-        Settings(configure);
-        return this;
-    }
-
-    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.CreateWith(
-        Action<CreateCollectionOptions<TDocument>> configure)
-    {
-        CreateWith(configure);
-        return this;
-    }
-
     IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.AddInterceptor<TInterceptor>(
         Action<IInterceptorBuilder>? configure)
     {
@@ -104,13 +82,8 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
 
     protected override CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)
     {
-        var (key, unique) = _key.TryGet(out var configured) ? configured : (null, false);
-        var keyModel = KeyModel<TDocument, TKey>.Create(key, unique, definition.Collection.CollectionNamespace.CollectionName);
-
-        if (keyModel.UniqueIndex is { } uniqueIndex)
-        {
-            definition.Indexes.Insert(0, uniqueIndex);
-        }
+        var keyModel = KeyModel<TDocument, TKey>.Create(_key.TryGet(out var key) ? key : null,
+            definition.Collection.CollectionNamespace.CollectionName);
 
         return _keyedModel = new KeyedCollectionModel<TDocument, TKey>(definition,
             keyModel,

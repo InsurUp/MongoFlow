@@ -10,10 +10,6 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     private readonly Layered<string> _name = new();
     private readonly LayeredList<QueryFilterEntry<TDocument>> _filters = new();
     private readonly HashSet<FeatureKey> _without = [];
-    private readonly LayeredList<(Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> Keys,
-        Action<CreateIndexOptions<TDocument>>? Options)> _indexes = new();
-    private readonly LayeredList<Action<MongoCollectionSettings>> _settings = new();
-    private readonly LayeredList<Action<CreateCollectionOptions<TDocument>>> _createOptions = new();
 
     public CollectionModelBuilder(VaultModelBuilderBase vault, PropertyInfo property)
         : this(vault, property, keyType: null)
@@ -81,32 +77,6 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         return this;
     }
 
-    public IVaultCollectionBuilder<TDocument> Index(
-        Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
-        Action<CreateIndexOptions<TDocument>>? options = null)
-    {
-        ArgumentNullException.ThrowIfNull(keys);
-
-        _indexes.Add(Vault.Layer, (keys, options));
-        return this;
-    }
-
-    public IVaultCollectionBuilder<TDocument> Settings(Action<MongoCollectionSettings> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        _settings.Add(Vault.Layer, configure);
-        return this;
-    }
-
-    public IVaultCollectionBuilder<TDocument> CreateWith(Action<CreateCollectionOptions<TDocument>> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        _createOptions.Add(Vault.Layer, configure);
-        return this;
-    }
-
     /// <summary>The built collection, once <see cref="Build"/> has run.</summary>
     protected CollectionModel<TDocument> TypedModel { get; private set; } = null!;
 
@@ -126,45 +96,13 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
 
     public override IReadOnlySet<FeatureKey> OptedOut => _without;
 
-    public override ICollectionModel Build(IMongoDatabase database)
+    public override IVaultCollectionInfo Build(IMongoDatabase database)
     {
-        var name = _name.TryGet(out var configured) ? configured : Property.Name;
-
-        var settings = _settings.All.ToList();
-        IMongoCollection<TDocument> collection;
-        if (settings.Count == 0)
-        {
-            collection = database.GetCollection<TDocument>(name);
-        }
-        else
-        {
-            var collectionSettings = new MongoCollectionSettings();
-            settings.ForEach(configure => configure(collectionSettings));
-            collection = database.GetCollection<TDocument>(name, collectionSettings);
-        }
-
-        var createOptions = _createOptions.All.ToList();
-        CreateCollectionOptions<TDocument>? create = null;
-        if (createOptions.Count > 0)
-        {
-            create = new CreateCollectionOptions<TDocument>();
-            createOptions.ForEach(configure => configure(create));
-        }
-
         var definition = new CollectionDefinition<TDocument>(
             Property.Name,
             KeyType,
-            collection,
-            _filters.All.Where(filter => filter.Owner is not { } owner || !_without.Contains(owner)).ToArray(),
-            _indexes.All
-                .Select(entry =>
-                {
-                    var options = new CreateIndexOptions<TDocument>();
-                    entry.Options?.Invoke(options);
-                    return new CreateIndexModel<TDocument>(entry.Keys(Builders<TDocument>.IndexKeys), options);
-                })
-                .ToList(),
-            create);
+            database.GetCollection<TDocument>(_name.TryGet(out var name) ? name : Property.Name),
+            _filters.All.Where(filter => filter.Owner is not { } owner || !_without.Contains(owner)).ToArray());
 
         return Model = TypedModel = CreateModel(definition);
     }

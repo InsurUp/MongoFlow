@@ -9,7 +9,7 @@ internal sealed class VaultMigrator(IServiceProvider services, IEnumerable<IVaul
     {
         foreach (var runner in runners)
         {
-            await runner.MigrateAllAsync(cancellationToken);
+            await runner.MigrateAsync(target: null, cancellationToken);
         }
     }
 

@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using System.Numerics;
-using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -13,12 +12,11 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
     /// constructor arguments are matched to those members. Without it, the key is the member the driver maps to
     /// <c>_id</c>, whose type must be <typeparamref name="TKey"/>; that is checked at startup.
     /// </summary>
+    /// <remarks>
+    /// Lookups by key expect one document, so a key other than <c>_id</c> needs a unique index; create it in a migration.
+    /// </remarks>
     /// <param name="key">The key member, or a new <typeparamref name="TKey"/> of members.</param>
-    /// <param name="unique">
-    /// Declares a unique index on the key, since lookups by key expect one document. Turn it off when uniqueness is per
-    /// tenant, and declare a compound unique index instead.
-    /// </param>
-    IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key, bool unique = true);
+    IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key);
 
     /// <summary>
     /// Optimistic concurrency. Replacing or deleting a document fails with <see cref="ConcurrencyException"/> if its
@@ -42,17 +40,6 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
 
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> Without(FeatureKey feature);
-
-    /// <inheritdoc/>
-    new IVaultCollectionBuilder<TDocument, TKey> Index(
-        Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
-        Action<CreateIndexOptions<TDocument>>? options = null);
-
-    /// <inheritdoc/>
-    new IVaultCollectionBuilder<TDocument, TKey> Settings(Action<MongoCollectionSettings> configure);
-
-    /// <inheritdoc/>
-    new IVaultCollectionBuilder<TDocument, TKey> CreateWith(Action<CreateCollectionOptions<TDocument>> configure);
 
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> AddInterceptor<TInterceptor>(Action<IInterceptorBuilder>? configure = null)

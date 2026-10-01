@@ -58,8 +58,7 @@ builder.Services.AddMongoVault<PlatformUserVault>((services, vault) => vault
 
 var app = builder.Build();
 
-// Collections, pending migrations, then indexes, for every registered vault. A multi-instance deployment would run this
-// from one instance only.
+// Pending migrations for every registered vault. A multi-instance deployment would run this from one instance only.
 await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
 
 await app.RunAsync();

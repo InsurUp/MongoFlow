@@ -9,7 +9,7 @@ namespace MongoFlow;
 /// </summary>
 internal sealed class VaultModel(Type vaultType,
     IMongoDatabase database,
-    IReadOnlyList<ICollectionModel> collections,
+    IReadOnlyList<IVaultCollectionInfo> collections,
     IReadOnlyList<InterceptorModel> interceptors,
     MigrationModel? migrations)
 {
@@ -19,9 +19,7 @@ internal sealed class VaultModel(Type vaultType,
 
     public IMongoClient Client => Database.Client;
 
-    public IReadOnlyList<ICollectionModel> Collections { get; } = collections;
-
-    public IReadOnlyDictionary<Type, ICollectionModel> CollectionsByDocument { get; } =
+    public IReadOnlyDictionary<Type, IVaultCollectionInfo> CollectionsByDocument { get; } =
         collections.ToDictionary(collection => collection.DocumentType);
 
     public IReadOnlyList<InterceptorModel> Interceptors { get; } = interceptors;

@@ -77,7 +77,7 @@ internal sealed class VaultRuntime
                 $"{Model.VaultType.Name}.{collection.PropertyName} isn't keyed by {typeof(TKey).Name}.");
     }
 
-    private ICollectionModel Find(Type documentType) =>
+    private IVaultCollectionInfo Find(Type documentType) =>
         Model.CollectionsByDocument.TryGetValue(documentType, out var collection)
             ? collection
             : throw new InvalidOperationException($"{Model.VaultType.Name} declares no collection of {documentType.Name}.");

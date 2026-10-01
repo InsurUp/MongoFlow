@@ -12,22 +12,18 @@ internal sealed class KeyModel<TDocument, TKey>
     private readonly Func<TKey, Expression<Func<TDocument, bool>>> _filter;
 
     private KeyModel(Func<TDocument, TKey> get,
-        Func<TKey, Expression<Func<TDocument, bool>>> filter,
-        CreateIndexModel<TDocument>? uniqueIndex)
+        Func<TKey, Expression<Func<TDocument, bool>>> filter)
     {
         _get = get;
         _filter = filter;
-        UniqueIndex = uniqueIndex;
     }
-
-    /// <summary>The unique index a custom key declares, or <see langword="null"/> for <c>_id</c> or when turned off.</summary>
-    public CreateIndexModel<TDocument>? UniqueIndex { get; }
 
     public TKey Get(TDocument document) => _get(document);
 
     public Expression<Func<TDocument, bool>> Filter(TKey key) => _filter(key);
 
-    public static KeyModel<TDocument, TKey> Create(Expression<Func<TDocument, TKey>>? key, bool unique, string collection)
+    public static KeyModel<TDocument, TKey> Create(Expression<Func<TDocument, TKey>>? key,
+        string collection)
     {
         if (key is null)
         {
@@ -35,8 +31,8 @@ internal sealed class KeyModel<TDocument, TKey>
         }
 
         return key.Body is NewExpression composite
-            ? FromComposite(key, composite, unique, collection)
-            : FromMember(key, unique);
+            ? FromComposite(key, composite, collection)
+            : FromMember(key);
     }
 
     private static KeyModel<TDocument, TKey> FromId(string collection)
@@ -57,23 +53,19 @@ internal sealed class KeyModel<TDocument, TKey>
         var member = Expression.MakeMemberAccess(parameter, id.MemberInfo);
         var getter = Expression.Lambda<Func<TDocument, TKey>>(member, parameter).Compile();
 
-        return new KeyModel<TDocument, TKey>(getter, value => Equals(member, value, parameter), uniqueIndex: null);
+        return new KeyModel<TDocument, TKey>(getter, value => Equals(member, value, parameter));
     }
 
-    private static KeyModel<TDocument, TKey> FromMember(Expression<Func<TDocument, TKey>> key, bool unique)
+    private static KeyModel<TDocument, TKey> FromMember(Expression<Func<TDocument, TKey>> key)
     {
-        var member = MemberExpressions.GetMember(key, nameof(key));
+        MemberExpressions.GetMember(key, nameof(key)); // throws unless the key is a member
         var parameter = key.Parameters[0];
 
-        return new KeyModel<TDocument, TKey>(
-            key.Compile(),
-            value => Equals(key.Body, value, parameter),
-            unique ? UniqueIndexOn([member], parameter) : null);
+        return new KeyModel<TDocument, TKey>(key.Compile(), value => Equals(key.Body, value, parameter));
     }
 
     private static KeyModel<TDocument, TKey> FromComposite(Expression<Func<TDocument, TKey>> key,
         NewExpression composite,
-        bool unique,
         string collection)
     {
         var parameter = key.Parameters[0];
@@ -111,24 +103,11 @@ internal sealed class KeyModel<TDocument, TKey>
                 parts
                     .Select(part => (Expression)Expression.Equal(part.Member, Expression.Constant(part.Read(value), part.Member.Type)))
                     .Aggregate(Expression.AndAlso),
-                parameter),
-            unique ? UniqueIndexOn(parts.Select(part => part.Member), parameter) : null);
+                parameter));
     }
 
     private static Expression<Func<TDocument, bool>> Equals(Expression member, TKey value, ParameterExpression parameter) =>
         Expression.Lambda<Func<TDocument, bool>>(
             Expression.Equal(member, Expression.Constant(value, member.Type)),
             parameter);
-
-    private static CreateIndexModel<TDocument> UniqueIndexOn(IEnumerable<Expression> members, ParameterExpression parameter)
-    {
-        var keys = members
-            .Select(member => Builders<TDocument>.IndexKeys.Ascending(new ExpressionFieldDefinition<TDocument>(
-                Expression.Lambda<Func<TDocument, object>>(Expression.Convert(member, typeof(object)), parameter))))
-            .ToList();
-
-        return new CreateIndexModel<TDocument>(
-            keys.Count == 1 ? keys[0] : Builders<TDocument>.IndexKeys.Combine(keys),
-            new CreateIndexOptions { Unique = true });
-    }
 }
