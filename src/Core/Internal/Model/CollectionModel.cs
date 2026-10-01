@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -27,6 +28,9 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     public IMongoCollection<TDocument> MongoCollection { get; } = definition.Collection;
 
     public CollectionNamespace Namespace => MongoCollection.CollectionNamespace;
+
+    /// <summary>Renders the collection's filters and fields the way the driver renders its writes.</summary>
+    public RenderArgs<TDocument> RenderArgs { get; } = FilterDocuments.RenderArgs(definition.Collection);
 
     public virtual IVaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
         IReadOnlySet<FeatureKey> disabled) =>
@@ -74,6 +78,8 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         return ValueTask.FromResult(FilterExpressions.Combine(resolved));
     }
 
+    public BsonDocument Render(Expression<Func<TDocument, bool>> filter) => ((FilterDefinition<TDocument>)filter).Render(RenderArgs);
+
     public BulkWriteModel CreateWriteModel(InsertOperation<TDocument> insert) =>
         new BulkWriteInsertOneModel<TDocument>(Namespace, insert.Document!);
 
@@ -113,21 +119,17 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         SaveRun run,
         CancellationToken cancellationToken)
     {
-        var filter = await TargetAsync(operation, run, cancellationToken);
+        var filter = await FilterAsync(operation, run, null, null, cancellationToken);
 
         return await MongoCollection.Find(run.Session, filter).Limit(1).AnyAsync(cancellationToken);
     }
 
     /// <summary>The operation's target, with its condition if it has one.</summary>
-    private async ValueTask<FilterDefinition<TDocument>> WriteFilterAsync(VaultOperation<TDocument> operation,
+    private ValueTask<FilterDefinition<TDocument>> WriteFilterAsync(VaultOperation<TDocument> operation,
         SaveRun run,
         CancellationToken cancellationToken,
-        Expression<Func<TDocument, bool>>? filter = null)
-    {
-        var target = await TargetAsync(operation, run, cancellationToken, filter);
-
-        return operation.Condition is { } condition ? target & condition : target;
-    }
+        Expression<Func<TDocument, bool>>? filter = null) =>
+        FilterAsync(operation, run, filter, operation.Condition, cancellationToken);
 
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,
         IReadOnlySet<FeatureKey> disabled,
@@ -150,16 +152,21 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         IReadOnlySet<FeatureKey> disabled) =>
         filter.Owner is not { } owner || !disabled.Contains(owner);
 
-    /// <summary>The operation's key or filter, joined with the query filters it was queued under.</summary>
-    private async ValueTask<FilterDefinition<TDocument>> TargetAsync(VaultOperation<TDocument> operation,
+    /// <summary>
+    /// The operation's key or filter, joined with the query filters it was queued under and <paramref name="condition"/>.
+    /// A key is matched as BSON and the query filters are rendered once per save, so a write by key needs no LINQ
+    /// translation.
+    /// </summary>
+    private async ValueTask<FilterDefinition<TDocument>> FilterAsync(VaultOperation<TDocument> operation,
         SaveRun run,
-        CancellationToken cancellationToken,
-        Expression<Func<TDocument, bool>>? filter = null)
+        Expression<Func<TDocument, bool>>? filter,
+        BsonDocument? condition,
+        CancellationToken cancellationToken)
     {
-        var target = operation.Target?.Filter() ?? filter;
+        var target = operation.Target?.Match() ?? (filter is null ? null : Render(filter));
         var queryFilter = await run.QueryFilterAsync(this, operation.DisabledFeatures, cancellationToken);
-        var combined = FilterExpressions.Combine(target, queryFilter);
+        var combined = FilterDocuments.And(target, queryFilter, condition);
 
-        return combined is null ? FilterDefinition<TDocument>.Empty : combined;
+        return combined is null ? FilterDefinition<TDocument>.Empty : new BsonDocumentFilterDefinition<TDocument>(combined);
     }
 }

@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Numerics;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -15,6 +16,9 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
     where TToken : INumber<TToken>
 {
     private readonly Expression<Func<TDocument, TToken>> _field = MemberExpressions.Rebind<TVersioned, TDocument, TToken>(token);
+
+    // Rendered on first use, with the collection's serializers. Two requests may both render it; they get the same field.
+    private RenderedFieldDefinition? _renderedField;
 
     public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
     {
@@ -40,7 +44,7 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
                     break;
 
                 case DeleteOperation<TDocument> { Document: { } deleted } delete:
-                    delete.Condition = Matches(deleted);
+                    delete.Condition = Matches(delete, deleted);
                     break;
             }
         }
@@ -94,13 +98,17 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
         var versioned = (TVersioned)(object)document!;
         var read = getToken(versioned);
 
-        operation.Condition = Matches(document);
+        operation.Condition = Matches(operation, document);
         setToken(versioned, read + TToken.One);
         incremented.Add((versioned, read));
     }
 
-    private Expression<Func<TDocument, bool>> Matches(TDocument document) =>
-        Expression.Lambda<Func<TDocument, bool>>(
-            Expression.Equal(_field.Body, Expression.Constant(getToken((TVersioned)(object)document!), typeof(TToken))),
-            _field.Parameters);
+    /// <summary><c>{ Version: 3 }</c>: the stored token still has the value <paramref name="document"/> was read with.</summary>
+    private BsonDocument Matches(VaultOperation<TDocument> operation,
+        TDocument document)
+    {
+        var field = _renderedField ??= FilterDocuments.RenderField(_field, operation.TypedModel.RenderArgs);
+
+        return new BsonDocument().Add(FilterDocuments.Equal(field, getToken((TVersioned)(object)document!)));
+    }
 }

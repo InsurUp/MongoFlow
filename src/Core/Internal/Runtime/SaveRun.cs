@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -6,7 +6,7 @@ namespace MongoFlow;
 /// <summary>One save in progress: the shared operation list and what the steps produce.</summary>
 internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operations)
 {
-    private readonly Dictionary<(IVaultCollectionInfo, string), object?> _queryFilters = [];
+    private readonly Dictionary<(IVaultCollectionInfo, string), BsonDocument?> _queryFilters = [];
     private bool _saving;
 
     public VaultRuntime Runtime { get; } = runtime;
@@ -100,22 +100,23 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
     }
 
     /// <summary>
-    /// A collection's query filters for operations queued with <paramref name="disabled"/> features, resolved once per
-    /// save. The cache holds collections of different document types, so entries are stored untyped.
+    /// A collection's query filters for operations queued with <paramref name="disabled"/> features, resolved and
+    /// rendered once per save.
     /// </summary>
-    public async ValueTask<Expression<Func<TDocument, bool>>?> QueryFilterAsync<TDocument>(CollectionModel<TDocument> collection,
+    public async ValueTask<BsonDocument?> QueryFilterAsync<TDocument>(CollectionModel<TDocument> collection,
         IReadOnlySet<FeatureKey> disabled, CancellationToken cancellationToken)
     {
         var key = (collection, string.Join(',', disabled.Select(feature => feature.Name).Order()));
         if (_queryFilters.TryGetValue(key, out var cached))
         {
-            return (Expression<Func<TDocument, bool>>?)cached;
+            return cached;
         }
 
         var filter = await collection.ResolveFilterAsync(Runtime.Services, disabled, cancellationToken);
-        _queryFilters[key] = filter;
+        var rendered = filter is null ? null : collection.Render(filter);
+        _queryFilters[key] = rendered;
 
-        return filter;
+        return rendered;
     }
 
     public bool Sees(InterceptorModel interceptor, VaultOperation operation) =>

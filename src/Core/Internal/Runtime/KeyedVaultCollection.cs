@@ -15,9 +15,12 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        var filter = FilterExpressions.Combine(
-            model.Key.Filter(key),
-            await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken))!;
+        FilterDefinition<TDocument> filter = new BsonDocumentFilterDefinition<TDocument>(model.Key.Match(key));
+
+        if (await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken) is { } queryFilter)
+        {
+            filter &= queryFilter;
+        }
 
         var session = await Runtime.GetSessionAsync(cancellationToken);
         var find = session is null ? model.MongoCollection.Find(filter) : model.MongoCollection.Find(session, filter);

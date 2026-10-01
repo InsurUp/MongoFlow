@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+using MongoDB.Bson;
 
 namespace MongoFlow;
 
@@ -22,11 +22,11 @@ public abstract class VaultOperation<TDocument> : VaultOperation
     internal KeyTarget<TDocument>? Target { get; }
 
     /// <summary>
-    /// A filter the stored document must match as well, such as a concurrency token still having the value that was read.
-    /// A write whose condition fails matches nothing; whoever set the condition decides what that means. Only for
-    /// operations that target one document by key.
+    /// A filter the stored document must match as well, such as <c>{ Version: 3 }</c> for a concurrency token still having
+    /// the value that was read. A write whose condition fails matches nothing; whoever set the condition decides what that
+    /// means. Only for operations that target one document by key.
     /// </summary>
-    internal Expression<Func<TDocument, bool>>? Condition { get; set; }
+    internal BsonDocument? Condition { get; set; }
 
     private protected override object? GetDocument() => Document;
 }

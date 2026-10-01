@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+using MongoDB.Bson;
 
 namespace MongoFlow;
 
@@ -6,5 +6,5 @@ internal sealed class KeyTarget<TDocument, TKey>(KeyModel<TDocument, TKey> model
 {
     public override object Key => key!;
 
-    public override Expression<Func<TDocument, bool>> Filter() => model.Filter(key);
+    public override BsonDocument Match() => model.Match(key);
 }

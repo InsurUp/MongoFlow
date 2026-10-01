@@ -65,8 +65,7 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
 
     protected override CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)
     {
-        var keyModel = KeyModel<TDocument, TKey>.Create(_key.TryGet(out var key) ? key : null,
-            definition.Collection.CollectionNamespace.CollectionName);
+        var keyModel = KeyModel<TDocument, TKey>.Create(_key.TryGet(out var key) ? key : null, definition.Collection);
 
         return new KeyedCollectionModel<TDocument, TKey>(definition, keyModel);
     }

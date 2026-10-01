@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+using MongoDB.Bson;
 
 namespace MongoFlow;
 
@@ -10,5 +10,5 @@ internal abstract class KeyTarget<TDocument>
 {
     public abstract object Key { get; }
 
-    public abstract Expression<Func<TDocument, bool>> Filter();
+    public abstract BsonDocument Match();
 }
