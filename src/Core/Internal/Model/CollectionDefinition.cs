@@ -1,9 +1,10 @@
+using System.Reflection;
 using MongoDB.Driver;
 
 namespace MongoFlow;
 
 internal sealed record CollectionDefinition<TDocument>(
-    string PropertyName,
+    PropertyInfo Property,
     Type? KeyType,
     IMongoCollection<TDocument> Collection,
     IReadOnlyList<QueryFilterEntry<TDocument>> Filters,

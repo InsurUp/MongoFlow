@@ -9,7 +9,6 @@ internal sealed class VaultRuntime
     private readonly VaultInterceptor?[] _interceptors;
     private readonly List<VaultOperation> _queue = [];
     private readonly HashSet<object> _inserted = new(ReferenceEqualityComparer.Instance);
-    private VaultTransactions? _transactions;
 
     public VaultRuntime(VaultModel model,
         IServiceProvider services,
@@ -20,7 +19,10 @@ internal sealed class VaultRuntime
         Vault = vault;
         _interceptors = new VaultInterceptor?[model.Interceptors.Count];
 
-        vault.Attach(this);
+        foreach (var collection in model.Collections)
+        {
+            collection.Attach(vault, this);
+        }
     }
 
     public VaultModel Model { get; }
@@ -29,7 +31,7 @@ internal sealed class VaultRuntime
 
     public MongoVault Vault { get; }
 
-    public VaultTransactions Transactions => _transactions ??= Services.GetRequiredService<VaultTransactions>();
+    public VaultTransactions Transactions => field ??= Services.GetRequiredService<VaultTransactions>();
 
     public bool IsSaving { get; set; }
 
@@ -77,7 +79,7 @@ internal sealed class VaultRuntime
                 $"{Model.VaultType.Name}.{collection.PropertyName} isn't keyed by {typeof(TKey).Name}.");
     }
 
-    private IVaultCollectionInfo Find(Type documentType) =>
+    private ICollectionModel Find(Type documentType) =>
         Model.CollectionsByDocument.TryGetValue(documentType, out var collection)
             ? collection
             : throw new InvalidOperationException($"{Model.VaultType.Name} declares no collection of {documentType.Name}.");

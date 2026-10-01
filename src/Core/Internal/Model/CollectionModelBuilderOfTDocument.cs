@@ -81,14 +81,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     /// <summary>Called by the concurrency token feature for collections of its document type.</summary>
     public void UseConcurrencyToken(ConcurrencyTokenModel<TDocument> token) => _token.Set(Vault.Layer, token);
 
-    /// <summary>The built collection, once <see cref="Build"/> has run.</summary>
-    protected CollectionModel<TDocument> TypedModel { get; private set; } = null!;
-
     public override void Accept(IVaultCollectionConfiguration configuration) => configuration.Configure(this);
-
-    public override CollectionBinding<TVault> Bind<TVault>() =>
-        new CollectionBinding<TVault, IVaultCollection<TDocument>>(Property,
-            runtime => TypedModel.CreateCollection(runtime, FeatureKeys.None));
 
     public override void Apply(VaultQueryFilter filter)
     {
@@ -100,16 +93,16 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
 
     public override IReadOnlySet<FeatureKey> OptedOut => _without;
 
-    public override IVaultCollectionInfo Build(IMongoDatabase database)
+    public override ICollectionModel Build(IMongoDatabase database)
     {
         var definition = new CollectionDefinition<TDocument>(
-            Property.Name,
+            Property,
             KeyType,
             database.GetCollection<TDocument>(_name.TryGet(out var name) ? name : Property.Name),
             _filters.All.Where(filter => filter.Owner is not { } owner || !_without.Contains(owner)).ToArray(),
             _token.TryGet(out var token) && !_without.Contains(ConcurrencyTokenFeature.Key) ? token : null);
 
-        return Model = TypedModel = CreateModel(definition);
+        return Model = CreateModel(definition);
     }
 
     protected virtual CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)

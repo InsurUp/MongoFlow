@@ -1,10 +1,11 @@
 using System.Linq.Expressions;
+using System.Reflection;
 using MongoDB.Driver;
 
 namespace MongoFlow;
 
 /// <summary>A vault collection as built at startup: shared by every vault instance, never changed.</summary>
-internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> definition) : IVaultCollectionInfo
+internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> definition) : ICollectionModel
 {
     private readonly QueryFilterEntry<TDocument>[] _filters = definition.Filters.ToArray();
     private readonly bool _hasAsyncFilters = definition.Filters.Any(filter => filter.IsAsync);
@@ -13,7 +14,9 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     public Type? KeyType { get; } = definition.KeyType;
 
-    public string PropertyName { get; } = definition.PropertyName;
+    public PropertyInfo Property { get; } = definition.Property;
+
+    public string PropertyName => Property.Name;
 
     public IMongoCollection<TDocument> MongoCollection { get; } = definition.Collection;
 
@@ -25,6 +28,10 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     public virtual IVaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
         IReadOnlySet<FeatureKey> disabled) =>
         new VaultCollection<TDocument>(runtime, this, disabled);
+
+    // A keyed model's CreateCollection returns a keyed collection, which a keyed property accepts.
+    public void Attach(MongoVault vault, VaultRuntime runtime) =>
+        Property.SetValue(vault, CreateCollection(runtime, FeatureKeys.None));
 
     /// <summary>
     /// The collection's query filters joined into one, minus those of <paramref name="disabled"/> features, or

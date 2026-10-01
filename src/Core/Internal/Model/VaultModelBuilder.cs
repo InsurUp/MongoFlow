@@ -203,8 +203,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         Apply(configuration, () => (IVaultConfiguration<TVault>)ActivatorUtilities.CreateInstance(_services, configuration));
     }
 
-    /// <summary>The vault's model, and how to fill its collection properties.</summary>
-    public (VaultModel Model, IReadOnlyList<CollectionBinding<TVault>> Bindings) Build()
+    public VaultModel Build()
     {
         var duplicate = _collections.GroupBy(collection => collection.DocumentType).FirstOrDefault(group => group.Count() > 1);
         if (duplicate is not null)
@@ -235,13 +234,11 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             .Select(registration => registration.Build(_collections))
             .ToArray();
 
-        var model = new VaultModel(typeof(TVault),
+        return new VaultModel(typeof(TVault),
             database,
             collections,
             interceptors,
             _migrations.Build());
-
-        return (model, _collections.Select(collection => collection.Bind<TVault>()).ToArray());
     }
 
     private void Apply(Type configurationType, Func<IVaultConfiguration<TVault>> create)

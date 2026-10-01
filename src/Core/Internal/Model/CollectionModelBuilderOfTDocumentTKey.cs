@@ -63,17 +63,11 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
         return this;
     }
 
-    private KeyedCollectionModel<TDocument, TKey> _keyedModel = null!;
-
-    public override CollectionBinding<TVault> Bind<TVault>() =>
-        new CollectionBinding<TVault, IVaultCollection<TDocument, TKey>>(Property,
-            runtime => _keyedModel.CreateKeyedCollection(runtime, FeatureKeys.None));
-
     protected override CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)
     {
         var keyModel = KeyModel<TDocument, TKey>.Create(_key.TryGet(out var key) ? key : null,
             definition.Collection.CollectionNamespace.CollectionName);
 
-        return _keyedModel = new KeyedCollectionModel<TDocument, TKey>(definition, keyModel);
+        return new KeyedCollectionModel<TDocument, TKey>(definition, keyModel);
     }
 }

@@ -1,33 +1,20 @@
 namespace MongoFlow;
 
-/// <summary>
-/// Builds a vault's model once, from the root provider, the first time it's needed, and fills the collection properties
-/// of each new instance: the one part of the model that needs the vault type.
-/// </summary>
+/// <summary>Builds a vault's model once, from the root provider, the first time it's needed.</summary>
 internal sealed class VaultModelProvider<TVault> where TVault : MongoVault
 {
-    private readonly Lazy<(VaultModel Model, IReadOnlyList<CollectionBinding<TVault>> Bindings)> _built;
+    private readonly Lazy<VaultModel> _model;
 
     public VaultModelProvider(IServiceProvider services,
         VaultRegistration<TVault> registration,
         IEnumerable<DefaultVaultConfiguration> defaults)
     {
-        _built = new Lazy<(VaultModel, IReadOnlyList<CollectionBinding<TVault>>)>(() =>
-            Build(services, registration, defaults.ToList()));
+        _model = new Lazy<VaultModel>(() => Build(services, registration, defaults.ToList()));
     }
 
-    public VaultModel Model => _built.Value.Model;
+    public VaultModel Model => _model.Value;
 
-    /// <summary>Fills <paramref name="vault"/>'s collection properties with collections bound to <paramref name="runtime"/>.</summary>
-    public void Attach(TVault vault, VaultRuntime runtime)
-    {
-        foreach (var binding in _built.Value.Bindings)
-        {
-            binding.Attach(vault, runtime);
-        }
-    }
-
-    private static (VaultModel, IReadOnlyList<CollectionBinding<TVault>>) Build(IServiceProvider services,
+    private static VaultModel Build(IServiceProvider services,
         VaultRegistration<TVault> registration,
         IReadOnlyList<DefaultVaultConfiguration> defaults)
     {
