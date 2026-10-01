@@ -98,6 +98,12 @@ public static class MongoFlowLogEvents
         public const int CommitFailed = 27_004_003;
 
         public const int RolledBack = 27_004_004;
+
+        /// <summary>
+        /// A save that joined the transaction failed after writing, so the whole transaction was rolled back; it fails
+        /// whatever uses it until it's disposed.
+        /// </summary>
+        public const int Doomed = 27_004_005;
     }
 
     /// <summary>Reads, at <c>Trace</c>: the query filters each runs with.</summary>

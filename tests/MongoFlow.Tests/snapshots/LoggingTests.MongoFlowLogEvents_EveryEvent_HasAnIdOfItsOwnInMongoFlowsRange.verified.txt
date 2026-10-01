@@ -100,6 +100,11 @@
     Id: 27004004
   },
   {
+    Group: Transaction,
+    Event: Doomed,
+    Id: 27004005
+  },
+  {
     Group: Query,
     Event: Reading,
     Id: 27005001

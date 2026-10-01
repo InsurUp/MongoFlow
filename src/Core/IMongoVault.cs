@@ -13,8 +13,8 @@ public interface IMongoVault
 {
     /// <summary>
     /// Writes every queued operation, in order, as one client bulk write. It runs in the scope's open transaction if
-    /// there is one, and in its own otherwise. Nothing is written if any operation fails. Queued operations are discarded
-    /// either way.
+    /// there is one, and in its own otherwise. Nothing is written if any operation fails: in an open transaction, a save
+    /// that fails after writing rolls the transaction back. Queued operations are discarded either way.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Called from one of this vault's own interceptors, while another save of this vault instance runs, or inside a

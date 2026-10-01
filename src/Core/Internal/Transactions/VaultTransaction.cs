@@ -6,6 +6,10 @@ namespace MongoFlow;
 /// <summary>
 /// A transaction vaults join. Its session starts with the first vault that joins, so it runs on that vault's client.
 /// </summary>
+/// <remarks>
+/// A save that fails after writing dooms it: MongoDB can't undo part of a transaction, so the whole of it is rolled back
+/// at once. It stays current, failing whatever tries to use it, its commit included, until its owner ends it.
+/// </remarks>
 internal sealed class VaultTransaction(VaultTransactionManager owner,
     IMongoClient? defaultClient,
     LogLevel logLevel) : IVaultTransaction
@@ -14,6 +18,7 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
     private IMongoClient? _client;
     private IClientSessionHandle? _session;
     private bool _ended;
+    private Exception? _doomedBy;
 
     public bool IsCommitted { get; private set; }
 
@@ -21,7 +26,7 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
     {
         get
         {
-            ThrowIfEnded();
+            ThrowIfUnusable();
 
             if (_session is not null)
             {
@@ -37,7 +42,7 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
 
     public async ValueTask<IClientSessionHandle> JoinAsync(IMongoClient client, CancellationToken cancellationToken)
     {
-        ThrowIfEnded();
+        ThrowIfUnusable();
 
         if (_session is null)
         {
@@ -60,6 +65,11 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
     {
         ThrowIfEnded();
         End();
+
+        if (_doomedBy is not null)
+        {
+            throw Doomed();
+        }
 
         try
         {
@@ -93,6 +103,12 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
 
         End();
 
+        // A doomed transaction was rolled back already, and its saves' failure hooks have run.
+        if (_doomedBy is not null)
+        {
+            return;
+        }
+
         if (_session is { IsInTransaction: true })
         {
             await _session.AbortTransactionAsync(CancellationToken.None);
@@ -100,6 +116,24 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
 
         owner.Log.RolledBack(logLevel, _saves.Count);
         await FailAsync(new InvalidOperationException("The transaction was rolled back."));
+    }
+
+    /// <summary>
+    /// Rolls the transaction back because a save that joined it failed after writing, running every joined save's
+    /// failure hooks. It stays current, so whatever tries to use it next fails, instead of running outside it.
+    /// </summary>
+    public async Task DoomAsync(Exception cause)
+    {
+        _doomedBy = cause;
+
+        // A save that wrote joined first, so there's a session. The server aborts on a write it rejects already.
+        if (_session!.IsInTransaction)
+        {
+            await _session.AbortTransactionAsync(CancellationToken.None);
+        }
+
+        owner.Log.Doomed(logLevel, _saves.Count, cause);
+        await FailAsync(cause);
     }
 
     public async ValueTask DisposeAsync()
@@ -147,4 +181,18 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
             throw new InvalidOperationException("The transaction has already ended.");
         }
     }
+
+    private void ThrowIfUnusable()
+    {
+        ThrowIfEnded();
+
+        if (_doomedBy is not null)
+        {
+            throw Doomed();
+        }
+    }
+
+    private InvalidOperationException Doomed() =>
+        new("The transaction was rolled back: a save that joined it failed after writing, and MongoDB can't undo part " +
+            "of a transaction. Dispose of it, and start another.", _doomedBy);
 }

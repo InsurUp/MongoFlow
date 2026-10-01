@@ -24,6 +24,14 @@ internal static partial class TransactionLog
         int saves,
         Exception exception);
 
+    [LoggerMessage(EventId = MongoFlowLogEvents.Transaction.Doomed,
+        Message = "A save that joined the transaction failed after writing, so the transaction was rolled back. Saves " +
+                  "that joined it: {Saves}.")]
+    public static partial void Doomed(this ILogger logger,
+        LogLevel level,
+        int saves,
+        Exception exception);
+
     [LoggerMessage(EventId = MongoFlowLogEvents.Transaction.RolledBack, Message = "Rolled back the transaction. Saves that joined it: {Saves}.")]
     public static partial void RolledBack(this ILogger logger,
         LogLevel level,

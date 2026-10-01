@@ -1,0 +1,9 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: The transaction was rolled back: a save that joined it failed after writing, and MongoDB can't undo part of a transaction. Dispose of it, and start another.,
+  InnerException: {
+    $type: InvalidOperationException,
+    Type: InvalidOperationException,
+    Message: The save failed after writing.
+  }
+}

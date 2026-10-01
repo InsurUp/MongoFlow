@@ -36,4 +36,18 @@ public partial class TransactionTests
             await ledger.SaveAsync(cancellationToken);
         }
     }
+
+    /// <summary>Fails saves while armed: before anything is written, or after the write.</summary>
+    public sealed class ArmedFailure : VaultInterceptor
+    {
+        public bool BeforeWriting { get; set; }
+
+        public bool AfterWriting { get; set; }
+
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken) =>
+            BeforeWriting ? throw new InvalidOperationException("The save failed before writing.") : ValueTask.CompletedTask;
+
+        public override ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken) =>
+            AfterWriting ? throw new InvalidOperationException("The save failed after writing.") : ValueTask.CompletedTask;
+    }
 }

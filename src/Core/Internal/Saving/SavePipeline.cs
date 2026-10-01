@@ -41,6 +41,7 @@ internal static class SavePipeline
         var run = new SaveRun(runtime, operations);
         var callbacks = new SaveCallbacks(run.CommittedAsync, run.FailedAsync, run.Dispose);
         var enlisted = false;
+        var writing = false;
 
         if (outer is null)
         {
@@ -60,6 +61,7 @@ internal static class SavePipeline
             enlisted = true;
 
             await run.SavingAsync(cancellationToken);
+            writing = true;
             var result = await run.WriteAsync(cancellationToken);
             await run.SavedAsync(cancellationToken);
 
@@ -82,8 +84,14 @@ internal static class SavePipeline
             {
                 await transaction.RollbackAsync(CancellationToken.None);
             }
+            else if (writing)
+            {
+                // Its writes may be in the open transaction, and MongoDB can't undo part of one: the whole of it goes.
+                await outer.DoomAsync(exception);
+            }
             else
             {
+                // Nothing was written, so the open transaction can go on without this save.
                 transaction.Unenlist(callbacks);
                 enlisted = false;
                 await run.FailedAsync(exception, CancellationToken.None);
