@@ -19,8 +19,9 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
     IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key);
 
     /// <summary>
-    /// Optimistic concurrency. Replacing or deleting a document fails with <see cref="ConcurrencyException"/> if its
-    /// token changed since it was read. Replaces and updates increment the token.
+    /// Optimistic concurrency. Replacing, updating or deleting a document (<c>Replace</c>, <c>Update</c>, <c>Delete</c>)
+    /// fails with <see cref="ConcurrencyException"/> if its token changed since it was read, soft deletes included.
+    /// Replaces and updates increment the token, on the document too; a failed or rolled-back save puts it back.
     /// </summary>
     IVaultCollectionBuilder<TDocument, TKey> ConcurrencyToken<TToken>(Expression<Func<TDocument, TToken>> token)
         where TToken : INumber<TToken>;

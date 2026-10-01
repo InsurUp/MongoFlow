@@ -53,8 +53,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         var filter = await TargetAsync(replace, run, cancellationToken);
         if (Token is not null)
         {
-            filter &= Token.Matches(replace.Document!);
-            run.AddUndo(Token.Increment(replace.Document!));
+            filter &= Guard(replace, replace.Document!, run, increment: true);
         }
 
         return new BulkWriteReplaceOneModel<TDocument>(Namespace, filter, replace.Document!);
@@ -65,7 +64,16 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         CancellationToken cancellationToken)
     {
         var filter = await TargetAsync(update, run, cancellationToken, update.Filter);
-        var definition = Token is null ? update.Update : Token.WithIncrement(update.Update);
+        var definition = update.Update;
+        if (Token is not null)
+        {
+            if (update.Document is { } document)
+            {
+                filter &= Guard(update, document, run, increment: true);
+            }
+
+            definition = Token.WithIncrement(definition);
+        }
 
         return update.IsSetBased
             ? new BulkWriteUpdateManyModel<TDocument>(Namespace, filter, definition)
@@ -77,14 +85,43 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         CancellationToken cancellationToken)
     {
         var filter = await TargetAsync(delete, run, cancellationToken, delete.Filter);
-        if (Token is not null && delete is { IsSetBased: false, Document: { } document })
+        if (Token is not null && delete.Document is { } document)
         {
-            filter &= Token.Matches(document);
+            filter &= Guard(delete, document, run, increment: false);
         }
 
         return delete.IsSetBased
             ? new BulkWriteDeleteManyModel<TDocument>(Namespace, filter)
             : new BulkWriteDeleteOneModel<TDocument>(Namespace, filter);
+    }
+
+    public async Task<bool> TargetExistsAsync(VaultOperation<TDocument> operation,
+        SaveRun run,
+        CancellationToken cancellationToken)
+    {
+        var filter = await TargetAsync(operation, run, cancellationToken);
+
+        return await MongoCollection.Find(run.Session, filter).Limit(1).AnyAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Limits <paramref name="operation"/> to the stored document whose token still has <paramref name="document"/>'s
+    /// value, and increments the token on <paramref name="document"/> to match what gets stored, undone if the save fails.
+    /// </summary>
+    private FilterDefinition<TDocument> Guard(VaultOperation<TDocument> operation,
+        TDocument document,
+        SaveRun run,
+        bool increment)
+    {
+        var matches = Token!.Matches(document);
+        if (increment)
+        {
+            run.AddUndo(Token.Increment(document));
+        }
+
+        operation.IsGuarded = true;
+
+        return matches;
     }
 
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,

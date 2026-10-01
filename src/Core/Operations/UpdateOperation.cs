@@ -10,7 +10,8 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
         IReadOnlySet<FeatureKey> disabledFeatures,
         KeyTarget<TDocument>? target,
         Expression<Func<TDocument, bool>>? filter,
-        UpdateDefinition<TDocument> update)
+        UpdateDefinition<TDocument> update,
+        TDocument? document)
         : base(model, disabledFeatures, target)
     {
         if ((target is null) == (filter is null))
@@ -20,6 +21,7 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
 
         Filter = filter;
         Update = update;
+        Document = document;
     }
 
     public override OperationKind Kind => OperationKind.Update;
@@ -35,11 +37,11 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
     public UpdateDefinition<TDocument> Update { get; }
 
     /// <summary>
-    /// The same target with a different definition, keeping the features switched off. Replace the operation with it to
-    /// add changes of your own, such as <c>Builders&lt;T&gt;.Update.Combine(operation.Update, stamp)</c>.
+    /// The same target and document with a different definition, keeping the features switched off. Replace the operation
+    /// with it to add changes of your own, such as <c>Builders&lt;T&gt;.Update.Combine(operation.Update, stamp)</c>.
     /// </summary>
     public UpdateOperation<TDocument> WithUpdate(UpdateDefinition<TDocument> update) =>
-        new(TypedModel, DisabledFeatures, Target, Filter, update);
+        new(TypedModel, DisabledFeatures, Target, Filter, update, Document);
 
     internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken) =>

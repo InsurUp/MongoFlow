@@ -72,7 +72,7 @@ internal class VaultCollection<TDocument>(
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(update);
 
-        Runtime.Enqueue(new UpdateOperation<TDocument>(model, Disabled, null, filter, update));
+        Runtime.Enqueue(new UpdateOperation<TDocument>(model, Disabled, null, filter, update, default));
     }
 
     public void DeleteMany(Expression<Func<TDocument, bool>> filter)

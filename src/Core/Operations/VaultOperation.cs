@@ -27,8 +27,8 @@ public abstract class VaultOperation
     public CollectionNamespace Namespace { get; }
 
     /// <summary>
-    /// Insert: the new document. Replace: the replacement. Delete made with a document: that document. Otherwise
-    /// <see langword="null"/>; an update carries a definition, not a document.
+    /// Insert: the new document. Replace: the replacement. Update or delete made with a document, including a delete
+    /// soft delete turned into an update: that document. Otherwise <see langword="null"/>.
     /// </summary>
     public object? Document => GetDocument();
 
@@ -43,11 +43,18 @@ public abstract class VaultOperation
     /// <summary>The features switched off on the collection view the operation was queued through.</summary>
     internal IReadOnlySet<FeatureKey> DisabledFeatures { get; }
 
-    /// <summary>Whether a replace or delete that matched nothing means the document changed after it was read.</summary>
-    internal abstract bool HasConcurrencyToken { get; }
+    /// <summary>
+    /// Whether a concurrency token limited the write to the document as it was read, so that matching nothing fails the
+    /// save. Set when the write model is created.
+    /// </summary>
+    internal bool IsGuarded { get; set; }
 
     /// <summary>The model this operation adds to the save's bulk write.</summary>
     internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
+        CancellationToken cancellationToken);
+
+    /// <summary>Whether the operation's key, under the query filters it was queued with, still matches a stored document.</summary>
+    internal abstract Task<bool> TargetExistsAsync(SaveRun run,
         CancellationToken cancellationToken);
 
     private protected abstract object? GetDocument();

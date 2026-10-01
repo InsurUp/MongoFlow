@@ -51,7 +51,15 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(update);
 
-        Runtime.Enqueue(new UpdateOperation<TDocument>(model, Disabled, model.Target(key), null, update));
+        Runtime.Enqueue(new UpdateOperation<TDocument>(model, Disabled, model.Target(key), null, update, default));
+    }
+
+    public void Update(TDocument document, UpdateDefinition<TDocument> update)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(update);
+
+        Runtime.Enqueue(new UpdateOperation<TDocument>(model, Disabled, TargetOf(document), null, update, document));
     }
 
     private KeyedVaultCollection<TDocument, TKey> WithoutKeyed(FeatureKey feature) =>

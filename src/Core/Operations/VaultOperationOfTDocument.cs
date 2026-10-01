@@ -16,10 +16,12 @@ public abstract class VaultOperation<TDocument> : VaultOperation
 
     internal CollectionModel<TDocument> TypedModel { get; }
 
-    internal override bool HasConcurrencyToken => TypedModel.Token is not null;
-
     /// <summary>The one document the operation targets by key, or <see langword="null"/> for inserts and set-based operations.</summary>
     internal KeyTarget<TDocument>? Target { get; }
+
+    internal override Task<bool> TargetExistsAsync(SaveRun run,
+        CancellationToken cancellationToken) =>
+        TypedModel.TargetExistsAsync(this, run, cancellationToken);
 
     private protected override object? GetDocument() => Document;
 }

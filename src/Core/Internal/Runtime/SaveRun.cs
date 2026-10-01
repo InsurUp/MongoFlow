@@ -60,10 +60,9 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
             var operation = Operations[i];
             operation.Result = ResultOf(operation, written, i);
 
-            if (operation.Result is { Matched: 0, Deleted: 0 } && operation.HasConcurrencyToken &&
-                operation is { IsSetBased: false, Kind: OperationKind.Replace or OperationKind.Delete, Document: not null })
+            if (operation is { IsGuarded: true, Result: { Matched: 0, Deleted: 0 } })
             {
-                throw new ConcurrencyException(operation);
+                throw new ConcurrencyException(operation, await operation.TargetExistsAsync(this, cancellationToken));
             }
         }
 
@@ -86,9 +85,15 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
         }
     }
 
-    /// <summary>Runs every interceptor's failure hook. Their own exceptions are ignored so the original failure surfaces.</summary>
+    /// <summary>
+    /// Undoes in-memory changes, then runs every interceptor's failure hook. Called whenever the save's writes are rolled
+    /// back: by its own failure, or by the transaction it joined. Hook exceptions are ignored so the original failure
+    /// surfaces.
+    /// </summary>
     public async Task FailedAsync(Exception exception, CancellationToken cancellationToken)
     {
+        Undo();
+
         for (var i = 0; i < Runtime.Model.Interceptors.Count; i++)
         {
             try
@@ -103,16 +108,6 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
     }
 
     public void AddUndo(Action undo) => _undo.Add(undo);
-
-    public void Undo()
-    {
-        for (var i = _undo.Count - 1; i >= 0; i--)
-        {
-            _undo[i]();
-        }
-
-        _undo.Clear();
-    }
 
     /// <summary>
     /// A collection's query filters for operations queued with <paramref name="disabled"/> features, resolved once per
@@ -155,6 +150,16 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
         ThrowIfNotSaving(nameof(Remove));
 
         Operations.RemoveAt(IndexOf(operation));
+    }
+
+    private void Undo()
+    {
+        for (var i = _undo.Count - 1; i >= 0; i--)
+        {
+            _undo[i]();
+        }
+
+        _undo.Clear();
     }
 
     private SaveContext ContextFor(int interceptor) => new InterceptorSaveContext(this, Runtime.Model.Interceptors[interceptor]);
