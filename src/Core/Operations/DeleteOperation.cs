@@ -13,11 +13,6 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
         TDocument? document)
         : base(model, disabledFeatures, target)
     {
-        if ((target is null) == (filter is null))
-        {
-            throw new ArgumentException("A delete targets either a key or a filter.");
-        }
-
         Filter = filter;
         Document = document;
     }

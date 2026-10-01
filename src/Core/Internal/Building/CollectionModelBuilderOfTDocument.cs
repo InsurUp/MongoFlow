@@ -102,7 +102,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
 
     protected virtual CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)
     {
-        if (typeof(TDocument) is { IsClass: true, IsInterface: false })
+        if (typeof(TDocument).IsClass)
         {
             var classMap = BsonClassMap.LookupClassMap(typeof(TDocument));
             if (classMap.IdMemberMap is null && !classMap.IgnoreExtraElements)

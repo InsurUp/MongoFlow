@@ -187,15 +187,22 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
         }
     }
 
-    private static OperationResult ResultOf(VaultOperation operation, ClientBulkWriteResult written, int index) =>
-        operation.Kind switch
+    // A verbose bulk write reports every operation it ran; replaces are reported with the updates.
+    private static OperationResult ResultOf(VaultOperation operation,
+        ClientBulkWriteResult written,
+        int index)
+    {
+        switch (operation.Kind)
         {
-            OperationKind.Insert => OperationResult.Of(1, 0, 0, 0),
-            OperationKind.Delete => written.DeleteResults.TryGetValue(index, out var deleted)
-                ? OperationResult.Of(0, 0, 0, deleted.DeletedCount)
-                : OperationResult.Of(0, 0, 0, 0),
-            _ => written.UpdateResults.TryGetValue(index, out var updated)
-                ? OperationResult.Of(0, updated.MatchedCount, updated.ModifiedCount, 0)
-                : OperationResult.Of(0, 0, 0, 0)
-        };
+            case OperationKind.Insert:
+                return OperationResult.Of(1, 0, 0, 0);
+
+            case OperationKind.Delete:
+                return OperationResult.Of(0, 0, 0, written.DeleteResults[index].DeletedCount);
+
+            default:
+                var updated = written.UpdateResults[index];
+                return OperationResult.Of(0, updated.MatchedCount, updated.ModifiedCount, 0);
+        }
+    }
 }

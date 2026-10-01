@@ -57,10 +57,10 @@ public abstract class VaultOperation<TDocument> : VaultOperation
         BsonDocument? condition,
         CancellationToken cancellationToken)
     {
-        var target = Target?.Match() ?? (filter is null ? null : TypedModel.Render(filter));
+        // An operation targets a key, or is set-based and has a filter.
+        var target = Target?.Match() ?? TypedModel.Render(filter!);
         var queryFilter = await run.QueryFilterAsync(TypedModel, DisabledFeatures, cancellationToken);
-        var combined = FilterDocuments.And(target, queryFilter, condition);
 
-        return combined is null ? FilterDefinition<TDocument>.Empty : new BsonDocumentFilterDefinition<TDocument>(combined);
+        return new BsonDocumentFilterDefinition<TDocument>(FilterDocuments.And(target, queryFilter, condition)!);
     }
 }

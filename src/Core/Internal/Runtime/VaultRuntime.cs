@@ -85,9 +85,7 @@ internal sealed class VaultRuntime
         _interceptors[index] ??= Model.Interceptors[index].Create(Services);
 
     public IVaultCollection<TDocument> GetCollection<TDocument>() =>
-        Find(typeof(TDocument)) is CollectionModel<TDocument> collection
-            ? collection.CreateCollection(this, FeatureSet.Empty)
-            : throw new InvalidOperationException($"{Model.VaultType.Name} declares no collection of {typeof(TDocument).Name}.");
+        ((CollectionModel<TDocument>)Find(typeof(TDocument))).CreateCollection(this, FeatureSet.Empty);
 
     public IVaultCollection<TDocument, TKey> GetCollection<TDocument, TKey>()
     {

@@ -20,12 +20,12 @@ internal sealed class MultiTenancyInterceptor<TDocument, TTenantEntity, TTenant>
 
         foreach (var operation in context.Operations)
         {
-            if (operation is not (InsertOperation<TDocument> or ReplaceOperation<TDocument>) ||
-                operation.Document is not TTenantEntity document)
+            if (operation is not (InsertOperation<TDocument> or ReplaceOperation<TDocument>))
             {
                 continue;
             }
 
+            var document = (TTenantEntity)operation.Document!;
             var tenant = getTenantId(document);
             if (isUnset(tenant))
             {
