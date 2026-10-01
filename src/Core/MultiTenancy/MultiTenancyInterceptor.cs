@@ -34,7 +34,7 @@ internal sealed class MultiTenancyInterceptor<TDocument, TTenantEntity, TTenant>
             else if (!EqualityComparer<TTenant>.Default.Equals(tenant, current))
             {
                 throw new InvalidOperationException(
-                    $"A {typeof(TDocument).Name} of tenant {tenant} can't be written while the current tenant is {current}.");
+                    $"{typeof(TDocument).Name} of tenant {tenant} can't be written while the current tenant is {current}.");
             }
         }
 
