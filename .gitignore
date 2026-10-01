@@ -529,3 +529,9 @@ FodyWeavers.xsd
 
 # Coverage settings for TUnit's --coverage; the coverage reports themselves stay ignored.
 !coverage.settings.xml
+
+# Benchmark logs; the reports in results/ are kept. The template's artifacts/ rule above would hide the folder whole.
+BenchmarkDotNet.Artifacts/
+!benchmarks/artifacts/
+benchmarks/artifacts/*
+!benchmarks/artifacts/results/

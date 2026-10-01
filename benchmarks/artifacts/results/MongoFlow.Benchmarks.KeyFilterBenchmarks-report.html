@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>MongoFlow.Benchmarks.KeyFilterBenchmarks-20261001-200825</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, macOS Tahoe 26.0.1 (25A362) [Darwin 25.0.0]
+Apple M4 Max, 1 CPU, 16 logical and 16 physical cores
+.NET SDK 11.0.100-rc.1.26425.128
+  [Host]     : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
+  DefaultJob : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method          </th><th>Key</th><th>Mean </th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>&#39;Driver: LINQ filter&#39;</td><td>Id</td><td>1,931.41 ns</td><td>24.270 ns</td><td>21.515 ns</td><td>1.00</td><td>0.02</td><td>0.5493</td><td>-</td><td>4656 B</td><td>1.00</td>
+</tr><tr><td>&#39;Driver: Eq filter&#39;</td><td>Id</td><td>727.86 ns</td><td>6.952 ns</td><td>6.503 ns</td><td>0.38</td><td>0.01</td><td>0.2756</td><td>-</td><td>2312 B</td><td>0.50</td>
+</tr><tr><td>&#39;MongoFlow: key model&#39;</td><td>Id</td><td>78.69 ns</td><td>0.847 ns</td><td>0.661 ns</td><td>0.04</td><td>0.00</td><td>0.0842</td><td>0.0001</td><td>704 B</td><td>0.15</td>
+</tr><tr><td>&#39;Driver: LINQ filter&#39;</td><td>Composite</td><td>4,426.44 ns</td><td>40.075 ns</td><td>35.525 ns</td><td>1.00</td><td>0.01</td><td>1.0071</td><td>-</td><td>8656 B</td><td>1.00</td>
+</tr><tr><td>&#39;Driver: Eq filter&#39;</td><td>Composite</td><td>1,590.35 ns</td><td>12.762 ns</td><td>10.657 ns</td><td>0.36</td><td>0.00</td><td>0.6294</td><td>0.0019</td><td>5272 B</td><td>0.61</td>
+</tr><tr><td>&#39;MongoFlow: key model&#39;</td><td>Composite</td><td>166.14 ns</td><td>1.410 ns</td><td>1.250 ns</td><td>0.04</td><td>0.00</td><td>0.1490</td><td>0.0002</td><td>1248 B</td><td>0.14</td>
+</tr></tbody></table>
+</body>
+</html>

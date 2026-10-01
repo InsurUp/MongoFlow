@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="MongoFlow.Tests" />
+    <InternalsVisibleTo Include="MongoFlow.Benchmarks" />
   </ItemGroup>
 
   <ItemGroup>
