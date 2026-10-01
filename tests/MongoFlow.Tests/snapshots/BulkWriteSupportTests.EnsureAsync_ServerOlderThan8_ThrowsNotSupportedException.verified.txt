@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: MongoFlow saves with client bulk writes, which need MongoDB 8.0 or later; the server reports wire version 21.
+}

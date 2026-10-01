@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: The key of keys passes p.Year, of type Int32, as year, but WideningKey.Year is of type Int64.
+}

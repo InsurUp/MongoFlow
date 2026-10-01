@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Code coverage settings for Microsoft.Testing.Platform, passed to TUnit's coverage switch; the commands are in
+  .claude/rules/testing.md. Coverage measures the code written by hand, so each exclusion below says why it is not.
+-->
+<Configuration>
+  <CodeCoverage>
+    <ModulePaths>
+      <Exclude>
+        <!-- The tests themselves: they run, they are not what is measured. -->
+        <ModulePath>.*Tests\.dll$</ModulePath>
+        <!-- The samples, should a run ever load them. -->
+        <ModulePath>.*\.Samples\.dll$</ModulePath>
+      </Exclude>
+    </ModulePaths>
+    <Sources>
+      <Exclude>
+        <!-- Source generators' output (TUnit's, TUnit.Mocks'): generated, not written here. -->
+        <Source>.*\.g\.cs$</Source>
+        <Source>.*\.g\.i\.cs$</Source>
+      </Exclude>
+    </Sources>
+    <Attributes>
+      <Exclude>
+        <!-- Code its author marked as not worth measuring, with the reason next to the attribute. -->
+        <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+        <!-- Code a tool generated and marked as such. -->
+        <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
+      </Exclude>
+    </Attributes>
+  </CodeCoverage>
+</Configuration>

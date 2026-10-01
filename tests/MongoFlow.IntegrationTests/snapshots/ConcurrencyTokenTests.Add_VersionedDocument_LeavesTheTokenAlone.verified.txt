@@ -1,0 +1,14 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Party: acme,
+      ver: 5
+    }
+  ],
+  Document: {
+    Id: 1,
+    Party: acme,
+    Version: 5
+  }
+}

@@ -1,0 +1,14 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Party: overwritten,
+      ver: 1
+    }
+  ],
+  Document: {
+    Id: 1,
+    Party: overwritten,
+    Version: 1
+  }
+}

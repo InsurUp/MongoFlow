@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Replace can only be called during SavingAsync.
+}

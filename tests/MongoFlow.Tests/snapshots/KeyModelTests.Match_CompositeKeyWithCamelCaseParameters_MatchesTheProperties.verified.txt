@@ -1,0 +1,4 @@
+﻿{
+  UserId: u-1,
+  provider: github
+}

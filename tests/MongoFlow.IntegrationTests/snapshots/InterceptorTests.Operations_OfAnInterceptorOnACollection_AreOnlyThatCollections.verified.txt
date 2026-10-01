@@ -1,0 +1,9 @@
+﻿{
+  Vault: [
+    Insert Order,
+    Insert AuditEntry
+  ],
+  Orders: [
+    Insert Order
+  ]
+}

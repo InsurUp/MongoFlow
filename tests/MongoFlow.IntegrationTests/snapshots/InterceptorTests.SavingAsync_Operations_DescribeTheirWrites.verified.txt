@@ -1,0 +1,42 @@
+﻿[
+  {
+    Kind: Insert,
+    CollectionName: Orders,
+    Document: 1
+  },
+  {
+    Kind: Replace,
+    Key: 1,
+    Document: 1
+  },
+  {
+    Kind: Update,
+    Key: 1,
+    Document: 1,
+    Update: {
+      $set: {
+        Total: {
+          $numberDecimal: 20
+        }
+      }
+    }
+  },
+  {
+    Kind: Update,
+    Filter: x => (x.Total > 5),
+    Update: {
+      $set: {
+        Customer: many
+      }
+    }
+  },
+  {
+    Kind: Delete,
+    Key: 1,
+    Document: 1
+  },
+  {
+    Kind: Delete,
+    Filter: x => (x.Total > 5)
+  }
+]

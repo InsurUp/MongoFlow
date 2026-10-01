@@ -1,0 +1,31 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 2,
+    Modified: 2,
+    Deleted: 0
+  },
+  Stored: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 0
+      }
+    },
+    {
+      _id: 2,
+      Customer: bob,
+      Total: {
+        $numberDecimal: 20
+      }
+    },
+    {
+      _id: 3,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 0
+      }
+    }
+  ]
+}

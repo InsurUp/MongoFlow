@@ -1,0 +1,17 @@
+﻿{
+  Message: The Contract in Contracts was changed after it was read.,
+  DocumentExists: true,
+  Kind: Replace,
+  Stored: [
+    {
+      _id: 1,
+      Party: acme,
+      ver: 4
+    }
+  ],
+  Document: {
+    Id: 1,
+    Party: renamed,
+    Version: 3
+  }
+}

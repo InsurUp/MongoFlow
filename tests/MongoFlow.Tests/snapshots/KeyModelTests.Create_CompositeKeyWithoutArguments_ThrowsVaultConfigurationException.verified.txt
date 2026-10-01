@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: The key of keys must be a member, or a new EmptyKey of members such as x => new EmptyKey(x.A, x.B), but it is _ => new EmptyKey().
+}

@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: A vault on a different client can't join this transaction.
+}

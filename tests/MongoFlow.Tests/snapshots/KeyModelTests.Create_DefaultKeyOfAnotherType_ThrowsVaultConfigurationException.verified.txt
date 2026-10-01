@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: keys is keyed by String, but Policy.Id, its _id, is of type ObjectId.
+}

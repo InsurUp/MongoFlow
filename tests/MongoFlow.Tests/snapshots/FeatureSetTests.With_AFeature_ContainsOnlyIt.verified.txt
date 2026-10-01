@@ -1,0 +1,5 @@
+﻿{
+  IsEmpty: false,
+  Audit: true,
+  Tenancy: false
+}

@@ -1,0 +1,8 @@
+﻿{
+  _id: {
+    $binary: {
+      base64: j1tsHjwqTn2bGi1Mbo8KGw==,
+      subType: 04
+    }
+  }
+}

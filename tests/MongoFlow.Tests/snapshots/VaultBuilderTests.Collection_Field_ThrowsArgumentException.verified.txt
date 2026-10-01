@@ -1,0 +1,5 @@
+﻿{
+  Type: ArgumentException,
+  Message: Expected a collection property, such as x => x.Policies, but got x => x.AuditField.,
+  ParamName: collection
+}

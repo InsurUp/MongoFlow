@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: ShopVault can't be saved from its own interceptors.
+}

@@ -1,0 +1,5 @@
+﻿{
+  Type: ArgumentException,
+  Message: ClosedConfiguration must be an open generic class with one type parameter, TVault, that implements IVaultConfiguration<TVault>, such as typeof(AuditConfiguration<>).,
+  ParamName: configurationType
+}

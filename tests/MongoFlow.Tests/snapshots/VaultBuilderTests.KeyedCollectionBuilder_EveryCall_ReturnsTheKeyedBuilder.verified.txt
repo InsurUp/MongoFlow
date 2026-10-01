@@ -1,0 +1,4 @@
+﻿{
+  CollectionName: chained_orders,
+  Query: unit.chained_orders.Aggregate([{ "$match" : { "Total" : { "$gt" : { "$numberDecimal" : "1" } }, "Customer" : { "$ne" : "" }, "TenantId" : { "$ne" : null } } }])
+}

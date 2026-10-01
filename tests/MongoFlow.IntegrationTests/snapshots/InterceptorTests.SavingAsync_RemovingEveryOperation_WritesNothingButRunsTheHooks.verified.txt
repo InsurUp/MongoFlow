@@ -1,0 +1,13 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Entries: [
+    last.Saving,
+    last.Saved,
+    last.Committed
+  ]
+}

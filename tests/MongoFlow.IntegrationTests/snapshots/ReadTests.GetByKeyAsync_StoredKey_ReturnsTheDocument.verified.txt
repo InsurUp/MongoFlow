@@ -1,0 +1,5 @@
+﻿{
+  Id: 1,
+  Customer: ada,
+  Total: 10.0
+}

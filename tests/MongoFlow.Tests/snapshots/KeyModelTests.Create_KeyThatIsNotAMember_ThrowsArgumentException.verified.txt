@@ -1,0 +1,5 @@
+﻿{
+  Type: ArgumentException,
+  Message: Expected a property or field of the parameter, such as x => x.Member, but got p => (p.Product + p.Number).,
+  ParamName: key
+}

@@ -523,3 +523,9 @@ FodyWeavers.xsd
 *.msp
 
 .DS_Store
+
+# Verify
+*.received.*
+
+# Coverage settings for TUnit's --coverage; the coverage reports themselves stay ignored.
+!coverage.settings.xml

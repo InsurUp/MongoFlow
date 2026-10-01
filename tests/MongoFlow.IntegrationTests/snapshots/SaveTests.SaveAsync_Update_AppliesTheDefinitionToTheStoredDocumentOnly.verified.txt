@@ -1,0 +1,16 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 99
+      }
+    }
+  ],
+  Document: {
+    Id: 1,
+    Customer: ada,
+    Total: 10.0
+  }
+}

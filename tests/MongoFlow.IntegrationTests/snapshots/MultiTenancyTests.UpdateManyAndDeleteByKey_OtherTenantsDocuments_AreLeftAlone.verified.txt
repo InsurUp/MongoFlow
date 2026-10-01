@@ -1,0 +1,25 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 1,
+    Modified: 1,
+    Deleted: 0
+  },
+  Stored: [
+    {
+      _id: 1,
+      Number: updated,
+      TenantId: t-1
+    },
+    {
+      _id: 2,
+      Number: I-2,
+      TenantId: t-2
+    },
+    {
+      _id: 3,
+      Number: I-3,
+      TenantId: null
+    }
+  ]
+}

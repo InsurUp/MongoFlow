@@ -1,0 +1,5 @@
+﻿{
+  On: unit.Orders.Aggregate([{ "$match" : { "Total" : { "$gt" : { "$numberDecimal" : "10" } }, "IsDeleted" : { "$ne" : true } } }]),
+  Off: unit.Orders.Aggregate([{ "$match" : { "Total" : { "$gt" : { "$numberDecimal" : "10" } } } }]),
+  OtherOff: unit.Orders.Aggregate([{ "$match" : { "Total" : { "$gt" : { "$numberDecimal" : "10" } }, "IsDeleted" : { "$ne" : true } } }])
+}
