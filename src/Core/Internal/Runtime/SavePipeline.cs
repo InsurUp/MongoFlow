@@ -9,8 +9,7 @@ internal static class SavePipeline
             throw new InvalidOperationException($"{runtime.Model.VaultType.Name} can't be saved from its own interceptors.");
         }
 
-        var operations = runtime.Drain();
-        if (operations.Count == 0)
+        if (runtime.Drain() is not { } operations)
         {
             return SaveResult.Empty;
         }
@@ -19,7 +18,8 @@ internal static class SavePipeline
         var outer = runtime.TransactionManager.Active;
         var transaction = outer ?? runtime.TransactionManager.Start();
         var run = new SaveRun(runtime, operations);
-        var callbacks = new SaveCallbacks(run.CommittedAsync, run.FailedAsync);
+        var callbacks = new SaveCallbacks(run.CommittedAsync, run.FailedAsync, run.Dispose);
+        var enlisted = false;
 
         try
         {
@@ -27,6 +27,7 @@ internal static class SavePipeline
 
             run.Session = await transaction.JoinAsync(runtime.Model.Client, cancellationToken);
             transaction.Enlist(callbacks);
+            enlisted = true;
 
             await run.SavingAsync(cancellationToken);
             var result = await run.WriteAsync(cancellationToken);
@@ -49,6 +50,7 @@ internal static class SavePipeline
             else
             {
                 transaction.Unenlist(callbacks);
+                enlisted = false;
                 await run.FailedAsync(exception, CancellationToken.None);
             }
 
@@ -57,6 +59,12 @@ internal static class SavePipeline
         finally
         {
             runtime.IsSaving = false;
+
+            // An enlisted save is released by its transaction when that ends, after its last hook.
+            if (!enlisted)
+            {
+                run.Dispose();
+            }
 
             if (outer is null)
             {

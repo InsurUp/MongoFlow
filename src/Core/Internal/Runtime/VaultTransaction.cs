@@ -100,6 +100,14 @@ internal sealed class VaultTransaction(VaultTransactionManager owner, IMongoClie
     {
         await RollbackAsync();
         _session?.Dispose();
+
+        // Every hook a joined save can run has run, so the saves give back what they rented.
+        foreach (var save in _saves)
+        {
+            save.Release();
+        }
+
+        _saves.Clear();
     }
 
     private IClientSessionHandle Start(IMongoClient client, IClientSessionHandle session)

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
+using Prest;
 
 namespace MongoFlow;
 
@@ -7,8 +8,11 @@ namespace MongoFlow;
 internal sealed class VaultRuntime
 {
     private readonly VaultInterceptor?[] _interceptors;
-    private readonly List<VaultOperation> _queue = [];
-    private readonly HashSet<object> _inserted = new(ReferenceEqualityComparer.Instance);
+
+    // Pooled, and rented on first use, so a vault instance that only reads rents nothing. The save that drains the queue
+    // owns it from then on and gives it back when the save ends.
+    private PooledList<VaultOperation>? _queue;
+    private ComparerSwissHashSet<object>? _inserted;
 
     public VaultRuntime(VaultModel model,
         IServiceProvider services,
@@ -38,21 +42,37 @@ internal sealed class VaultRuntime
     public void Enqueue(VaultOperation operation)
     {
         // Adding the same document twice inserts it once.
-        if (operation is { Kind: OperationKind.Insert, Document: { } document } && !_inserted.Add(document))
+        if (operation is { Kind: OperationKind.Insert, Document: { } document } &&
+            !(_inserted ??= ComparerSwissHashSet<object>.Create(ReferenceEqualityComparer.Instance)).Add(document))
         {
             return;
         }
 
-        _queue.Add(operation);
+        (_queue ??= new PooledList<VaultOperation>(clearOnReturn: true)).Add(operation);
     }
 
-    public List<VaultOperation> Drain()
+    /// <summary>
+    /// Hands the queued operations to a save, which disposes the list when it ends, or <see langword="null"/> when nothing
+    /// is queued.
+    /// </summary>
+    public PooledList<VaultOperation>? Drain()
     {
-        var operations = _queue.ToList();
-        _queue.Clear();
-        _inserted.Clear();
+        var queue = _queue;
+        _queue = null;
+        _inserted?.Dispose();
+        _inserted = null;
 
-        return operations;
+        return queue;
+    }
+
+    /// <summary>Moves the operations queued during a save, such as by its interceptors, into the save.</summary>
+    public void DrainInto(PooledList<VaultOperation> operations)
+    {
+        if (Drain() is { } queue)
+        {
+            operations.AddRange(queue.Span);
+            queue.Dispose();
+        }
     }
 
     /// <summary>The session reads run in: the scope's open transaction's, or none.</summary>

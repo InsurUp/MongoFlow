@@ -5,14 +5,19 @@ using Prest;
 namespace MongoFlow;
 
 /// <summary>One save in progress: the shared operation list and what the steps produce.</summary>
-internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operations)
+/// <remarks>
+/// It owns the pooled operation list it's handed, and gives it back when disposed: by the transaction it joined when that
+/// ends, or by the save itself when it never joined one. Every hook the save can run has run by then.
+/// </remarks>
+internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> operations) : IDisposable
 {
     private readonly Dictionary<(IVaultCollectionInfo, string), BsonDocument?> _queryFilters = [];
     private bool _saving;
+    private bool _disposed;
 
     public VaultRuntime Runtime { get; } = runtime;
 
-    public List<VaultOperation> Operations { get; } = operations;
+    public PooledList<VaultOperation> Operations { get; } = operations;
 
     public IClientSessionHandle Session { get; set; } = null!;
 
@@ -30,7 +35,7 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
                 await Runtime.GetInterceptor(i).SavingAsync(ContextFor(i), cancellationToken);
 
                 // Writes an interceptor queued on the vault join the save, for the interceptors after it to see.
-                Operations.AddRange(Runtime.Drain());
+                Runtime.DrainInto(Operations);
             }
         }
         finally
@@ -46,10 +51,10 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
             return Result = SaveResult.Empty;
         }
 
-        var models = new List<BulkWriteModel>(Operations.Count);
-        foreach (var operation in Operations)
+        using var models = new PooledList<BulkWriteModel>(Operations.Count, clearOnReturn: true);
+        foreach (var t in Operations)
         {
-            models.Add(await operation.CreateWriteModelAsync(this, cancellationToken));
+            models.Add(await t.CreateWriteModelAsync(this, cancellationToken));
         }
 
         var written = await Runtime.Model.Client.BulkWriteAsync(Session, models,
@@ -144,15 +149,30 @@ internal sealed class SaveRun(VaultRuntime runtime, List<VaultOperation> operati
         Operations.RemoveAt(IndexOf(operation));
     }
 
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _disposed = true;
+            Operations.Dispose();
+        }
+    }
+
     private SaveContext ContextFor(int interceptor) => new InterceptorSaveContext(this, Runtime.Model.Interceptors[interceptor]);
 
     private int IndexOf(VaultOperation operation)
     {
         ArgumentNullException.ThrowIfNull(operation);
 
-        var index = Operations.FindIndex(candidate => ReferenceEquals(candidate, operation));
+        for (var i = 0; i < Operations.Count; i++)
+        {
+            if (ReferenceEquals(Operations[i], operation))
+            {
+                return i;
+            }
+        }
 
-        return index >= 0 ? index : throw new ArgumentException("The operation isn't part of this save.", nameof(operation));
+        throw new ArgumentException("The operation isn't part of this save.", nameof(operation));
     }
 
     private void ThrowIfNotSaving(string method)
