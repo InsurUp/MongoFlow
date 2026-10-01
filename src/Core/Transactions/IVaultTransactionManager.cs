@@ -9,7 +9,7 @@ namespace MongoFlow;
 /// and only the transaction's owner commits. A save with no open transaction starts its own and exposes it as
 /// <see cref="Current"/> while its interceptors run, so saves they make join it.
 /// </remarks>
-public interface IVaultTransactions
+public interface IVaultTransactionManager
 {
     IVaultTransaction? Current { get; }
 

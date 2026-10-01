@@ -4,7 +4,7 @@ namespace MongoFlow;
 
 /// <summary>
 /// A transaction vaults join. Disposing it without committing rolls it back. Once it ends,
-/// <see cref="IVaultTransactions.Current"/> is cleared.
+/// <see cref="IVaultTransactionManager.Current"/> is cleared.
 /// </summary>
 /// <remarks>A vault on a different client can't join; its save throws.</remarks>
 public interface IVaultTransaction : IAsyncDisposable

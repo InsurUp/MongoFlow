@@ -3,7 +3,7 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-internal sealed class VaultTransactions(IServiceProvider services) : IVaultTransactions
+internal sealed class VaultTransactionManager(IServiceProvider services) : IVaultTransactionManager
 {
     public IVaultTransaction? Current => Active;
 

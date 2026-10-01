@@ -16,8 +16,8 @@ internal static class SavePipeline
         }
 
         runtime.IsSaving = true;
-        var outer = runtime.Transactions.Active;
-        var transaction = outer ?? runtime.Transactions.Start();
+        var outer = runtime.TransactionManager.Active;
+        var transaction = outer ?? runtime.TransactionManager.Start();
         var run = new SaveRun(runtime, operations);
         var callbacks = new SaveCallbacks(run.CommittedAsync, run.FailedAsync);
 

@@ -5,7 +5,7 @@ namespace MongoFlow;
 /// <summary>
 /// A transaction vaults join. Its session starts with the first vault that joins, so it runs on that vault's client.
 /// </summary>
-internal sealed class VaultTransaction(VaultTransactions owner, IMongoClient? defaultClient) : IVaultTransaction
+internal sealed class VaultTransaction(VaultTransactionManager owner, IMongoClient? defaultClient) : IVaultTransaction
 {
     private readonly List<SaveCallbacks> _saves = [];
     private IMongoClient? _client;

@@ -31,7 +31,7 @@ internal sealed class VaultRuntime
 
     public MongoVault Vault { get; }
 
-    public VaultTransactions Transactions => field ??= Services.GetRequiredService<VaultTransactions>();
+    public VaultTransactionManager TransactionManager => field ??= Services.GetRequiredService<VaultTransactionManager>();
 
     public bool IsSaving { get; set; }
 
@@ -57,7 +57,7 @@ internal sealed class VaultRuntime
 
     /// <summary>The session reads run in: the scope's open transaction's, or none.</summary>
     public async ValueTask<IClientSessionHandle?> GetSessionAsync(CancellationToken cancellationToken) =>
-        Transactions.Active is { } transaction
+        TransactionManager.Active is { } transaction
             ? await transaction.JoinAsync(Model.Client, cancellationToken)
             : null;
 

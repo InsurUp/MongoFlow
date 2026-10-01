@@ -5,7 +5,9 @@ using MongoFlow.Samples.Vaults;
 namespace MongoFlow.Samples.Services;
 
 /// <summary>A transaction spanning two vaults.</summary>
-public sealed class ClaimService(IPolicyVault policies, CustomerVault customers, IVaultTransactions transactions)
+public sealed class ClaimService(IPolicyVault policies,
+    CustomerVault customers,
+    IVaultTransactionManager transactions)
 {
     // Filing a claim records it, flags the policy and counts it on the customer. Both saves join the transaction, so all
     // three changes commit together or not at all.
