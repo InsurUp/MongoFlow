@@ -14,10 +14,10 @@ internal sealed class KeyedCollectionModel<TDocument, TKey> : CollectionModel<TD
     public KeyTarget<TDocument> Target(TKey key) => new KeyTarget<TDocument, TKey>(Key, key);
 
     public override IVaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
-        IReadOnlySet<FeatureKey> disabled) =>
+        FeatureSet disabled) =>
         CreateKeyedCollection(runtime, disabled);
 
     public IVaultCollection<TDocument, TKey> CreateKeyedCollection(VaultRuntime runtime,
-        IReadOnlySet<FeatureKey> disabled) =>
+        FeatureSet disabled) =>
         new KeyedVaultCollection<TDocument, TKey>(runtime, this, disabled);
 }

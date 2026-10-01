@@ -6,16 +6,16 @@ namespace MongoFlow;
 internal class VaultCollection<TDocument>(
     VaultRuntime runtime,
     CollectionModel<TDocument> model,
-    IReadOnlySet<FeatureKey> disabled) : IVaultCollection<TDocument>
+    FeatureSet disabled) : IVaultCollection<TDocument>
 {
     protected VaultRuntime Runtime { get; } = runtime;
 
-    protected IReadOnlySet<FeatureKey> Disabled { get; } = disabled;
+    protected FeatureSet Disabled { get; } = disabled;
 
     public IMongoCollection<TDocument> MongoCollection => model.MongoCollection;
 
     public virtual IVaultCollection<TDocument> Without(FeatureKey feature) =>
-        new VaultCollection<TDocument>(Runtime, model, With(Disabled, feature));
+        new VaultCollection<TDocument>(Runtime, model, Disabled.With(feature));
 
     public async ValueTask<IQueryable<TDocument>> QueryAsync(CancellationToken cancellationToken = default)
     {
@@ -80,12 +80,5 @@ internal class VaultCollection<TDocument>(
         ArgumentNullException.ThrowIfNull(filter);
 
         Runtime.Enqueue(new DeleteOperation<TDocument>(model, Disabled, null, filter, default));
-    }
-
-    protected static IReadOnlySet<FeatureKey> With(IReadOnlySet<FeatureKey> disabled, FeatureKey feature)
-    {
-        FeatureKeys.ThrowIfDefault(feature, nameof(feature));
-
-        return new HashSet<FeatureKey>(disabled) { feature };
     }
 }

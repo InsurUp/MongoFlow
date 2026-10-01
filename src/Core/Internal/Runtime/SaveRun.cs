@@ -14,7 +14,7 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     // The driver copies what it needs out of the options, so one instance serves every save.
     private static readonly ClientBulkWriteOptions WriteOptions = new() { IsOrdered = true, VerboseResult = true };
 
-    private readonly Dictionary<(IVaultCollectionInfo, string), BsonDocument?> _queryFilters = [];
+    private readonly Dictionary<(IVaultCollectionInfo, FeatureSet), BsonDocument?> _queryFilters = [];
     private bool _saving;
     private bool _disposed;
 
@@ -117,9 +117,9 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     /// rendered once per save.
     /// </summary>
     public async ValueTask<BsonDocument?> QueryFilterAsync<TDocument>(CollectionModel<TDocument> collection,
-        IReadOnlySet<FeatureKey> disabled, CancellationToken cancellationToken)
+        FeatureSet disabled, CancellationToken cancellationToken)
     {
-        var key = (collection, string.Join(',', disabled.Select(feature => feature.Name).Order()));
+        (IVaultCollectionInfo, FeatureSet) key = (collection, disabled);
         if (_queryFilters.TryGetValue(key, out var cached))
         {
             return cached;

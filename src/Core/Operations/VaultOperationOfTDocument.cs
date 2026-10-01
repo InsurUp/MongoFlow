@@ -5,7 +5,7 @@ namespace MongoFlow;
 public abstract class VaultOperation<TDocument> : VaultOperation
 {
     private protected VaultOperation(CollectionModel<TDocument> model,
-        IReadOnlySet<FeatureKey> disabledFeatures,
+        FeatureSet disabledFeatures,
         KeyTarget<TDocument>? target)
         : base(model, model.Namespace, disabledFeatures)
     {

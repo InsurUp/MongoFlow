@@ -7,7 +7,7 @@ namespace MongoFlow;
 public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
 {
     internal DeleteOperation(CollectionModel<TDocument> model,
-        IReadOnlySet<FeatureKey> disabledFeatures,
+        FeatureSet disabledFeatures,
         KeyTarget<TDocument>? target,
         Expression<Func<TDocument, bool>>? filter,
         TDocument? document)

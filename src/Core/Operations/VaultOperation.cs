@@ -12,7 +12,7 @@ public abstract class VaultOperation
 {
     private protected VaultOperation(IVaultCollectionInfo collection,
         CollectionNamespace @namespace,
-        IReadOnlySet<FeatureKey> disabledFeatures)
+        FeatureSet disabledFeatures)
     {
         Collection = collection;
         Namespace = @namespace;
@@ -41,7 +41,7 @@ public abstract class VaultOperation
     public OperationResult? Result { get; internal set; }
 
     /// <summary>The features switched off on the collection view the operation was queued through.</summary>
-    internal IReadOnlySet<FeatureKey> DisabledFeatures { get; }
+    internal FeatureSet DisabledFeatures { get; }
 
     /// <summary>The model this operation adds to the save's bulk write.</summary>
     internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,

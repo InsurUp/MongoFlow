@@ -7,7 +7,7 @@ namespace MongoFlow;
 public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
 {
     internal UpdateOperation(CollectionModel<TDocument> model,
-        IReadOnlySet<FeatureKey> disabledFeatures,
+        FeatureSet disabledFeatures,
         KeyTarget<TDocument>? target,
         Expression<Func<TDocument, bool>>? filter,
         UpdateDefinition<TDocument> update,

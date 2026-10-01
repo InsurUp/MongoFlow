@@ -8,7 +8,7 @@ namespace MongoFlow;
 public sealed class InsertOperation<TDocument> : VaultOperation<TDocument>
 {
     internal InsertOperation(CollectionModel<TDocument> model,
-        IReadOnlySet<FeatureKey> disabledFeatures,
+        FeatureSet disabledFeatures,
         TDocument document)
         : base(model, disabledFeatures, target: null)
     {

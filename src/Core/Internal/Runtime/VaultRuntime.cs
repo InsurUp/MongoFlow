@@ -86,7 +86,7 @@ internal sealed class VaultRuntime
 
     public IVaultCollection<TDocument> GetCollection<TDocument>() =>
         Find(typeof(TDocument)) is CollectionModel<TDocument> collection
-            ? collection.CreateCollection(this, FeatureKeys.None)
+            ? collection.CreateCollection(this, FeatureSet.Empty)
             : throw new InvalidOperationException($"{Model.VaultType.Name} declares no collection of {typeof(TDocument).Name}.");
 
     public IVaultCollection<TDocument, TKey> GetCollection<TDocument, TKey>()
@@ -94,7 +94,7 @@ internal sealed class VaultRuntime
         var collection = Find(typeof(TDocument));
 
         return collection is KeyedCollectionModel<TDocument, TKey> keyed
-            ? keyed.CreateKeyedCollection(this, FeatureKeys.None)
+            ? keyed.CreateKeyedCollection(this, FeatureSet.Empty)
             : throw new InvalidOperationException(
                 $"{Model.VaultType.Name}.{collection.PropertyName} isn't keyed by {typeof(TKey).Name}.");
     }

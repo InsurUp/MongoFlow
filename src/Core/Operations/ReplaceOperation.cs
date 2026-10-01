@@ -6,7 +6,7 @@ namespace MongoFlow;
 public sealed class ReplaceOperation<TDocument> : VaultOperation<TDocument>
 {
     internal ReplaceOperation(CollectionModel<TDocument> model,
-        IReadOnlySet<FeatureKey> disabledFeatures,
+        FeatureSet disabledFeatures,
         KeyTarget<TDocument> target,
         TDocument document)
         : base(model, disabledFeatures, target)

@@ -5,7 +5,7 @@ namespace MongoFlow;
 internal sealed class KeyedVaultCollection<TDocument, TKey>(
     VaultRuntime runtime,
     KeyedCollectionModel<TDocument, TKey> model,
-    IReadOnlySet<FeatureKey> disabled) : VaultCollection<TDocument>(runtime, model, disabled), IVaultCollection<TDocument, TKey>
+    FeatureSet disabled) : VaultCollection<TDocument>(runtime, model, disabled), IVaultCollection<TDocument, TKey>
 {
     public override IVaultCollection<TDocument> Without(FeatureKey feature) => WithoutKeyed(feature);
 
@@ -66,7 +66,7 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
     }
 
     private KeyedVaultCollection<TDocument, TKey> WithoutKeyed(FeatureKey feature) =>
-        new(Runtime, model, With(Disabled, feature));
+        new(Runtime, model, Disabled.With(feature));
 
     private KeyTarget<TDocument> TargetOf(TDocument document) =>
         model.Key.Get(document) is { } key

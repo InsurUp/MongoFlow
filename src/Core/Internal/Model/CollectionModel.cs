@@ -33,19 +33,19 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     public RenderArgs<TDocument> RenderArgs { get; } = FilterDocuments.RenderArgs(definition.Collection);
 
     public virtual IVaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
-        IReadOnlySet<FeatureKey> disabled) =>
+        FeatureSet disabled) =>
         new VaultCollection<TDocument>(runtime, this, disabled);
 
     // A keyed model's CreateCollection returns a keyed collection, which a keyed property accepts.
     public void Attach(MongoVault vault, VaultRuntime runtime) =>
-        Property.SetValue(vault, CreateCollection(runtime, FeatureKeys.None));
+        Property.SetValue(vault, CreateCollection(runtime, FeatureSet.Empty));
 
     /// <summary>
     /// The collection's query filters joined into one, minus those of <paramref name="disabled"/> features, or
     /// <see langword="null"/> when nothing filters.
     /// </summary>
     public ValueTask<Expression<Func<TDocument, bool>>?> ResolveFilterAsync(IServiceProvider services,
-        IReadOnlySet<FeatureKey> disabled,
+        FeatureSet disabled,
         CancellationToken cancellationToken)
     {
         if (_filters.Length == 0)
@@ -54,7 +54,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         }
 
         // Every request gets the same filter, so it isn't joined again.
-        if (_onlyStatic && disabled.Count == 0)
+        if (_onlyStatic && disabled.IsEmpty)
         {
             return ValueTask.FromResult(_staticFilter);
         }
@@ -132,7 +132,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         FilterAsync(operation, run, filter, operation.Condition, cancellationToken);
 
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,
-        IReadOnlySet<FeatureKey> disabled,
+        FeatureSet disabled,
         CancellationToken cancellationToken)
     {
         var resolved = new Expression<Func<TDocument, bool>>?[_filters.Length];
@@ -149,7 +149,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     }
 
     private static bool IsActive(QueryFilterEntry<TDocument> filter,
-        IReadOnlySet<FeatureKey> disabled) =>
+        FeatureSet disabled) =>
         filter.Owner is not { } owner || !disabled.Contains(owner);
 
     /// <summary>
