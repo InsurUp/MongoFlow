@@ -12,10 +12,11 @@ namespace MongoFlow.IntegrationTests;
 /// <item><c>QueryAsync</c>, <c>FindAsync</c> and <c>AggregateAsync</c> start from the query filters;</item>
 /// <item><c>GetByKeyAsync</c> finds a document by <c>_id</c>, a member key or a composite key, unless the query filters
 /// hide it;</item>
+/// <item>a query joined with another collection's query joins only what that query's filters show;</item>
 /// <item>every read runs in the scope's transaction, when one is open.</item>
 /// </list>
 /// </summary>
-public class ReadTests
+public partial class ReadTests
 {
     [ClassDataSource<MongoFixture>(Shared = SharedType.PerTestSession)]
     public required MongoFixture Mongo { get; init; }

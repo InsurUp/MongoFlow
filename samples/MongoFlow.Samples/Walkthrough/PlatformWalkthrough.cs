@@ -185,6 +185,10 @@ public sealed class PlatformWalkthrough(IServiceProvider services,
             var onP1001 = await request.GetRequiredService<ClaimService>().ForPolicyAsync("P-1001", cancellationToken);
             log.LogInformation("   Ada has {OpenClaims} open claims, and P-1001 has {Claims}: the refused one isn't stored",
                 customer!.OpenClaims, onP1001.Count);
+
+            var open = await request.GetRequiredService<ClaimService>().OpenWithPoliciesAsync(cancellationToken);
+            log.LogInformation("   Joined with their policies, through the policies' query filters: {Claims}",
+                string.Join(", ", open.Select(c => $"{c.Amount} on {c.PolicyNumber} (premium {c.Premium})")));
         });
 
         return claims[0];

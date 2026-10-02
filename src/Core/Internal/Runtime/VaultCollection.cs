@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace MongoFlow;
 
@@ -24,9 +25,14 @@ internal class VaultCollection<TDocument>(
         LogReading(nameof(QueryAsync), filter);
         var session = await Runtime.GetSessionAsync(cancellationToken);
 
-        var queryable = session is null ? model.MongoCollection.AsQueryable() : model.MongoCollection.AsQueryable(session);
+        var queryable = model.Queryable(session);
 
-        return Tracked(filter is null ? queryable : queryable.Where(filter));
+        var query = filter is null ? queryable : queryable.Where(filter);
+        var provider = new VaultQueryProvider<TDocument>(query.GetMongoQueryProvider(),
+            model.Namespace.DatabaseNamespace,
+            Tracker);
+
+        return new VaultQueryable<TDocument, TDocument>(query, provider);
     }
 
     public async ValueTask<IFindFluent<TDocument, TDocument>> FindAsync(Expression<Func<TDocument, bool>> filter,
@@ -96,11 +102,12 @@ internal class VaultCollection<TDocument>(
         Runtime.Enqueue(new DeleteOperation<TDocument>(model, Disabled, null, filter, default));
     }
 
-    /// <summary>What a query returns. A keyed view that tracks changes wraps it, to track the documents it returns.</summary>
-    protected virtual IQueryable<TDocument> Tracked(IQueryable<TDocument> query) => query;
+    /// <summary>Tracks what the reads return, when this is a keyed view that tracks changes; otherwise <see langword="null"/>.</summary>
+    protected virtual IDocumentTracker<TDocument>? Tracker => null;
 
-    /// <inheritdoc cref="Tracked(IQueryable{TDocument})"/>
-    protected virtual IFindFluent<TDocument, TDocument> Tracked(IFindFluent<TDocument, TDocument> find) => find;
+    /// <summary>What a find returns: wrapped, to track the documents it returns, when the reads track changes.</summary>
+    protected IFindFluent<TDocument, TDocument> Tracked(IFindFluent<TDocument, TDocument> find) =>
+        Tracker is { } tracker ? new TrackingFindFluent<TDocument>(find, tracker) : find;
 
     /// <summary>Finds with <paramref name="filter"/>, in the scope's open transaction if there is one.</summary>
     private async ValueTask<IFindFluent<TDocument, TDocument>> FindInSessionAsync(FilterDefinition<TDocument> filter,

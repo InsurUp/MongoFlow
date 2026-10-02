@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Reflection;
 using MongoDB.Driver;
 
@@ -13,6 +14,9 @@ internal interface ICollectionModel : IVaultCollectionInfo
     PropertyInfo Property { get; }
 
     CollectionNamespace Namespace { get; }
+
+    /// <summary>The driver's collection as a constant, for a join to look documents up in.</summary>
+    ConstantExpression MongoCollectionConstant { get; }
 
     /// <summary>The element names of the key, or <see langword="null"/> for a keyless collection.</summary>
     IReadOnlyList<string>? KeyFields { get; }

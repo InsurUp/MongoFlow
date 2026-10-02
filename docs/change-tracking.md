@@ -40,7 +40,8 @@ var policy = await vault.Policies.WithTracking().GetByKeyAsync("P-1001", cancell
 - `FindAsync`'s results, unless the find is projected, with `Project`, `As` or a projection set on its options.
 - `QueryAsync`'s results, when the query returns the documents themselves: filtered, sorted, paged or picked with
   `Where`, `OrderBy`, `ThenBy`, `Skip`, `Take`, `Distinct`, `OfType`, `First`, `Single`, `Last`, `ElementAt` or `Sample`.
-  A `Select`, even to the document type, isn't tracked: a document missing fields could carry a default key.
+  A `Select`, even to the document type, isn't tracked: a document missing fields could carry a default key. Nor is a
+  join, whose results have its own shape.
 - Not aggregations, and not documents passed to `Add` or `Replace`.
 - Not documents whose key is null.
 

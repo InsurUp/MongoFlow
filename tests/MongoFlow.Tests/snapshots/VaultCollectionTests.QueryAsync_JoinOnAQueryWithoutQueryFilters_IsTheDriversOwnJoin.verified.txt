@@ -1,0 +1,1 @@
+﻿unit.Orders.Aggregate([{ "$match" : { "IsDeleted" : { "$ne" : true } } }, { "$project" : { "_outer" : "$$ROOT", "_id" : 0 } }, { "$lookup" : { "from" : "Customers", "localField" : "_outer.Customer", "foreignField" : "Name", "as" : "_inner" } }, { "$unwind" : "$_inner" }, { "$project" : { "_id" : "$_outer._id", "Name" : "$_inner.Name" } }])

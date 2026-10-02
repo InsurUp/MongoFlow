@@ -2,9 +2,34 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoFlow.Tests;
 
-// A vault whose key can be null, to show writes rejecting a document without one.
+// A vault whose key can be null, to show writes rejecting a document without one; customers to join orders with.
 public partial class VaultCollectionTests
 {
+    /// <summary>A customer, whom orders name.</summary>
+    public sealed class Customer : ISoftDeletable
+    {
+        public int Id { get; set; }
+
+        public string Name { get; set; } = "";
+
+        public bool IsDeleted { get; set; }
+    }
+
+    public sealed class SalesVault : MongoVault
+    {
+        public IVaultCollection<Customer, int> Customers { get; init; } = null!;
+
+        public IVaultCollection<Order, int> Orders { get; init; } = null!;
+    }
+
+    /// <summary>Customers kept in another database than the <see cref="SalesVault"/>'s.</summary>
+    public sealed class ArchiveVault : MongoVault
+    {
+        public const string Database = "archive";
+
+        public IVaultCollection<Customer, int> Customers { get; init; } = null!;
+    }
+
     public sealed class Product
     {
         public string? Id { get; set; }

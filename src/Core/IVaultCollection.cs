@@ -27,6 +27,11 @@ public interface IVaultCollection<TDocument>
     /// <summary>A view of this collection with a feature switched off for the reads and writes made through it.</summary>
     IVaultCollection<TDocument> Without(FeatureKey feature);
 
+    /// <summary>
+    /// A LINQ query of the collection, starting from its query filters. Joined with another collection's query, it joins
+    /// only what that query's filters show. The driver's operators in <c>MongoDB.Driver.Linq</c> work on it, except
+    /// <c>GetClient()</c>, which needs the driver's own provider.
+    /// </summary>
     ValueTask<IQueryable<TDocument>> QueryAsync(CancellationToken cancellationToken = default);
 
     ValueTask<IFindFluent<TDocument, TDocument>> FindAsync(Expression<Func<TDocument, bool>> filter,

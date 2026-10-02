@@ -54,7 +54,7 @@ platform's admin or an agent of one of two agencies (`SampleUsers`), as authenti
 | 2. Reads | Key lookups, LINQ, paging, find, projection and aggregation, each limited by tenant, soft delete, permissions and modules | `PolicyService` |
 | 3. Change tracking | A policy changed where it was read; the save writes what changed | `PolicyVault.Configure`, `PolicyService.CancelAsync` |
 | 4. Concurrency | Two requests change one policy: the second save throws `ConcurrencyException`, and the request reads again | `PolicyVault.Configure` |
-| 5. Transactions | A claim filed across two vaults; one over the customer's limit rolled back after its first save | `ClaimService.FileAsync` |
+| 5. Transactions | A claim filed across two vaults; one over the customer's limit rolled back after its first save. Then the open claims joined with their policies, through the policies' query filters | `ClaimService.FileAsync`, `ClaimService.OpenWithPoliciesAsync` |
 | 6. Write conditions | A claim decided only while it's open, checked by the server in the write | `ClaimDecisionGuard`, `ClaimService.DecideAsync` |
 | 7. Set-based writes | An update of every ended policy, a soft delete by key, and a count with features switched off | `PolicyService` |
 | 8. Parallel reads | Policies read from parallel tasks on one vault, renewed, and saved once | `RenewalService` |

@@ -8,6 +8,7 @@ namespace MongoFlow.Tests;
 /// the server:
 /// <list type="number">
 /// <item>reads start from the collection's query filters, joined with the read's own;</item>
+/// <item>a query joined with another collection's query looks up through that query's filters, and only filters;</item>
 /// <item>a view with a feature switched off stays keyed when the collection is;</item>
 /// <item>null arguments, and documents whose key is null, are rejected when the write is queued.</item>
 /// </list>

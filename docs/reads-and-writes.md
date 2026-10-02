@@ -26,8 +26,35 @@ var order = await vault.Orders.GetByKeyAsync(42, cancellationToken);
 
 Inside an open transaction, reads run in its session, so they see its writes.
 
+A `QueryAsync` query goes through MongoFlow's LINQ provider, which hands everything to the driver's, so the driver's
+operators work on it. The one exception is `GetClient()`, which needs the driver's own provider. Outside a transaction,
+the reads of a collection start from one driver query, so the provider's `LoggedStages` show the last query any request
+ran on it.
+
 `MongoCollection` is the driver's collection: what's read or written through it bypasses query filters, features,
 interceptors and the vault's save. Use it for what MongoFlow doesn't cover, such as indexes or change streams.
+
+### Joins
+
+A query can be joined with another collection's query, and each side keeps its query filters:
+
+```csharp
+var customers = from customer in await vault.Customers.QueryAsync(cancellationToken)
+                join policy in await vault.Policies.QueryAsync(cancellationToken)
+                    on customer.Id equals policy.CustomerId into policies
+                select new { customer.Name, Policies = policies };
+```
+
+The driver joins only a whole collection, so MongoFlow writes a join on a query with filters as the driver's `Lookup`,
+with the filters inside the `$lookup`: only the policies a read of them could see are joined.
+
+- Group joins (`join ... into`), joins, left joins (`into` then `DefaultIfEmpty()`, or `LeftJoin`) and joins in a row
+  work, and the joined query can add `Where`s of its own.
+- Only filters go into the `$lookup`. There, a `Take`, `Skip` or `OrderBy` would apply to each customer's policies
+  rather than to the collection, so a join on a query with one fails, as the driver's does.
+- Both collections must be in the same database, since a `$lookup` can't reach another one. A join across databases
+  fails when it's built.
+- What a join returns has the join's shape, so [change tracking](change-tracking.md) doesn't track it.
 
 ### Views
 

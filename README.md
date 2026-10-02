@@ -105,10 +105,10 @@ keys, defaults, and the order settings apply in.
 
 `QueryAsync`, `FindAsync`, `AggregateAsync` and `GetByKeyAsync` read; `Add`, `AddRange`, `Replace`, `Update`,
 `UpdateByKey`, `UpdateMany`, `Delete`, `DeleteByKey` and `DeleteMany` queue writes. A write by key or filter also carries
-the query filters, so it can't reach a document a read couldn't see. `MongoCollection` is the driver's collection, with
-nothing applied.
+the query filters, so it can't reach a document a read couldn't see. A query joined with another collection's query
+joins only what that query's filters show. `MongoCollection` is the driver's collection, with nothing applied.
 
-[Reads and writes](https://github.com/InsurUp/MongoFlow/blob/main/docs/reads-and-writes.md): what a save sends, its
+[Reads and writes](https://github.com/InsurUp/MongoFlow/blob/main/docs/reads-and-writes.md): joins, what a save sends, its
 result, and what may run in parallel.
 
 ### Change tracking

@@ -33,6 +33,13 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     public CollectionNamespace Namespace => MongoCollection.CollectionNamespace;
 
+    public ConstantExpression MongoCollectionConstant { get; } =
+        Expression.Constant(definition.Collection, typeof(IMongoCollection<TDocument>));
+
+    // Outside a session, every read starts from one driver query, as the queries the driver builds on one share it, so
+    // it's registered for joins once. Two reads racing to create it both get a registered one.
+    private IQueryable<TDocument> SharedQueryable => field ??= VaultJoins.Registered(MongoCollection.AsQueryable(), this);
+
     public virtual IReadOnlyList<string>? KeyFields => null;
 
     /// <summary>Renders the collection's filters and fields the way the driver renders its writes.</summary>
@@ -44,6 +51,10 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     // A keyed model's CreateCollection returns a keyed collection, which a keyed property accepts.
     public void Attach(MongoVault vault, VaultRuntime runtime) => _fill(vault, CreateCollection(runtime, FeatureSet.Empty));
+
+    /// <summary>The driver's query of the collection, in <paramref name="session"/> if there is one, registered for joins.</summary>
+    public IQueryable<TDocument> Queryable(IClientSessionHandle? session) =>
+        session is null ? SharedQueryable : VaultJoins.Registered(MongoCollection.AsQueryable(session), this);
 
     /// <summary>
     /// The collection's query filters joined into one, minus those of <paramref name="disabled"/> features, or

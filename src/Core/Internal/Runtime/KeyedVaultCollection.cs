@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace MongoFlow;
 
@@ -98,14 +97,7 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
         Runtime.Tracker.Track(new TrackedDocument<TDocument, TKey>(model, Disabled, document, key, snapshot));
     }
 
-    protected override IQueryable<TDocument> Tracked(IQueryable<TDocument> query) =>
-        tracking
-            ? new TrackingQueryable<TDocument, TDocument>(query,
-                new TrackingQueryProvider<TDocument>(query.GetMongoQueryProvider(), this))
-            : query;
-
-    protected override IFindFluent<TDocument, TDocument> Tracked(IFindFluent<TDocument, TDocument> find) =>
-        tracking ? new TrackingFindFluent<TDocument>(find, this) : find;
+    protected override IDocumentTracker<TDocument>? Tracker => tracking ? this : null;
 
     private KeyedVaultCollection<TDocument, TKey> WithoutKeyed(FeatureKey feature) =>
         new(Runtime, model, Disabled.With(feature), tracking);

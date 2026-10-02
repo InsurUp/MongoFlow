@@ -1,0 +1,6 @@
+﻿{
+  Inside: [
+    C-20
+  ],
+  Outside: []
+}

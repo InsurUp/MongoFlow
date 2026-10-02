@@ -1,0 +1,13 @@
+﻿[
+  {
+    Name: ada,
+    Contracts: [
+      C-10,
+      C-14
+    ]
+  },
+  {
+    Name: dee,
+    Contracts: []
+  }
+]

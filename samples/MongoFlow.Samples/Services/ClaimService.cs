@@ -5,7 +5,10 @@ using MongoFlow.Samples.Vaults;
 
 namespace MongoFlow.Samples.Services;
 
-/// <summary>A transaction spanning two vaults, rolled back when a rule fails halfway, and claims decided only once.</summary>
+/// <summary>
+/// A transaction spanning two vaults, rolled back when a rule fails halfway, claims decided only once, and claims joined
+/// with their policies.
+/// </summary>
 public sealed class ClaimService(IPolicyVault policies,
     CustomerVault customers,
     IVaultTransactionManager transactions)
@@ -51,6 +54,20 @@ public sealed class ClaimService(IPolicyVault policies,
     {
         policies.Claims.UpdateByKey(claimId, Builders<Claim>.Update.Set(c => c.Status, decision));
         await policies.SaveAsync(cancellationToken);
+    }
+
+    // Joined with another collection's query, a query joins only what that query's filters show: here the policies of
+    // the user's agency, not deleted, and only for a user who may read them.
+    public async Task<List<OpenClaim>> OpenWithPoliciesAsync(CancellationToken cancellationToken)
+    {
+        var open = from claim in await policies.Claims.QueryAsync(cancellationToken)
+                   join policy in await policies.Policies.QueryAsync(cancellationToken)
+                       on claim.PolicyNumber equals policy.PolicyNumber
+                   where claim.Status == ClaimStatus.Open
+                   orderby claim.Amount
+                   select new OpenClaim(claim.Amount, policy.PolicyNumber, policy.Premium);
+
+        return await open.ToListAsync(cancellationToken);
     }
 
     public async Task<List<Claim>> ForPolicyAsync(string policyNumber, CancellationToken cancellationToken)

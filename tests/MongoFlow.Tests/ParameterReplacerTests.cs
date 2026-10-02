@@ -3,8 +3,9 @@ using System.Linq.Expressions;
 namespace MongoFlow.Tests;
 
 /// <summary>
-/// <see cref="ParameterReplacer.Inline"/> puts an expression in place of a lambda's parameter, as if the lambda were
-/// called inline: every use of that parameter is replaced, and nothing else.
+/// <see cref="ParameterReplacer.Inline(System.Linq.Expressions.LambdaExpression, System.Linq.Expressions.Expression)"/>
+/// puts an expression in place of a lambda's parameter, or two in place of its two, as if the lambda were called inline:
+/// every use of those parameters is replaced, and nothing else.
 /// </summary>
 public partial class ParameterReplacerTests
 {
@@ -45,6 +46,21 @@ public partial class ParameterReplacerTests
 
         // Assert
         await Assert.That(inlined.ToString()).IsEqualTo("y.Items.Any(item => (item > y.Min))");
+    }
+
+    [Test]
+    public async Task Inline_TwoArguments_PutsEachInPlaceOfItsParameter()
+    {
+        // Arrange
+        Expression<Func<Basket, int, bool>> lambda = (x, limit) => x.Min > limit && x.Items.Length > limit;
+
+        // Act
+        var inlined = ParameterReplacer.Inline(lambda,
+            Expression.Parameter(typeof(Basket), "y"),
+            Expression.Constant(3));
+
+        // Assert
+        await Assert.That(inlined.ToString()).IsEqualTo("((y.Min > 3) AndAlso (ArrayLength(y.Items) > 3))");
     }
 
     /// <summary>A document with a member to compare and items to look into.</summary>

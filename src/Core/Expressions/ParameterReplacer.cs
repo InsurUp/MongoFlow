@@ -24,5 +24,11 @@ internal sealed class ParameterReplacer : ExpressionVisitor
         return parameter == argument ? lambda.Body : new ParameterReplacer(parameter, argument).Visit(lambda.Body);
     }
 
+    /// <summary>The body of <c>(x, y) =&gt; body</c> with <paramref name="first"/> in place of x and <paramref name="second"/> of y.</summary>
+    public static Expression Inline(LambdaExpression lambda,
+        Expression first,
+        Expression second) =>
+        new ParameterReplacer(lambda.Parameters[1], second).Visit(Inline(lambda, first));
+
     protected override Expression VisitParameter(ParameterExpression node) => node == _parameter ? _replacement : node;
 }

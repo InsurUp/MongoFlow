@@ -68,6 +68,13 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
     aggregations aren't tracked.
   - A queued `Replace` or `Delete` of a tracked document takes the place of its changes. A changed key fails the save.
   - Changes a save wrote are pending again if it fails or its transaction rolls back.
+- Joins on vault queries: a `QueryAsync` query joined with another collection's, as in
+  `join p in await vault.Policies.QueryAsync() on ...`, joins only what that query's filters show.
+  - The driver joins only a whole collection, so MongoFlow writes the join as the driver's `Lookup`, with the filters
+    inside the `$lookup`.
+  - Group joins, joins, left joins and joins in a row work, and the joined query can add `Where`s of its own.
+  - A query with a page or a sort can't be joined, and both collections must share a database.
+  - `QueryAsync` queries go through MongoFlow's LINQ provider, so the driver's `GetClient()` doesn't work on them.
 - `MongoVault` is `IDisposable`: its scope gives back the pooled memory it holds, tracked documents' snapshots and
   writes never saved.
 - Parallel tasks can share a vault instance to read and queue writes.
@@ -93,6 +100,7 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
 | `VaultInterceptorContext` | `SaveContext` |
 | `AddOperation` and `AddRangeOperation` | `InsertOperation`, one for each document |
 | `DisableContext` | `collection.Without(SoftDeleteFeature.Key)` |
+| A join on a filtered set's `AsQueryable()`, which the driver rejects | `join x in await vault.X.QueryAsync()`, run as a `$lookup` |
 | `IMongoMigration` with `Up(db, session)` | `IVaultMigration<TVault>` with `UpAsync(context)` |
 | `[MongoVersion]` on the vault | Unchanged; it must now be the version of one of the vault's migrations |
 | `MigrateOnStartup()` | `await services.GetRequiredService<IVaultMigrator>().MigrateAllAsync()` at startup |
