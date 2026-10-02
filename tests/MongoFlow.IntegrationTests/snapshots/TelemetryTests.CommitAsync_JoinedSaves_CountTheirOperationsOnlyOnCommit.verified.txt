@@ -1,0 +1,34 @@
+﻿{
+  Saves: [
+    {
+      mongoflow.save.transaction: joined,
+      mongoflow.vault: ShopVault
+    },
+    {
+      mongoflow.save.transaction: joined,
+      mongoflow.vault: ShopVault
+    }
+  ],
+  BeforeCommit: [],
+  Operations: [
+    {
+      Value: 1,
+      Tags: {
+        mongoflow.operation.kind: insert,
+        mongoflow.vault: ShopVault
+      }
+    },
+    {
+      Value: 2,
+      Tags: {
+        mongoflow.operation.kind: insert,
+        mongoflow.vault: ShopVault
+      }
+    }
+  ],
+  Transactions: [
+    {
+      mongoflow.transaction.outcome: committed
+    }
+  ]
+}

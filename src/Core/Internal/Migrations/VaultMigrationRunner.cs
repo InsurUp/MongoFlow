@@ -26,6 +26,26 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
             return;
         }
 
+        using var activity = VaultActivities.StartMigrate(typeof(TVault).Name);
+        try
+        {
+            await MigrateAsync(history, target, activity, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            activity.Fail(exception);
+            throw;
+        }
+    }
+
+    public async Task<SemVersion?> GetVersionAsync(CancellationToken cancellationToken) =>
+        History is { } history ? (await AppliedAsync(history, cancellationToken)).Max(SemVersion.SortOrderComparer) : null;
+
+    private async Task MigrateAsync(IMongoCollection<MigrationRecord> history,
+        SemVersion? target,
+        Activity? activity,
+        CancellationToken cancellationToken)
+    {
         var migrations = await PlanAsync();
         target ??= migrations[^1].Version;
 
@@ -47,6 +67,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
 
         var log = Model.Logs.Migrations;
         var current = applied.Max(SemVersion.SortOrderComparer)?.ToString() ?? "none";
+        activity.Migrating(current, target);
 
         if (applying.Count == 0 && reverting.Count == 0)
         {
@@ -66,9 +87,6 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
             await RunAsync(history, migration, up: false, cancellationToken);
         }
     }
-
-    public async Task<SemVersion?> GetVersionAsync(CancellationToken cancellationToken) =>
-        History is { } history ? (await AppliedAsync(history, cancellationToken)).Max(SemVersion.SortOrderComparer) : null;
 
     /// <summary>The migrations' types and versions, oldest first. Reading a version takes an instance, from a scope of its own.</summary>
     private async Task<List<(Type Type, SemVersion Version)>> PlanAsync()
@@ -96,6 +114,8 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
         bool up,
         CancellationToken cancellationToken)
     {
+        // Started first, so the migration's scope, transaction and writes are traced under it.
+        using var activity = VaultActivities.StartMigration(typeof(TVault).Name, planned.Version, planned.Type.Name, up);
         await using var scope = services.CreateAsyncScope();
         var migration = Create(scope.ServiceProvider, planned.Type);
         var vault = scope.ServiceProvider.GetRequiredService<TVault>();
@@ -122,6 +142,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
         }
         catch (Exception exception)
         {
+            activity.Fail(exception);
             model.Logs.Migrations.MigrationFailed(up ? "Applying" : "Reverting", planned.Version, typeof(TVault).Name,
                 planned.Type.Name, Stopwatch.GetElapsedTime(started).TotalMilliseconds, exception);
 

@@ -1,0 +1,13 @@
+﻿{
+  Measurements: [
+    {
+      Value: 0.25,
+      Tags: {
+        error.type: System.TimeoutException,
+        mongoflow.save.transaction: joined,
+        mongoflow.vault: ShopVault
+      }
+    }
+  ],
+  Completed: true
+}

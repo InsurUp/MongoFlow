@@ -37,6 +37,9 @@ internal static class SavePipeline
         var started = Stopwatch.GetTimestamp();
 
         var outer = runtime.TransactionManager.Active;
+
+        // Started first, so what the save sends, its own transaction's commit included, is traced under it.
+        using var activity = VaultActivities.StartSave(vault, outer is not null);
         var transaction = outer ?? runtime.TransactionManager.Start(forSave: true);
         var run = new SaveRun(runtime, operations);
         var callbacks = new SaveCallbacks(run.CommittedAsync, run.FailedAsync, run.Dispose);
@@ -61,6 +64,7 @@ internal static class SavePipeline
             enlisted = true;
 
             await run.SavingAsync(cancellationToken);
+            activity.Writing(run.Operations.Count);
             writing = true;
             var result = await run.WriteAsync(cancellationToken);
             await run.SavedAsync(cancellationToken);
@@ -70,14 +74,19 @@ internal static class SavePipeline
                 await transaction.CommitAsync(cancellationToken);
             }
 
-            log.Saved(vault, Stopwatch.GetElapsedTime(started).TotalMilliseconds, result.Inserted, result.Matched, result.Modified,
-                result.Deleted);
+            var elapsed = Stopwatch.GetElapsedTime(started);
+            log.Saved(vault, elapsed.TotalMilliseconds, result.Inserted, result.Matched, result.Modified, result.Deleted);
+            activity.Saved(result);
+            runtime.Model.Metrics.RecordSave(vault, outer is not null, elapsed, exception: null);
 
             return result;
         }
         catch (Exception exception)
         {
-            log.SaveFailed(vault, Stopwatch.GetElapsedTime(started).TotalMilliseconds, exception);
+            var elapsed = Stopwatch.GetElapsedTime(started);
+            log.SaveFailed(vault, elapsed.TotalMilliseconds, exception);
+            activity.Fail(exception);
+            runtime.Model.Metrics.RecordSave(vault, outer is not null, elapsed, exception);
 
             // Each path runs the interceptors' failure hooks. A rollback after the commit does nothing.
             if (outer is null)

@@ -1,0 +1,50 @@
+﻿[
+  {
+    Name: MongoFlow.Save,
+    Parent: test,
+    Status: Unset,
+    Tags: {
+      mongoflow.save.deleted_count: 0,
+      mongoflow.save.inserted_count: 1,
+      mongoflow.save.matched_count: 0,
+      mongoflow.save.modified_count: 0,
+      mongoflow.save.operation_count: 1,
+      mongoflow.save.transaction: joined,
+      mongoflow.vault: ShopVault
+    }
+  },
+  {
+    Name: transaction,
+    Parent: test,
+    Status: Ok
+  },
+  {
+    Name: bulkWrite admin,
+    Parent: transaction,
+    Status: Ok
+  },
+  {
+    Name: MongoFlow.Save,
+    Parent: test,
+    Status: Unset,
+    Tags: {
+      mongoflow.save.deleted_count: 0,
+      mongoflow.save.inserted_count: 1,
+      mongoflow.save.matched_count: 0,
+      mongoflow.save.modified_count: 0,
+      mongoflow.save.operation_count: 1,
+      mongoflow.save.transaction: joined,
+      mongoflow.vault: ShopVault
+    }
+  },
+  {
+    Name: bulkWrite admin,
+    Parent: transaction,
+    Status: Ok
+  },
+  {
+    Name: commitTransaction admin,
+    Parent: transaction,
+    Status: Unset
+  }
+]

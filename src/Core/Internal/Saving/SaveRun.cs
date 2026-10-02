@@ -107,6 +107,9 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
 
     public async Task CommittedAsync(CancellationToken cancellationToken)
     {
+        // Counted on commit, so writes rolled back with their transaction never are.
+        Runtime.Model.Metrics.RecordCommitted(Runtime.Model.VaultType.Name, Operations.Span);
+
         for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
         {
             await Runtime.GetInterceptor(i).CommittedAsync(ContextFor(i), cancellationToken);

@@ -48,6 +48,15 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
   - The history of 0.5, in the `migrations` collection, carries over.
 - Logging through the `ILoggerFactory` in DI, with every event ID in `MongoFlowLogEvents`. It warns about keys and
   feature fields without indexes; MongoFlow doesn't create indexes.
+- Tracing and metrics through `System.Diagnostics`, with every name in `MongoFlowTelemetry`. Add
+  `.AddSource(MongoFlowTelemetry.ActivitySourceName)` and `.AddMeter(MongoFlowTelemetry.MeterName)` to OpenTelemetry,
+  and the driver's `MongoTelemetry.ActivitySourceName` to see the commands MongoFlow sends.
+  - Saves and migrations are spans. The driver's spans nest under them, and the driver's span for a begun transaction
+    starts under the code that began it. Reads appear only as the driver's spans, since they run after `QueryAsync`
+    returns.
+  - Instruments: save duration, the writes saves committed, by kind, and how long begun transactions stay open, by
+    outcome. Failures are tagged with `error.type`.
+  - The meter comes from the `IMeterFactory` in DI, if there is one.
 - Parallel tasks can share a vault instance to read and queue writes.
 
 ### Removed

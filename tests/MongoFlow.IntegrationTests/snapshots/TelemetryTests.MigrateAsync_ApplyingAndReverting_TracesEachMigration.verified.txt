@@ -1,0 +1,72 @@
+﻿[
+  {
+    Name: MongoFlow.Migrate,
+    Parent: test,
+    Status: Unset,
+    Tags: {
+      mongoflow.migration.current: none,
+      mongoflow.migration.target: 1.0.0,
+      mongoflow.vault: ShopVault
+    }
+  },
+  {
+    Name: MongoFlow.Migration,
+    Parent: MongoFlow.Migrate,
+    Status: Unset,
+    Tags: {
+      mongoflow.migration.direction: up,
+      mongoflow.migration.name: AddOrder,
+      mongoflow.migration.version: 1.0.0,
+      mongoflow.vault: ShopVault
+    }
+  },
+  {
+    Name: MongoFlow.Save,
+    Parent: MongoFlow.Migration,
+    Status: Unset,
+    Tags: {
+      mongoflow.save.deleted_count: 0,
+      mongoflow.save.inserted_count: 1,
+      mongoflow.save.matched_count: 0,
+      mongoflow.save.modified_count: 0,
+      mongoflow.save.operation_count: 1,
+      mongoflow.save.transaction: joined,
+      mongoflow.vault: ShopVault
+    }
+  },
+  {
+    Name: MongoFlow.Migrate,
+    Parent: test,
+    Status: Unset,
+    Tags: {
+      mongoflow.migration.current: 1.0.0,
+      mongoflow.migration.target: 0.0.0,
+      mongoflow.vault: ShopVault
+    }
+  },
+  {
+    Name: MongoFlow.Migration,
+    Parent: MongoFlow.Migrate,
+    Status: Unset,
+    Tags: {
+      mongoflow.migration.direction: down,
+      mongoflow.migration.name: AddOrder,
+      mongoflow.migration.version: 1.0.0,
+      mongoflow.vault: ShopVault
+    }
+  },
+  {
+    Name: MongoFlow.Save,
+    Parent: MongoFlow.Migration,
+    Status: Unset,
+    Tags: {
+      mongoflow.save.deleted_count: 1,
+      mongoflow.save.inserted_count: 0,
+      mongoflow.save.matched_count: 0,
+      mongoflow.save.modified_count: 0,
+      mongoflow.save.operation_count: 1,
+      mongoflow.save.transaction: joined,
+      mongoflow.vault: ShopVault
+    }
+  }
+]

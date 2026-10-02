@@ -12,7 +12,8 @@ internal sealed class VaultModel(Type vaultType,
     IReadOnlyList<ICollectionModel> collections,
     IReadOnlyList<InterceptorModel> interceptors,
     MigrationModel? migrations,
-    VaultLogs logs)
+    VaultLogs logs,
+    VaultMetrics metrics)
 {
     public Type VaultType { get; } = vaultType;
 
@@ -31,4 +32,7 @@ internal sealed class VaultModel(Type vaultType,
     public MigrationModel? Migrations { get; } = migrations;
 
     public VaultLogs Logs { get; } = logs;
+
+    /// <summary>The root provider's instruments, shared by its vaults.</summary>
+    public VaultMetrics Metrics { get; } = metrics;
 }

@@ -26,7 +26,7 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
 - **TUnit** on Microsoft.Testing.Platform (`global.json`): `[Test]`, `[Arguments]`, `await Assert.That()`. No xUnit,
   NUnit or MSTest attributes, no `Microsoft.NET.Test.Sdk`, no coverlet.
 - **Verify** (`Verify.TUnit`) for snapshots, **TUnit.Mocks** for mocks, **Testcontainers.MongoDb** for the server,
-  **FakeTimeProvider** for time. No FluentAssertions, Shouldly, Moq or NSubstitute.
+  **FakeTimeProvider** for time, **MetricCollector** for metrics. No FluentAssertions, Shouldly, Moq or NSubstitute.
 - Package versions live in `Directory.Packages.props`; `tests/Directory.Build.props` holds what every test project
   shares (target frameworks, warnings as errors, the Verify exemption). Don't re-reference a package the library brings.
 - **Setup:** constructors with `readonly` fields for sync setup; `[Before(Test)]` only when it must be async. No `null!`
@@ -85,6 +85,16 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
 - Refer to events by `MongoFlowLogEvents` constants, never by number. Wait for what logs in the background, such as the
   index check, with `sink.WaitForAsync(eventId)`, never a delay.
 
+## Telemetry
+
+- Spans: create an `ActivitySink` (in `Fixtures/`) in the test body, `using var spans = new ActivitySink();`. Its root
+  span is current only in the flow that creates it, and it keeps only the spans of its own trace, so parallel tests
+  don't see each other's. `spans.Snapshot()` shows MongoFlow's spans; name the driver's spans to include them, never its
+  `hello`, which runs for whichever test saves first.
+- Metrics: register `services.AddMetrics()` and read with `MetricCollector<T>` (Microsoft.Extensions.Diagnostics.Testing)
+  over the host's `IMeterFactory`, which no other test's host shares. Snapshot durations' tags, not their values.
+- Refer to spans, instruments and tags by `MongoFlowTelemetry` constants.
+
 ## Mocks
 
 - TUnit.Mocks, for interfaces only (`IMongoClient`, `IMongoDatabase`, `IClientSessionHandle`, `IVaultConfiguration<T>`).
@@ -115,7 +125,10 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
   - `AsyncQueryFilter.Resolve`: the synchronous path only runs when a collection has no asynchronous filter;
   - two guards in `VaultModelBuilder.IsSameProperty` for selectors a lambda can't express;
   - the rethrow branches the compiler generates for `throw;` in a catch or finally that awaits (`SavePipeline`,
-    `VaultTransaction`): they handle thrown objects that aren't exceptions.
+    `VaultTransaction`): they handle thrown objects that aren't exceptions;
+  - `VaultActivities.Recording` given no span at all, which is what an app with nothing listening gets: TUnit listens to
+    every span a test starts, for its HTML report, so a test only gets none past TUnit's cap of 100 spans per test,
+    which a test that saves many times may reach or not.
 - Every bug fix comes with a regression test that fails before the fix.
 
 ### CI

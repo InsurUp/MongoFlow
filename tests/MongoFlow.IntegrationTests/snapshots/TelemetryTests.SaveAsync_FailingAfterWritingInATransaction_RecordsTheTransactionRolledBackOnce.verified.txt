@@ -1,0 +1,15 @@
+﻿{
+  Saves: [
+    {
+      error.type: System.InvalidOperationException,
+      mongoflow.save.transaction: joined,
+      mongoflow.vault: ShopVault
+    }
+  ],
+  Transactions: [
+    {
+      error.type: System.InvalidOperationException,
+      mongoflow.transaction.outcome: rolled_back
+    }
+  ]
+}

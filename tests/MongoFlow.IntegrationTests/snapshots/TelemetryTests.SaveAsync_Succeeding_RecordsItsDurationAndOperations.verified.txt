@@ -1,0 +1,31 @@
+﻿{
+  Saves: [
+    {
+      mongoflow.save.transaction: own,
+      mongoflow.vault: ShopVault
+    }
+  ],
+  Operations: [
+    {
+      Value: 1,
+      Tags: {
+        mongoflow.operation.kind: insert,
+        mongoflow.vault: ShopVault
+      }
+    },
+    {
+      Value: 1,
+      Tags: {
+        mongoflow.operation.kind: update,
+        mongoflow.vault: ShopVault
+      }
+    },
+    {
+      Value: 1,
+      Tags: {
+        mongoflow.operation.kind: delete,
+        mongoflow.vault: ShopVault
+      }
+    }
+  ]
+}

@@ -240,7 +240,8 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             collections,
             interceptors,
             _migrations.Build(),
-            VaultLogs.From(_services));
+            VaultLogs.From(_services),
+            _services.GetRequiredService<VaultMetrics>());
     }
 
     private void Apply(Type configurationType, Func<IVaultConfiguration<TVault>> create)

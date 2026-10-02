@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -10,10 +11,20 @@ namespace MongoFlow;
 /// A save that fails after writing dooms it: MongoDB can't undo part of a transaction, so the whole of it is rolled back
 /// at once. It stays current, failing whatever tries to use it, its commit included, until its owner ends it.
 /// </remarks>
+/// <param name="forSave">
+/// Whether a save opens it for itself: it logs at a lower level than a begun one, since the save logs already, and its
+/// duration is the save's.
+/// </param>
 internal sealed class VaultTransaction(VaultTransactionManager owner,
     IMongoClient? defaultClient,
-    LogLevel logLevel) : IVaultTransaction
+    bool forSave) : IVaultTransaction
 {
+    private readonly LogLevel _logLevel = forSave ? LogLevel.Trace : LogLevel.Debug;
+    private readonly long _started = Stopwatch.GetTimestamp();
+
+    // The span current where the transaction began, for the driver's transaction span to start under.
+    private readonly Activity? _begunIn = Activity.Current;
+
     private readonly List<SaveCallbacks> _saves = [];
     private IMongoClient? _client;
     private IClientSessionHandle? _session;
@@ -82,13 +93,15 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
         }
         catch (Exception exception)
         {
-            owner.Log.CommitFailed(logLevel, _saves.Count, exception);
+            owner.Log.CommitFailed(_logLevel, _saves.Count, exception);
+            Record("commit_failed", exception);
             await FailAsync(exception);
             throw;
         }
 
         IsCommitted = true;
-        owner.Log.Committed(logLevel, _saves.Count);
+        owner.Log.Committed(_logLevel, _saves.Count);
+        Record("committed", null);
 
         foreach (var save in _saves)
         {
@@ -116,7 +129,8 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
             await _session.AbortTransactionAsync(CancellationToken.None);
         }
 
-        owner.Log.RolledBack(logLevel, _saves.Count);
+        owner.Log.RolledBack(_logLevel, _saves.Count);
+        Record("rolled_back", null);
         await FailAsync(new InvalidOperationException("The transaction was rolled back."));
     }
 
@@ -134,7 +148,8 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
             await _session.AbortTransactionAsync(CancellationToken.None);
         }
 
-        owner.Log.Doomed(logLevel, _saves.Count, cause);
+        owner.Log.Doomed(_logLevel, _saves.Count, cause);
+        Record("rolled_back", cause);
         await FailAsync(cause);
     }
 
@@ -156,9 +171,31 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
     {
         _client = client;
         _session = session;
-        _session.StartTransaction();
+
+        // The driver starts its transaction span here, under the current one: make that where the transaction began,
+        // rather than whichever vault happened to join first.
+        var current = Activity.Current;
+        Activity.Current = _begunIn;
+        try
+        {
+            _session.StartTransaction();
+        }
+        finally
+        {
+            Activity.Current = current;
+        }
 
         return _session;
+    }
+
+    /// <summary>Records how long the transaction was open, once it ended; a save's own transaction is part of the save's.</summary>
+    private void Record(string outcome,
+        Exception? exception)
+    {
+        if (!forSave)
+        {
+            owner.Metrics.RecordTransaction(Stopwatch.GetElapsedTime(_started), outcome, exception);
+        }
     }
 
     private void End()

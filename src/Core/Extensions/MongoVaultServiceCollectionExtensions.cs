@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -120,6 +121,7 @@ public static class MongoVaultServiceCollectionExtensions
         services.TryAddScoped<VaultTransactionManager>();
         services.TryAddScoped<IVaultTransactionManager>(provider => provider.GetRequiredService<VaultTransactionManager>());
         services.TryAddSingleton<IVaultMigrator, VaultMigrator>();
+        services.TryAddSingleton(provider => new VaultMetrics(provider.GetService<IMeterFactory>()));
 
         return registration;
     }
