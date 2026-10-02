@@ -71,4 +71,11 @@ internal static partial class SaveLog
         Message = "The server supports client bulk writes, which saves use: wire version {WireVersion}.")]
     public static partial void BulkWritesSupported(this ILogger logger,
         int wireVersion);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Save.ChangesDetected, Level = LogLevel.Debug,
+        Message = "Found {Changed} changed of {Tracked} tracked documents in {Vault}.")]
+    public static partial void ChangesDetected(this ILogger logger,
+        string vault,
+        int changed,
+        int tracked);
 }

@@ -27,6 +27,16 @@ public class MongoVaultTests
     }
 
     [Test]
+    public async Task Dispose_VaultNotCreatedByMongoFlow_DoesNothing()
+    {
+        // Arrange
+        var vault = new ShopVault();
+
+        // Act & Assert
+        await Assert.That(vault.Dispose).ThrowsNothing();
+    }
+
+    [Test]
     public async Task SaveAsync_NothingQueued_ReturnsEmptyWithoutStartingATransaction()
     {
         // Arrange

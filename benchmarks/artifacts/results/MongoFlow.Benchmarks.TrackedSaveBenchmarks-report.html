@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>MongoFlow.Benchmarks.TrackedSaveBenchmarks-20261002-140707</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, macOS Tahoe 26.0.1 (25A362) [Darwin 25.0.0]
+Apple M4 Max, 1 CPU, 16 logical and 16 physical cores
+.NET SDK 11.0.100-rc.1.26425.128
+  [Host]     : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
+  DefaultJob : .NET 10.0.11 (10.0.11, 10.0.1126.37416), Arm64 RyuJIT armv8.0-a
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method                              </th><th>Count</th><th>Mean </th><th>Error</th><th>StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>&#39;Driver: find, then client bulk write&#39;</td><td>1</td><td>1,505.1 &mu;s</td><td>107.84 &mu;s</td><td>302.38 &mu;s</td><td>1,425.4 &mu;s</td><td>1.04</td><td>0.28</td><td>7.8125</td><td>-</td><td>70.68 KB</td><td>1.00</td>
+</tr><tr><td>&#39;MongoFlow: read, then UpdateByKey&#39;</td><td>1</td><td>1,417.7 &mu;s</td><td>79.77 &mu;s</td><td>230.15 &mu;s</td><td>1,386.0 &mu;s</td><td>0.98</td><td>0.23</td><td>7.8125</td><td>-</td><td>71.73 KB</td><td>1.01</td>
+</tr><tr><td>&#39;MongoFlow: tracked read, then save&#39;</td><td>1</td><td>1,437.6 &mu;s</td><td>89.75 &mu;s</td><td>247.18 &mu;s</td><td>1,386.1 &mu;s</td><td>0.99</td><td>0.24</td><td>7.8125</td><td>-</td><td>74.6 KB</td><td>1.06</td>
+</tr><tr><td>&#39;MongoFlow: tracked read, nothing changed&#39;</td><td>1</td><td>120.7 &mu;s</td><td>2.17 &mu;s</td><td>1.92 &mu;s</td><td>121.2 &mu;s</td><td>0.08</td><td>0.01</td><td>2.9297</td><td>-</td><td>25.16 KB</td><td>0.36</td>
+</tr><tr><td>&#39;Driver: find, then client bulk write&#39;</td><td>100</td><td>4,372.1 &mu;s</td><td>331.88 &mu;s</td><td>962.83 &mu;s</td><td>4,203.0 &mu;s</td><td>1.05</td><td>0.32</td><td>70.3125</td><td>15.6250</td><td>633.26 KB</td><td>1.00</td>
+</tr><tr><td>&#39;MongoFlow: read, then UpdateByKey&#39;</td><td>100</td><td>3,869.8 &mu;s</td><td>193.79 &mu;s</td><td>552.89 &mu;s</td><td>3,768.7 &mu;s</td><td>0.93</td><td>0.23</td><td>54.6875</td><td>7.8125</td><td>500.13 KB</td><td>0.79</td>
+</tr><tr><td>&#39;MongoFlow: tracked read, then save&#39;</td><td>100</td><td>3,964.2 &mu;s</td><td>194.10 &mu;s</td><td>550.64 &mu;s</td><td>3,963.6 &mu;s</td><td>0.95</td><td>0.24</td><td>78.1250</td><td>15.6250</td><td>715.12 KB</td><td>1.13</td>
+</tr><tr><td>&#39;MongoFlow: tracked read, nothing changed&#39;</td><td>100</td><td>276.5 &mu;s</td><td>4.68 &mu;s</td><td>3.91 &mu;s</td><td>277.5 &mu;s</td><td>0.07</td><td>0.01</td><td>30.2734</td><td>3.4180</td><td>250.91 KB</td><td>0.40</td>
+</tr><tr><td>&#39;Driver: find, then client bulk write&#39;</td><td>1000</td><td>20,564.5 &mu;s</td><td>437.32 &mu;s</td><td>1,233.47 &mu;s</td><td>20,274.6 &mu;s</td><td>1.00</td><td>0.08</td><td>687.5000</td><td>250.0000</td><td>5808 KB</td><td>1.00</td>
+</tr><tr><td>&#39;MongoFlow: read, then UpdateByKey&#39;</td><td>1000</td><td>22,763.8 &mu;s</td><td>1,097.16 &mu;s</td><td>3,112.47 &mu;s</td><td>21,915.3 &mu;s</td><td>1.11</td><td>0.16</td><td>500.0000</td><td>187.5000</td><td>4451.24 KB</td><td>0.77</td>
+</tr><tr><td>&#39;MongoFlow: tracked read, then save&#39;</td><td>1000</td><td>22,003.4 &mu;s</td><td>474.23 &mu;s</td><td>1,321.97 &mu;s</td><td>21,586.1 &mu;s</td><td>1.07</td><td>0.09</td><td>812.5000</td><td>343.7500</td><td>6818.98 KB</td><td>1.17</td>
+</tr><tr><td>&#39;MongoFlow: tracked read, nothing changed&#39;</td><td>1000</td><td>2,060.3 &mu;s</td><td>54.22 &mu;s</td><td>153.81 &mu;s</td><td>2,014.8 &mu;s</td><td>0.10</td><td>0.01</td><td>292.9688</td><td>117.1875</td><td>2396.49 KB</td><td>0.41</td>
+</tr></tbody></table>
+</body>
+</html>

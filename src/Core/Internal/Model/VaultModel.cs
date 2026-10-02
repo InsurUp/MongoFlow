@@ -12,6 +12,7 @@ internal sealed class VaultModel(Type vaultType,
     IReadOnlyList<ICollectionModel> collections,
     IReadOnlyList<InterceptorModel> interceptors,
     MigrationModel? migrations,
+    bool tracksChanges,
     VaultLogs logs,
     VaultMetrics metrics)
 {
@@ -30,6 +31,9 @@ internal sealed class VaultModel(Type vaultType,
 
     /// <summary>The vault's migrations, or <see langword="null"/> when it has none.</summary>
     public MigrationModel? Migrations { get; } = migrations;
+
+    /// <summary>Whether reads on keyed collections track the documents they return, unless a view says otherwise.</summary>
+    public bool TracksChanges { get; } = tracksChanges;
 
     public VaultLogs Logs { get; } = logs;
 

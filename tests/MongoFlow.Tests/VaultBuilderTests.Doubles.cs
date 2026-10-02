@@ -285,4 +285,10 @@ public partial class VaultBuilderTests
 
     /// <summary>Does nothing; for registering an interceptor.</summary>
     public sealed class NoopInterceptor : VaultInterceptor;
+
+    /// <summary>A default configuration that switches change tracking on.</summary>
+    public sealed class TrackingDefault<TVault> : IVaultConfiguration<TVault> where TVault : MongoVault
+    {
+        public void Configure(IVaultBuilder<TVault> vault) => vault.UseChangeTracking();
+    }
 }

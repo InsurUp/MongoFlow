@@ -80,6 +80,19 @@ public partial class VaultCollectionTests
     }
 
     [Test]
+    public async Task FindAsync_OnAKeylessCollection_FindsWhatItMatches()
+    {
+        // Arrange
+        await using var host = new VaultHost<ShopVault>();
+
+        // Act
+        var find = await host.Vault.Audit.FindAsync(x => x.Message == "saved");
+
+        // Assert
+        await Verify(find.ToString());
+    }
+
+    [Test]
     public async Task AggregateAsync_WithQueryFilters_StartsWithTheirMatch()
     {
         // Arrange

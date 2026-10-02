@@ -27,6 +27,16 @@ public interface IVaultBuilder<TVault> where TVault : MongoVault
 
     IVaultBuilder<TVault> UseDatabase(IMongoDatabase database);
 
+    /// <summary>
+    /// Makes reads on the vault's keyed collections track the documents they return, so <see cref="IMongoVault.SaveAsync"/>
+    /// writes what changed in them without a write being queued. Off by default; a view can say otherwise with
+    /// <see cref="IVaultCollection{TDocument, TKey}.WithTracking"/> or
+    /// <see cref="IVaultCollection{TDocument, TKey}.WithNoTracking"/>. Keyless collections aren't tracked: an update needs a
+    /// key.
+    /// </summary>
+    /// <param name="enabled"><see langword="false"/> to switch it off for a vault a default configuration switched it on for.</param>
+    IVaultBuilder<TVault> UseChangeTracking(bool enabled = true);
+
     /// <summary>Applies a configuration created from the root provider. Each configuration type applies once per vault.</summary>
     IVaultBuilder<TVault> UseConfiguration<TConfiguration>() where TConfiguration : class, IVaultConfiguration<TVault>;
 

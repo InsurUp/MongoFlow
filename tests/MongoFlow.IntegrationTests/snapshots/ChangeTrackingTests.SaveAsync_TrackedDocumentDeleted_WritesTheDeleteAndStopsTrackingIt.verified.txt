@@ -1,0 +1,19 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Writes: [
+    {
+      Kind: Replace,
+      Key: 1
+    },
+    {
+      Kind: Delete,
+      Key: 1
+    }
+  ],
+  Stored: []
+}

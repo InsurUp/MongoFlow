@@ -1,0 +1,34 @@
+﻿{
+  Writes: [
+    {
+      Kind: Update,
+      Key: 1,
+      Update: {
+        $set: {
+          Tags: [
+            early,
+            vip
+          ]
+        },
+        $unset: {
+          Note: 
+        }
+      }
+    }
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Tags: [
+        early,
+        vip
+      ],
+      Legacy: kept
+    }
+  ]
+}

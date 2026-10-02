@@ -81,6 +81,11 @@ public static class MongoFlowLogEvents
 
         /// <summary><c>Debug</c>: the server supports client bulk writes; checked once per client.</summary>
         public const int BulkWritesSupported = 27_003_009;
+
+        /// <summary>
+        /// <c>Debug</c>: a save compared the vault's tracked documents with what they were, and found how many changed.
+        /// </summary>
+        public const int ChangesDetected = 27_003_010;
     }
 
     /// <summary>

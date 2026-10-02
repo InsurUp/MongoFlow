@@ -30,7 +30,8 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
   built per query from the request's services, or asynchronous.
 - Built-in features:
   - soft delete, by a flag or a timestamp;
-  - multi-tenancy;
+  - multi-tenancy, which stamps the current tenant on inserts and replaces, and rejects those, and updates made with a
+    document, carrying another tenant;
   - a concurrency token (`UseConcurrencyToken`), which guards replaces, updates and deletes made with a document and
     throws `ConcurrencyException`. Pipeline updates get its increment as a last stage.
 
@@ -57,6 +58,16 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
   - Instruments: save duration, the writes saves committed, by kind, and how long begun transactions stay open, by
     outcome. Failures are tagged with `error.type`.
   - The meter comes from the `IMeterFactory` in DI, if there is one.
+- Change tracking, off by default: with `vault.UseChangeTracking()`, the documents `GetByKeyAsync`, `FindAsync` and
+  `QueryAsync` return on keyed collections are tracked, and `SaveAsync` writes what changed in them, with no write queued.
+  - Each changed document gets one update by the key it was read with: changed fields are set, removed ones unset,
+    embedded documents compared field by field and arrays set whole. Fields stored but not mapped are left alone.
+  - `WithTracking()` and `WithNoTracking()` give views that track, or don't, whatever the vault says. Projections and
+    aggregations aren't tracked.
+  - A queued `Replace` or `Delete` of a tracked document takes the place of its changes. A changed key fails the save.
+  - Changes a save wrote are pending again if it fails or its transaction rolls back.
+- `MongoVault` is `IDisposable`: its scope gives back the pooled memory it holds, tracked documents' snapshots and
+  writes never saved.
 - Parallel tasks can share a vault instance to read and queue writes.
 
 ### Removed

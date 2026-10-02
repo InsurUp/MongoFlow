@@ -1,0 +1,37 @@
+﻿{
+  Writes: [
+    {
+      Kind: Update,
+      Key: 1,
+      Update: {
+        $set: {
+          Address.City: London
+        }
+      }
+    },
+    {
+      Kind: Update,
+      Key: 1,
+      Update: {
+        $set: {
+          Note: met
+        }
+      }
+    }
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada,
+      Address: {
+        City: London,
+        Zip: 35000
+      },
+      Note: met,
+      Tags: [
+        early
+      ],
+      Legacy: kept
+    }
+  ]
+}

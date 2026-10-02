@@ -1,0 +1,8 @@
+﻿{
+  Update: {
+    $set: {
+      Total: 10
+    }
+  },
+  NeedsReplace: false
+}

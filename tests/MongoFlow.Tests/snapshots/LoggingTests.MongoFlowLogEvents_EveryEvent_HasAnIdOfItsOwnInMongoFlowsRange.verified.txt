@@ -80,6 +80,11 @@
     Id: 27003009
   },
   {
+    Group: Save,
+    Event: ChangesDetected,
+    Id: 27003010
+  },
+  {
     Group: Transaction,
     Event: Began,
     Id: 27004001

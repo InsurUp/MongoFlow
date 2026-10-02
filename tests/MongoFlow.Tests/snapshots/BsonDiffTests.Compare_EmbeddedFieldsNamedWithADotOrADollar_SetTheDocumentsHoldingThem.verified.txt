@@ -1,0 +1,14 @@
+﻿{
+  Update: {
+    $set: {
+      Prices: {
+        base: 1,
+        v1.2: 2
+      },
+      Labels: {
+        kept: b
+      }
+    }
+  },
+  NeedsReplace: false
+}

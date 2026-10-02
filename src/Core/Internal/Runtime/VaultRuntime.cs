@@ -4,8 +4,8 @@ using Prest;
 
 namespace MongoFlow;
 
-/// <summary>A vault instance's state: its scope's services and its queued operations.</summary>
-internal sealed class VaultRuntime
+/// <summary>A vault instance's state: its scope's services, its queued operations and its tracked documents.</summary>
+internal sealed class VaultRuntime : IDisposable
 {
     private readonly VaultInterceptor?[] _interceptors;
 
@@ -17,6 +17,7 @@ internal sealed class VaultRuntime
     // owns it from then on and gives it back when the save ends.
     private PooledList<VaultOperation>? _queue;
     private ComparerSwissHashSet<object>? _inserted;
+    private ChangeTracker? _tracker;
     private int _saving;
 
     public VaultRuntime(VaultModel model,
@@ -41,6 +42,9 @@ internal sealed class VaultRuntime
     public MongoVault Vault { get; }
 
     public VaultTransactionManager TransactionManager => field ??= Services.GetRequiredService<VaultTransactionManager>();
+
+    /// <summary>The documents the instance's reads tracked, created by the first read that tracks one.</summary>
+    public ChangeTracker Tracker => LazyInitializer.EnsureInitialized(ref _tracker, static () => new ChangeTracker());
 
     /// <summary>
     /// Marks the vault as saving, or returns <see langword="false"/> when it already is: from its own interceptors, or from
@@ -99,6 +103,13 @@ internal sealed class VaultRuntime
         return true;
     }
 
+    /// <summary>
+    /// Puts an update before the queued <paramref name="operations"/> for each tracked document that changed, creating the
+    /// list if nothing was queued. See <see cref="ChangeTracker.DetectChanges"/>.
+    /// </summary>
+    public TrackedChanges? DetectChanges(ref PooledList<VaultOperation>? operations) =>
+        Volatile.Read(ref _tracker)?.DetectChanges(ref operations, Model);
+
     /// <summary>The session reads run in: the scope's open transaction's, or none.</summary>
     public async ValueTask<IClientSessionHandle?> GetSessionAsync(CancellationToken cancellationToken) =>
         TransactionManager.Active is { } transaction
@@ -119,6 +130,13 @@ internal sealed class VaultRuntime
             ? keyed.CreateKeyedCollection(this, FeatureSet.Empty)
             : throw new InvalidOperationException(
                 $"{Model.VaultType.Name}.{collection.PropertyName} isn't keyed by {typeof(TKey).Name}.");
+    }
+
+    /// <summary>Gives back what the instance rented: its tracked documents' snapshots, and writes queued but never saved.</summary>
+    public void Dispose()
+    {
+        Volatile.Read(ref _tracker)?.Dispose();
+        Drain()?.Dispose();
     }
 
     private ICollectionModel Find(Type documentType) =>

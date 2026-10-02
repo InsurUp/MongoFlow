@@ -1,0 +1,18 @@
+﻿[
+  {
+    _id: 1,
+    Name: ada,
+    Address: {
+      City: ,
+      Zip: 
+    }
+  },
+  {
+    _id: 2,
+    Name: Bob Dylan,
+    Address: {
+      City: ,
+      Zip: 
+    }
+  }
+]

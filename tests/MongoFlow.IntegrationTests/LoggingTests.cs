@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace MongoFlow.IntegrationTests;
 
@@ -11,6 +12,7 @@ namespace MongoFlow.IntegrationTests;
 /// <item>what fails a save: a write the server rejects, a concurrency conflict, a write to another tenant, a commit;</item>
 /// <item>an interceptor's failure hook throwing, which is swallowed and so logged as an error;</item>
 /// <item>the key and query filters a lookup by key runs with, at <see cref="LogLevel.Trace"/>;</item>
+/// <item>how many of the vault's tracked documents a save found changed;</item>
 /// <item>collections missing the indexes their key or features rely on; see <c>LoggingTests.Indexes.cs</c>.</item>
 /// </list>
 /// </summary>
@@ -53,6 +55,22 @@ public partial class LoggingTests
         // Assert — the index check logs in the background, and the bulk-write check once per client, so neither is shown.
         await Verify(_sink.Snapshot().Where(entry =>
             entry.Level >= LogLevel.Debug && entry.Category is "MongoFlow.Save" or "MongoFlow.Transaction" && entry.EventId != MongoFlowLogEvents.Save.BulkWritesSupported));
+    }
+
+    [Test]
+    public async Task SaveAsync_TrackedDocuments_LogsHowManyChanged()
+    {
+        // Arrange
+        await using var host = Host<ShopVault>(vault => vault.UseChangeTracking());
+        await host.SeedAsync("Orders", new Order { Id = 1, Customer = "ada", Total = 10 }, new Order { Id = 2, Customer = "bob", Total = 20 });
+        var orders = await (await host.Vault.Orders.QueryAsync()).ToListAsync();
+        orders[0].Total = 15;
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(_sink.Snapshot("MongoFlow.Save").Where(entry => entry.EventId == MongoFlowLogEvents.Save.ChangesDetected));
     }
 
     [Test]

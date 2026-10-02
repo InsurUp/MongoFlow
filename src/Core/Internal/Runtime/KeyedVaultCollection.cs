@@ -1,16 +1,26 @@
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace MongoFlow;
 
+/// <param name="tracking">Whether the documents its reads return are tracked, for the vault's save to write their changes.</param>
 internal sealed class KeyedVaultCollection<TDocument, TKey>(
     VaultRuntime runtime,
     KeyedCollectionModel<TDocument, TKey> model,
-    FeatureSet disabled) : VaultCollection<TDocument>(runtime, model, disabled), IVaultCollection<TDocument, TKey>
+    FeatureSet disabled,
+    bool tracking) : VaultCollection<TDocument>(runtime, model, disabled), IVaultCollection<TDocument, TKey>,
+    IDocumentTracker<TDocument>
 {
     public override IVaultCollection<TDocument> Without(FeatureKey feature) => WithoutKeyed(feature);
 
     IVaultCollection<TDocument, TKey> IVaultCollection<TDocument, TKey>.Without(FeatureKey feature) => WithoutKeyed(feature);
+
+    public IVaultCollection<TDocument, TKey> WithTracking() =>
+        new KeyedVaultCollection<TDocument, TKey>(Runtime, model, Disabled, tracking: true);
+
+    public IVaultCollection<TDocument, TKey> WithNoTracking() =>
+        new KeyedVaultCollection<TDocument, TKey>(Runtime, model, Disabled, tracking: false);
 
     public async Task<TDocument?> GetByKeyAsync(TKey key, CancellationToken cancellationToken = default)
     {
@@ -33,7 +43,7 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
         var session = await Runtime.GetSessionAsync(cancellationToken);
         var find = session is null ? model.MongoCollection.Find(filter) : model.MongoCollection.Find(session, filter);
 
-        return await find.FirstOrDefaultAsync(cancellationToken);
+        return await Tracked(find).FirstOrDefaultAsync(cancellationToken);
     }
 
     public void Replace(TDocument document)
@@ -73,8 +83,32 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
         Runtime.Enqueue(new UpdateOperation<TDocument>(model, Disabled, TargetOf(document), null, update, document));
     }
 
+    /// <summary>
+    /// Keeps <paramref name="document"/>, with its BSON as read, for the vault's save to compare. One without a key can't
+    /// be updated by key, so it isn't tracked.
+    /// </summary>
+    public void Track(TDocument document)
+    {
+        if (model.Key.Get(document) is not { } key)
+        {
+            return;
+        }
+
+        var snapshot = BsonSnapshot.Of(model.MongoCollection.DocumentSerializer, document);
+        Runtime.Tracker.Track(new TrackedDocument<TDocument, TKey>(model, Disabled, document, key, snapshot));
+    }
+
+    protected override IQueryable<TDocument> Tracked(IQueryable<TDocument> query) =>
+        tracking
+            ? new TrackingQueryable<TDocument, TDocument>(query,
+                new TrackingQueryProvider<TDocument>(query.GetMongoQueryProvider(), this))
+            : query;
+
+    protected override IFindFluent<TDocument, TDocument> Tracked(IFindFluent<TDocument, TDocument> find) =>
+        tracking ? new TrackingFindFluent<TDocument>(find, this) : find;
+
     private KeyedVaultCollection<TDocument, TKey> WithoutKeyed(FeatureKey feature) =>
-        new(Runtime, model, Disabled.With(feature));
+        new(Runtime, model, Disabled.With(feature), tracking);
 
     private KeyTarget<TDocument> TargetOf(TDocument document) =>
         model.Key.Get(document) is { } key

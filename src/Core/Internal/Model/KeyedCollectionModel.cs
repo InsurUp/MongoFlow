@@ -19,7 +19,8 @@ internal sealed class KeyedCollectionModel<TDocument, TKey> : CollectionModel<TD
         FeatureSet disabled) =>
         CreateKeyedCollection(runtime, disabled);
 
+    /// <summary>A view that tracks changes if the vault does.</summary>
     public IVaultCollection<TDocument, TKey> CreateKeyedCollection(VaultRuntime runtime,
         FeatureSet disabled) =>
-        new KeyedVaultCollection<TDocument, TKey>(runtime, this, disabled);
+        new KeyedVaultCollection<TDocument, TKey>(runtime, this, disabled, runtime.Model.TracksChanges);
 }

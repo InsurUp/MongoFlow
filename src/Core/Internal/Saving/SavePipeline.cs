@@ -18,8 +18,23 @@ internal static class SavePipeline
 
         try
         {
-            return runtime.Drain() is { } operations
-                ? await SaveAsync(runtime, operations, cancellationToken)
+            // Comparing tracked documents is part of the save's time.
+            var started = Stopwatch.GetTimestamp();
+            var operations = runtime.Drain();
+            TrackedChanges? tracked;
+
+            try
+            {
+                tracked = runtime.DetectChanges(ref operations);
+            }
+            catch
+            {
+                operations?.Dispose();
+                throw;
+            }
+
+            return operations is not null
+                ? await SaveAsync(runtime, operations, tracked, started, cancellationToken)
                 : SaveResult.Empty;
         }
         finally
@@ -30,18 +45,19 @@ internal static class SavePipeline
 
     private static async Task<SaveResult> SaveAsync(VaultRuntime runtime,
         PooledList<VaultOperation> operations,
+        TrackedChanges? tracked,
+        long started,
         CancellationToken cancellationToken)
     {
         var log = runtime.Model.Logs.Save;
         var vault = runtime.Model.VaultType.Name;
-        var started = Stopwatch.GetTimestamp();
 
         var outer = runtime.TransactionManager.Active;
 
         // Started first, so what the save sends, its own transaction's commit included, is traced under it.
         using var activity = VaultActivities.StartSave(vault, outer is not null);
         var transaction = outer ?? runtime.TransactionManager.Start(forSave: true);
-        var run = new SaveRun(runtime, operations);
+        var run = new SaveRun(runtime, operations, tracked);
         var callbacks = new SaveCallbacks(run.CommittedAsync, run.FailedAsync, run.Dispose);
         var enlisted = false;
         var writing = false;
@@ -68,6 +84,9 @@ internal static class SavePipeline
             writing = true;
             var result = await run.WriteAsync(cancellationToken);
             await run.SavedAsync(cancellationToken);
+
+            // Before the commit, so a later save in an open transaction doesn't send these changes again.
+            tracked?.Apply();
 
             if (outer is null)
             {

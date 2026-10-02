@@ -26,7 +26,7 @@ internal class VaultCollection<TDocument>(
 
         var queryable = session is null ? model.MongoCollection.AsQueryable() : model.MongoCollection.AsQueryable(session);
 
-        return filter is null ? queryable : queryable.Where(filter);
+        return Tracked(filter is null ? queryable : queryable.Where(filter));
     }
 
     public async ValueTask<IFindFluent<TDocument, TDocument>> FindAsync(Expression<Func<TDocument, bool>> filter,
@@ -96,13 +96,19 @@ internal class VaultCollection<TDocument>(
         Runtime.Enqueue(new DeleteOperation<TDocument>(model, Disabled, null, filter, default));
     }
 
+    /// <summary>What a query returns. A keyed view that tracks changes wraps it, to track the documents it returns.</summary>
+    protected virtual IQueryable<TDocument> Tracked(IQueryable<TDocument> query) => query;
+
+    /// <inheritdoc cref="Tracked(IQueryable{TDocument})"/>
+    protected virtual IFindFluent<TDocument, TDocument> Tracked(IFindFluent<TDocument, TDocument> find) => find;
+
     /// <summary>Finds with <paramref name="filter"/>, in the scope's open transaction if there is one.</summary>
     private async ValueTask<IFindFluent<TDocument, TDocument>> FindInSessionAsync(FilterDefinition<TDocument> filter,
         CancellationToken cancellationToken)
     {
         var session = await Runtime.GetSessionAsync(cancellationToken);
 
-        return session is null ? model.MongoCollection.Find(filter) : model.MongoCollection.Find(session, filter);
+        return Tracked(session is null ? model.MongoCollection.Find(filter) : model.MongoCollection.Find(session, filter));
     }
 
     private void LogReading(string method,

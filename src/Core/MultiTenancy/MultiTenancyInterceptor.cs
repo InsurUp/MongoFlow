@@ -1,8 +1,9 @@
 namespace MongoFlow;
 
 /// <summary>
-/// Gives inserted and replaced documents without a tenant the current one, and rejects those carrying another tenant, so
-/// a write can't move a document out of the current tenant.
+/// Gives inserted and replaced documents without a tenant the current one, and rejects those carrying another tenant, as
+/// it does updates made with a document, such as a tracked document's changes, so a write can't move a document out of the
+/// current tenant.
 /// </summary>
 internal sealed class MultiTenancyInterceptor<TDocument, TTenantEntity, TTenant>(
     Func<TTenantEntity, TTenant> getTenantId,
@@ -20,7 +21,8 @@ internal sealed class MultiTenancyInterceptor<TDocument, TTenantEntity, TTenant>
 
         foreach (var operation in context.Operations)
         {
-            if (operation is not (InsertOperation<TDocument> or ReplaceOperation<TDocument>))
+            if (operation is not (InsertOperation<TDocument> or ReplaceOperation<TDocument> or
+                UpdateOperation<TDocument> { Document: not null }))
             {
                 continue;
             }
@@ -29,7 +31,11 @@ internal sealed class MultiTenancyInterceptor<TDocument, TTenantEntity, TTenant>
             var tenant = getTenantId(document);
             if (isUnset(tenant))
             {
-                setTenantId(document, current);
+                // An update writes only what it says, so a tenant set on its document wouldn't be stored.
+                if (operation.Kind != OperationKind.Update)
+                {
+                    setTenantId(document, current);
+                }
             }
             else if (!EqualityComparer<TTenant>.Default.Equals(tenant, current))
             {

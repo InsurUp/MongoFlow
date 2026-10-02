@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: The key of a tracked Customer in Customers changed from 1 to 2. A document's key can't change: delete the document and add it with the new key.
+}

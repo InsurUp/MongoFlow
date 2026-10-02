@@ -10,6 +10,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
     private readonly IServiceProvider _services;
     private readonly List<CollectionModelBuilder> _collections;
     private readonly Layered<Func<IMongoDatabase>> _database = new();
+    private readonly Layered<bool> _tracksChanges = new();
     private readonly LayeredList<VaultQueryFilter> _filters = new();
     private readonly HashSet<Type> _applied = [];
     private readonly HashSet<Type> _skipped = [];
@@ -42,6 +43,12 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         ArgumentNullException.ThrowIfNull(database);
 
         _database.Set(Layer, () => database);
+        return this;
+    }
+
+    public IVaultBuilder<TVault> UseChangeTracking(bool enabled = true)
+    {
+        _tracksChanges.Set(Layer, enabled);
         return this;
     }
 
@@ -240,6 +247,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             collections,
             interceptors,
             _migrations.Build(),
+            _tracksChanges.TryGet(out var tracksChanges) && tracksChanges,
             VaultLogs.From(_services),
             _services.GetRequiredService<VaultMetrics>());
     }

@@ -9,8 +9,9 @@ namespace MongoFlow.IntegrationTests;
 /// struct and a struct that isn't nullable:
 /// <list type="number">
 /// <item>reads see only the current tenant's documents, or with no current tenant only those without one;</item>
-/// <item>inserts and replaces without a tenant get the current one, and those of another tenant fail the save;</item>
-/// <item>updates and deletes are left to the query filters, and with no current tenant nothing is stamped or
+/// <item>inserts and replaces without a tenant get the current one, and those of another tenant fail the save, as do
+/// updates made with a document of another tenant, a tracked one's changes included;</item>
+/// <item>other updates and deletes are left to the query filters, and with no current tenant nothing is stamped or
 /// checked;</item>
 /// <item>for all tenants, and with the feature off, reads see every tenant and writes go unchecked.</item>
 /// </list>
@@ -159,6 +160,38 @@ public partial class MultiTenancyTests
     }
 
     [Test]
+    public async Task SaveAsync_TrackedDocumentMovedToAnotherTenant_FailsTheSave()
+    {
+        // Arrange
+        await using var host = Host(new CurrentTenant { Id = "t-1" }, vault => vault.UseChangeTracking());
+        await host.SeedAsync("Invoices", new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" });
+        var invoice = (await host.Vault.Invoices.GetByKeyAsync(1))!;
+        invoice.TenantId = "t-2";
+
+        // Act
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<InvalidOperationException>();
+
+        // Assert
+        await Verify(await host.StoredAsync("Invoices"));
+    }
+
+    [Test]
+    public async Task Update_DocumentWithoutATenant_IsWrittenAndLeftWithout()
+    {
+        // Arrange — an update writes only what it says, so a tenant stamped on its document wouldn't be stored.
+        await using var host = Host(new CurrentTenant { Id = "t-1" });
+        await host.SeedAsync("Invoices", new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" });
+        var invoice = new Invoice { Id = 1 };
+        host.Vault.Invoices.Update(invoice, Builders<Invoice>.Update.Set(x => x.Number, "I-1 revised"));
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { Stored = await host.StoredAsync("Invoices"), Document = invoice });
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task Add_NullableStructTenantUnset_GetsTheCurrentOne(bool empty)
@@ -237,12 +270,17 @@ public partial class MultiTenancyTests
         await Verify(await host.StoredAsync("Countries"));
     }
 
-    private VaultHost<TenantVault> Host(CurrentTenant tenant) =>
+    private VaultHost<TenantVault> Host(CurrentTenant tenant,
+        Action<IVaultBuilder<TenantVault>>? configure = null) =>
         Mongo.Host<TenantVault>(
-            vault => vault
-                .UseMultiTenancy((ITenantOwned x) => x.TenantId, Current(t => t.Id), All)
-                .UseMultiTenancy((IAgencyOwned x) => x.AgencyId, Current(t => t.Agency), All)
-                .UseMultiTenancy((IVisitOwned x) => x.AgencyId, Current(t => t.Agency), All),
+            vault =>
+            {
+                vault
+                    .UseMultiTenancy((ITenantOwned x) => x.TenantId, Current(t => t.Id), All)
+                    .UseMultiTenancy((IAgencyOwned x) => x.AgencyId, Current(t => t.Agency), All)
+                    .UseMultiTenancy((IVisitOwned x) => x.AgencyId, Current(t => t.Agency), All);
+                configure?.Invoke(vault);
+            },
             services => services.AddScoped(_ => tenant));
 
     private async Task<VaultHost<TenantVault>> SeededAsync(CurrentTenant tenant)

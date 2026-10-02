@@ -8,6 +8,32 @@ public interface IVaultCollection<TDocument, TKey> : IVaultCollection<TDocument>
     /// <inheritdoc cref="IVaultCollection{TDocument}.Without"/>
     new IVaultCollection<TDocument, TKey> Without(FeatureKey feature);
 
+    /// <summary>
+    /// A view of this collection whose reads track the documents they return, whether or not the vault tracks changes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The vault's save compares each tracked document with what it was when read, and writes what changed as one update by
+    /// the key it was read with: changed fields are set, removed ones unset, embedded documents compared field by field
+    /// and arrays set whole. A key can't change. Unchanged documents aren't written. Once a save writes a document's
+    /// changes, later saves compare against what it wrote; if the save fails or its transaction rolls back, the changes are
+    /// pending again.
+    /// </para>
+    /// <para>
+    /// <see cref="GetByKeyAsync"/>, <c>FindAsync</c> and <see cref="IVaultCollection{TDocument}.QueryAsync"/> track what
+    /// they return, unless it's a projection. Aggregations aren't tracked. Queuing <see cref="Replace"/> or
+    /// <see cref="Delete"/> of a tracked document takes the place of its changes; a delete stops tracking it.
+    /// </para>
+    /// <para>
+    /// Each tracked document is kept, with a copy of its BSON, until the vault's scope ends: read what won't change through
+    /// <see cref="WithNoTracking"/>.
+    /// </para>
+    /// </remarks>
+    IVaultCollection<TDocument, TKey> WithTracking();
+
+    /// <summary>A view of this collection whose reads don't track the documents they return, even if the vault tracks changes.</summary>
+    IVaultCollection<TDocument, TKey> WithNoTracking();
+
     /// <summary>The document with <paramref name="key"/>, if the query filters let the caller see it.</summary>
     Task<TDocument?> GetByKeyAsync(TKey key, CancellationToken cancellationToken = default);
 

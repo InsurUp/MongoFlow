@@ -1,0 +1,16 @@
+﻿[
+  {
+    _id: {
+      $oid: 652f1c2e9b1d4a3f8c7e6d01
+    },
+    Code: A,
+    Percent: 15
+  },
+  {
+    _id: {
+      $oid: 652f1c2e9b1d4a3f8c7e6d02
+    },
+    Code: null,
+    Percent: 20
+  }
+]

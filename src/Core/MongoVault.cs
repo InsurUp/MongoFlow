@@ -1,6 +1,6 @@
 namespace MongoFlow;
 
-public abstract class MongoVault : IMongoVault
+public abstract class MongoVault : IMongoVault, IDisposable
 {
     private VaultRuntime? _runtime;
 
@@ -13,6 +13,12 @@ public abstract class MongoVault : IMongoVault
     public IVaultCollection<TDocument> Collection<TDocument>() => Runtime.GetCollection<TDocument>();
 
     public IVaultCollection<TDocument, TKey> Collection<TDocument, TKey>() => Runtime.GetCollection<TDocument, TKey>();
+
+    /// <summary>
+    /// Gives back the pooled memory the vault holds: its tracked documents' snapshots, and writes queued but never saved,
+    /// which are dropped. Its scope disposes it; afterwards it starts again with nothing tracked or queued.
+    /// </summary>
+    public void Dispose() => _runtime?.Dispose();
 
     internal void Attach(VaultRuntime runtime) => _runtime = runtime;
 }

@@ -10,7 +10,9 @@ namespace MongoFlow;
 /// It owns the pooled operation list it's handed, and gives it back when disposed: by the transaction it joined when that
 /// ends, or by the save itself when it never joined one. Every hook the save can run has run by then.
 /// </remarks>
-internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> operations) : IDisposable
+internal sealed class SaveRun(VaultRuntime runtime,
+    PooledList<VaultOperation> operations,
+    TrackedChanges? tracked) : IDisposable
 {
     // The driver copies what it needs out of the options, so one instance serves every save.
     private static readonly ClientBulkWriteOptions WriteOptions = new() { IsOrdered = true, VerboseResult = true };
@@ -109,6 +111,7 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     {
         // Counted on commit, so writes rolled back with their transaction never are.
         Runtime.Model.Metrics.RecordCommitted(Runtime.Model.VaultType.Name, Operations.Span);
+        tracked?.Commit();
 
         for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
         {
@@ -122,6 +125,9 @@ internal sealed class SaveRun(VaultRuntime runtime, PooledList<VaultOperation> o
     /// </summary>
     public async Task FailedAsync(Exception exception, CancellationToken cancellationToken)
     {
+        // The changes it wrote to tracked documents are pending again.
+        tracked?.Revert();
+
         for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
         {
             var interceptor = Runtime.GetInterceptor(i);
