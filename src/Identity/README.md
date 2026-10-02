@@ -62,3 +62,12 @@ var user = await allTenants.FindByEmailAsync(email);
 
 var deletedRoles = roleManager.Without(SoftDeleteFeature.Key);
 ```
+
+## More
+
+- [MongoFlow's docs](https://github.com/InsurUp/MongoFlow#readme): the vault, its configuration, features and
+  interceptors, which apply to Identity's collections like to any other.
+- [The changelog](https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md#mongoflowidentity): what changed since
+  0.2.
+- [The samples](https://github.com/InsurUp/MongoFlow/tree/main/samples/MongoFlow.Samples) keep accounts in an Identity
+  vault that soft-deletes users, and restore one through `Without(SoftDeleteFeature.Key)`.
