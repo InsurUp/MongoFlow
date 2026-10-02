@@ -95,6 +95,9 @@ internal sealed class TrackedChanges(ChangeTracker tracker)
                     change.Document.Snapshot = change.Previous;
                 }
             }
+
+            // The snapshots swapped in are given back, so another rollback of the save finds nothing to undo.
+            _applied = false;
         }
     }
 }

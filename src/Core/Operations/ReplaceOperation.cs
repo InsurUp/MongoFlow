@@ -14,8 +14,10 @@ public sealed class ReplaceOperation<TDocument> : VaultOperation<TDocument>
         Document = document;
     }
 
+    /// <inheritdoc/>
     public override OperationKind Kind => OperationKind.Replace;
 
+    /// <inheritdoc/>
     public override bool IsSetBased => false;
 
     /// <summary>The key read from the document when it was queued.</summary>

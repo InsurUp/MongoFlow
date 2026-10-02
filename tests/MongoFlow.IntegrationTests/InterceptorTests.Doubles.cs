@@ -274,6 +274,18 @@ public partial class InterceptorTests
         }
     }
 
+    /// <summary>Records the exception each failed save hands its failure hooks.</summary>
+    public sealed class FailureRecorder : VaultInterceptor
+    {
+        public List<Exception> Exceptions { get; } = [];
+
+        public override ValueTask FailedAsync(SaveContext context, Exception exception, CancellationToken cancellationToken)
+        {
+            Exceptions.Add(exception);
+            return ValueTask.CompletedTask;
+        }
+    }
+
     /// <summary>Records its disposal; registered by type, so MongoFlow creates it.</summary>
     public sealed class ScopedDisposable(HookLog log) : VaultInterceptor, IDisposable
     {

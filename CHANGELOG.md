@@ -49,6 +49,8 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
   - `[MongoVersion("2.0.0")]` on a vault, as in 0.5, is the version `MigrateAllAsync` migrates it to, up or down;
     without it, the highest.
   - The history of 0.5, in the `migrations` collection, carries over.
+  - Every migration up to the target that hasn't been applied runs, including one added below the current version,
+    which 0.5 skipped.
 - Logging through the `ILoggerFactory` in DI, with every event ID in `MongoFlowLogEvents`. It warns about keys and
   feature fields without indexes; MongoFlow doesn't create indexes.
 - Tracing and metrics through `System.Diagnostics`, with every name in `MongoFlowTelemetry`. Add
@@ -121,11 +123,16 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
   - `FindByLoginAsync` found nobody: Identity looked the user up by the login's user id, which isn't stored;
   - a role manager with filters or interceptors disabled still used the full store;
   - a user changed through the user manager was written twice in one save;
-  - a role's id read before it was set threw `NullReferenceException` for reference-type keys.
-- `ReplaceClaimAsync` and `RemoveClaimsAsync` change every matching claim, as Entity Framework's store does, not only the
-  first.
+  - a role's id read before it was set threw `NullReferenceException` for reference-type keys;
+  - with `string` keys, tokens were stored with a null `_id`, so a second user's token failed; they get an `ObjectId`
+    string.
+- `ReplaceClaimAsync` and `RemoveClaimsAsync` on users, and `RemoveClaimAsync` on roles, change every matching claim, as
+  Entity Framework's store does, not only the first.
 - Updates and deletes of users and roles check their `ConcurrencyStamp`, and updates renew it, as Entity Framework's store
   does: one made after another request changed the document fails with `ConcurrencyFailure`, rather than overwriting it.
+  So does one MongoDB rejects as a write conflict, while another request's transaction is changing the document.
+- A manager the app registers with `AddUserManager` or `AddRoleManager` is kept; `AddMongoFlowStores` replaces only
+  Identity's own.
 - Deleting a user deletes its tokens, such as its authenticator key and recovery codes.
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.

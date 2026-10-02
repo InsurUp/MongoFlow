@@ -19,8 +19,10 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
         Document = document;
     }
 
+    /// <inheritdoc/>
     public override OperationKind Kind => OperationKind.Update;
 
+    /// <inheritdoc/>
     public override bool IsSetBased => Filter is not null;
 
     /// <summary>The key of the one document to update, or <see langword="null"/> when the operation is set-based.</summary>

@@ -134,3 +134,8 @@ The history 0.5 recorded, in each vault's `migrations` collection, carries over:
 applied. A vault's `[MongoVersion]` still names the version it migrates to. A history that records a version twice, as
 0.5 instances migrating at once could leave, still migrates, with a warning: its unique index can't be built until the
 duplicate records are removed.
+
+0.5 ran only the migrations above the current version; 1.0 runs every migration up to the target that hasn't been
+applied. A migration 0.5 skipped, because it was added below a version already applied, runs on the first migrate after
+upgrading. Before upgrading, compare each vault's migrations with its history, and record or remove the ones that
+shouldn't run.

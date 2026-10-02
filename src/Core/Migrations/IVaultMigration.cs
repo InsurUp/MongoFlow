@@ -9,8 +9,13 @@ namespace MongoFlow;
 /// </remarks>
 public interface IVaultMigration<TVault> where TVault : MongoVault
 {
+    /// <summary>
+    /// The version it migrates the data to, unique among the vault's migrations. Migrations apply in version order, and
+    /// revert in reverse.
+    /// </summary>
     SemVersion Version { get; }
 
+    /// <summary>What it changes, recorded with it.</summary>
     string? Description => null;
 
     /// <summary>
@@ -19,7 +24,9 @@ public interface IVaultMigration<TVault> where TVault : MongoVault
     /// </summary>
     bool UseTransaction => true;
 
+    /// <summary>Applies the change.</summary>
     Task UpAsync(MigrationContext<TVault> context, CancellationToken cancellationToken);
 
+    /// <summary>Undoes what <see cref="UpAsync"/> changed, when the vault is migrated below this version.</summary>
     Task DownAsync(MigrationContext<TVault> context, CancellationToken cancellationToken);
 }

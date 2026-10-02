@@ -115,27 +115,36 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
             [.. _filters.All.Where(filter => IsOn(filter.Owner))],
             [.. _indexed.Where(indexed => IsOn(indexed.Owner)).Select(indexed => (indexed.Field, indexed.Owner?.Name ?? "a query filter"))]);
 
+        EnsureIdIsRead(definition.Collection);
+
         return Model = CreateModel(definition);
     }
 
+    protected virtual CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition) =>
+        new(definition);
+
     private bool IsOn(FeatureKey? owner) => owner is not { } feature || !_without.Contains(feature);
 
-    protected virtual CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)
+    /// <summary>
+    /// Fails when the documents have no member for the <c>_id</c>, and don't ignore extra elements: the server adds one
+    /// to each document, keyless or keyed by other members, and reading it back would fail.
+    /// </summary>
+    private static void EnsureIdIsRead(IMongoCollection<TDocument> collection)
     {
         // Only a class map can fail to read the _id; a BsonDocument, or a type with a serializer of its own, reads it as it
         // reads anything else.
-        if (definition.Collection.DocumentSerializer is BsonClassMapSerializer<TDocument>)
+        if (collection.DocumentSerializer is not BsonClassMapSerializer<TDocument>)
         {
-            var classMap = BsonClassMap.LookupClassMap(typeof(TDocument));
-            if (classMap.IdMemberMap is null && !classMap.IgnoreExtraElements)
-            {
-                throw new VaultConfigurationException(
-                    $"{definition.Collection.CollectionNamespace.CollectionName} is keyless, but {typeof(TDocument).Name} " +
-                    "doesn't ignore extra elements, so reading back the _id the server adds would fail. Mark it " +
-                    "[BsonIgnoreExtraElements], or give it an Id.");
-            }
+            return;
         }
 
-        return new CollectionModel<TDocument>(definition);
+        var classMap = BsonClassMap.LookupClassMap(typeof(TDocument));
+        if (classMap.IdMemberMap is null && !classMap.IgnoreExtraElements)
+        {
+            throw new VaultConfigurationException(
+                $"{typeof(TDocument).Name}, in {collection.CollectionNamespace.CollectionName}, has no member for the " +
+                "_id and doesn't ignore extra elements, so reading back the _id the server adds would fail. Mark it " +
+                "[BsonIgnoreExtraElements], or give it an Id.");
+        }
     }
 }

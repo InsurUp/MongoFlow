@@ -15,8 +15,9 @@ namespace MongoFlow.IntegrationTests;
 /// <item>a vault on another client can't join, and a save that fails to join runs no hooks;</item>
 /// <item>a scope's saves run one after another, and a transaction still open when its scope ends is rolled back; see
 /// <c>TransactionTests.Scope.cs</c>;</item>
-/// <item>a save that fails after writing rolls the open transaction back whole, which then fails whatever uses it until
-/// it's disposed; one that fails before writing leaves it usable. See <c>TransactionTests.FailedSaves.cs</c>.</item>
+/// <item>a save that fails after writing rolls the open transaction back whole, once, which then fails whatever uses it
+/// until it's disposed, a save its interceptors carry on with included; one that fails before writing leaves it usable.
+/// See <c>TransactionTests.FailedSaves.cs</c>.</item>
 /// </list>
 /// </summary>
 public partial class TransactionTests

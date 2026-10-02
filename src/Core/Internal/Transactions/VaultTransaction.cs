@@ -133,7 +133,14 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
         }
     }
 
-    public async Task RollbackAsync(CancellationToken cancellationToken = default)
+    /// <summary>Whether a save that joined it failed after writing, so it was rolled back.</summary>
+    public bool IsDoomed => _doomedBy is not null;
+
+    public Task RollbackAsync(CancellationToken cancellationToken = default) =>
+        RollbackAsync(new InvalidOperationException("The transaction was rolled back."));
+
+    /// <summary>Rolls the transaction back, running its saves' failure hooks with <paramref name="cause"/>.</summary>
+    public async Task RollbackAsync(Exception cause)
     {
         if (_ended)
         {
@@ -155,26 +162,33 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
 
         owner.Log.RolledBack(_logLevel, _saves.Count);
         Record("rolled_back", null);
-        await FailAsync(new InvalidOperationException("The transaction was rolled back."));
+        await FailAsync(cause);
     }
 
     /// <summary>
     /// Rolls the transaction back because a save that joined it failed after writing, running every joined save's
-    /// failure hooks. It stays current, so whatever tries to use it next fails, instead of running outside it.
+    /// failure hooks, once: a save whose interceptors' save failed finds it doomed already. It stays current, so
+    /// whatever tries to use it next fails, instead of running outside it.
     /// </summary>
     public async Task DoomAsync(Exception cause)
     {
+        if (_doomedBy is not null)
+        {
+            return;
+        }
+
         _doomedBy = cause;
 
-        // A save that wrote joined first, so there's a session. The server aborts on a write it rejects already.
-        if (_session!.IsInTransaction)
-        {
-            await _session.AbortTransactionAsync(CancellationToken.None);
-        }
+        // A save that wrote joined first, so there's a session.
+        await _session!.AbortTransactionAsync(CancellationToken.None);
 
         owner.Log.Doomed(_logLevel, _saves.Count, cause);
         Record("rolled_back", cause);
         await FailAsync(cause);
+
+        // The driver sends a command on a session whose transaction was aborted outside any transaction, so an
+        // interceptor that carries on writing with it fails instead.
+        _session.Dispose();
     }
 
     public async ValueTask DisposeAsync()
@@ -245,7 +259,8 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
         }
     }
 
-    private void ThrowIfUnusable()
+    /// <summary>Throws when the transaction has ended or was rolled back, so nothing more can run in it.</summary>
+    public void ThrowIfUnusable()
     {
         ThrowIfEnded();
 

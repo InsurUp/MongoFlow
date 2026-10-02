@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace MongoFlow.Identity;
 
+/// <summary>Registers MongoFlow's stores with ASP.NET Core Identity.</summary>
 public static class MongoFlowIdentityBuilderExtensions
 {
     /// <summary>
@@ -60,11 +61,8 @@ public static class MongoFlowIdentityBuilderExtensions
         services.AddScoped(typeof(IRoleStore<>).MakeGenericType(roleType),
             typeof(MongoRoleStore<,,>).MakeGenericType(typeof(TVault), roleType, keyType));
 
-        // The managers that can switch a feature off take the place of Identity's own.
-        services.RemoveAll(userManager);
-        services.RemoveAll(roleManager);
-        services.AddScoped(userManager, userManagerWrapper);
-        services.AddScoped(roleManager, roleManagerWrapper);
+        ReplaceIdentitysOwn(services, userManager, userManagerWrapper);
+        ReplaceIdentitysOwn(services, roleManager, roleManagerWrapper);
 
         // Users and roles are written only while their stamp is the one read, as Identity's own stores do.
         services.AddMongoVault<TVault>(vault => vault
@@ -74,6 +72,26 @@ public static class MongoFlowIdentityBuilderExtensions
         MongoIdentityConfiguration.ConfigureByType(keyType);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Puts <paramref name="wrapper"/>, a manager that can switch a feature off, in the place of Identity's own
+    /// <paramref name="manager"/>. An app's own manager, registered with <c>AddUserManager</c> or
+    /// <c>AddRoleManager</c>, stays: other registrations resolve it as Identity's.
+    /// </summary>
+    private static void ReplaceIdentitysOwn(IServiceCollection services,
+        Type manager,
+        Type wrapper)
+    {
+        var registered = services.Where(service => service.ServiceType == manager)
+            .Select(service => service.ImplementationType)
+            .LastOrDefault();
+
+        if (registered == manager)
+        {
+            services.RemoveAll(manager);
+            services.AddScoped(manager, wrapper);
+        }
     }
 
     private static VaultInterceptor Guard(Type documentType) =>

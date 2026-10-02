@@ -34,6 +34,7 @@ public interface IVaultCollection<TDocument>
     /// </summary>
     ValueTask<IQueryable<TDocument>> QueryAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Finds the documents matching <paramref name="filter"/> and the query filters.</summary>
     ValueTask<IFindFluent<TDocument, TDocument>> FindAsync(Expression<Func<TDocument, bool>> filter,
         CancellationToken cancellationToken = default);
 
@@ -47,12 +48,20 @@ public interface IVaultCollection<TDocument>
     /// <summary>An aggregation whose first stage matches the query filters.</summary>
     ValueTask<IAggregateFluent<TDocument>> AggregateAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Queues an insert of <paramref name="document"/>.</summary>
     void Add(TDocument document);
 
     /// <summary>Queues one insert per document. Adding nothing queues nothing.</summary>
     void AddRange(IEnumerable<TDocument> documents);
 
+    /// <summary>
+    /// Queues <paramref name="update"/> of every document matching <paramref name="filter"/> and the query filters.
+    /// </summary>
     void UpdateMany(Expression<Func<TDocument, bool>> filter, UpdateDefinition<TDocument> update);
 
+    /// <summary>
+    /// Queues a delete of every document matching <paramref name="filter"/> and the query filters; with soft delete, an
+    /// update that marks them.
+    /// </summary>
     void DeleteMany(Expression<Func<TDocument, bool>> filter);
 }

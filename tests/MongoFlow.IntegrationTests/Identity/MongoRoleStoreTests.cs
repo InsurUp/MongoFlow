@@ -9,7 +9,8 @@ namespace MongoFlow.IntegrationTests;
 /// <summary>
 /// <see cref="MongoRoleStore{TVault,TRole,TKey}"/>, through the <see cref="RoleManager{TRole}"/>
 /// <c>AddMongoFlowStores</c> registers: a role is one document with its claims inside, found by id or name through the
-/// vault's query filters, and what the manager changes on it is saved by its update.
+/// vault's query filters, and what the manager changes on it is saved by its update, which another transaction changing
+/// the role fails with Identity's concurrency failure. Removing a claim removes every copy of it.
 /// </summary>
 public class MongoRoleStoreTests
 {
@@ -131,6 +132,24 @@ public class MongoRoleStoreTests
     }
 
     [Test]
+    public async Task RemoveClaimAsync_ClaimAddedTwice_RemovesBoth()
+    {
+        // Arrange — the manager lets a claim be added twice, such as by seeding twice.
+        await using var host = Host();
+        var roles = Roles(host);
+        var admin = Admin();
+        await roles.CreateAsync(admin);
+        await roles.AddClaimAsync(admin, new Claim("permission", "users.write"));
+        await roles.AddClaimAsync(admin, new Claim("permission", "users.write"));
+
+        // Act
+        await roles.RemoveClaimAsync(admin, new Claim("permission", "users.write"));
+
+        // Assert
+        await Verify(IdentityDocuments.Stable(await host.StoredAsync("Roles"))).DontIgnoreEmptyCollections();
+    }
+
+    [Test]
     public async Task Roles_StoredRoles_CanBeQueried()
     {
         // Arrange
@@ -162,6 +181,29 @@ public class MongoRoleStoreTests
 
         // Assert
         await Verify(new { id, unsavedId, name, normalizedName, Describer = store.ErrorDescriber.GetType().Name });
+    }
+
+    [Test]
+    public async Task UpdateAsync_RoleAnotherTransactionIsChanging_FailsWithConcurrencyFailure()
+    {
+        // Arrange — the first request renames the role in a transaction it hasn't committed yet.
+        await using var host = Host();
+        await Roles(host).CreateAsync(Admin());
+        await using var first = host.CreateScope();
+        await using var second = host.CreateScope();
+        var firstRoles = first.ServiceProvider.GetRequiredService<RoleManager<MongoRole>>();
+        var secondRoles = second.ServiceProvider.GetRequiredService<RoleManager<MongoRole>>();
+        var firstAdmin = (await firstRoles.FindByIdAsync(AdminId.ToString()))!;
+        var secondAdmin = (await secondRoles.FindByIdAsync(AdminId.ToString()))!;
+        await using var transaction = await first.ServiceProvider.GetRequiredService<IVaultTransactionManager>().BeginAsync();
+        await firstRoles.SetRoleNameAsync(firstAdmin, "owner");
+        await firstRoles.UpdateAsync(firstAdmin);
+
+        // Act
+        var result = await secondRoles.UpdateAsync(secondAdmin);
+
+        // Assert
+        await Verify(result.Errors);
     }
 
     [Test]

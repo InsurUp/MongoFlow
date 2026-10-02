@@ -3,6 +3,10 @@ using System.Numerics;
 
 namespace MongoFlow;
 
+/// <summary>
+/// The built-in concurrency token: a numeric member that writes made with a document check, so they don't overwrite a
+/// change made since the document was read, and increment.
+/// </summary>
 public static class ConcurrencyTokenFeature
 {
     /// <summary>The key of the built-in concurrency token feature, added with <c>UseConcurrencyToken</c>.</summary>

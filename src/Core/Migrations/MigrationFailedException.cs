@@ -15,7 +15,9 @@ public sealed class MigrationFailedException : Exception
         Version = version;
     }
 
+    /// <summary>The vault whose migration failed.</summary>
     public Type VaultType { get; }
 
+    /// <summary>The failed migration's version.</summary>
     public SemVersion Version { get; }
 }

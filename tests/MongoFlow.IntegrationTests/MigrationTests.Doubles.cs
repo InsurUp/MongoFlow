@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Semver;
 
@@ -109,6 +110,28 @@ public partial class MigrationTests
 
         public Task DownAsync(MigrationContext<RegistryVault> context, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("This migration can't be reverted.");
+    }
+
+    /// <summary>
+    /// Reverts as another instance would at the same time: its revert removes its record, as the other instance's
+    /// commit would.
+    /// </summary>
+    public sealed class RevertedElsewhere(StepLog steps) : IVaultMigration<RegistryVault>
+    {
+        public SemVersion Version { get; } = new(2, 2, 0);
+
+        public Task UpAsync(MigrationContext<RegistryVault> context, CancellationToken cancellationToken)
+        {
+            steps.Add($"up {Version}");
+            return Task.CompletedTask;
+        }
+
+        public Task DownAsync(MigrationContext<RegistryVault> context, CancellationToken cancellationToken)
+        {
+            steps.Add($"down {Version}");
+            return context.Database.GetCollection<BsonDocument>("migrations").DeleteOneAsync(context.Session,
+                Builders<BsonDocument>.Filter.Eq("Version", Version.ToString()), cancellationToken: cancellationToken);
+        }
     }
 
     /// <summary>Saves an entry through the vault, then fails.</summary>

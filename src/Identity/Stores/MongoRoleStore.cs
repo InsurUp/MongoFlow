@@ -22,6 +22,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
     private readonly IVaultCollection<TRole, TKey> _roles;
     private bool _disposed;
 
+    /// <summary>A store over the roles of <paramref name="vault"/>.</summary>
     public MongoRoleStore(TVault vault,
         IdentityErrorDescriber? describer = null)
         : this(vault, describer, RolesOf(vault))
@@ -37,14 +38,17 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         _roles = roles;
     }
 
+    /// <summary>The vault the roles are read from and saved through.</summary>
     public virtual TVault Vault { get; }
 
+    /// <summary>Describes the errors the store reports.</summary>
     public IdentityErrorDescriber ErrorDescriber { get; set; }
 
     /// <summary>The roles, with the vault's query filters applied.</summary>
     /// <remarks>Synchronous, as Identity declares it: asynchronous query filters are waited for.</remarks>
     public virtual IQueryable<TRole> Roles => VaultQueries.Resolve(_roles.QueryAsync());
 
+    /// <inheritdoc/>
     public virtual async Task<IdentityResult> CreateAsync(TRole role,
         CancellationToken cancellationToken = default)
     {
@@ -58,6 +62,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return IdentityResult.Success;
     }
 
+    /// <inheritdoc/>
     public virtual async Task<IdentityResult> UpdateAsync(TRole role,
         CancellationToken cancellationToken = default)
     {
@@ -70,6 +75,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return await SaveAsync(cancellationToken);
     }
 
+    /// <inheritdoc/>
     public virtual async Task<IdentityResult> DeleteAsync(TRole role,
         CancellationToken cancellationToken = default)
     {
@@ -82,6 +88,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return await SaveAsync(cancellationToken);
     }
 
+    /// <inheritdoc/>
     public virtual Task<string> GetRoleIdAsync(TRole role,
         CancellationToken cancellationToken = default)
     {
@@ -92,6 +99,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return Task.FromResult(ConvertIdToString(role.Id)!);
     }
 
+    /// <inheritdoc/>
     public virtual Task<string?> GetRoleNameAsync(TRole role,
         CancellationToken cancellationToken = default)
     {
@@ -102,6 +110,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return Task.FromResult(role.Name);
     }
 
+    /// <inheritdoc/>
     public virtual Task SetRoleNameAsync(TRole role,
         string? roleName,
         CancellationToken cancellationToken = default)
@@ -114,6 +123,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc/>
     public virtual Task<string?> GetNormalizedRoleNameAsync(TRole role,
         CancellationToken cancellationToken = default)
     {
@@ -124,6 +134,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return Task.FromResult(role.NormalizedName);
     }
 
+    /// <inheritdoc/>
     public virtual Task SetNormalizedRoleNameAsync(TRole role,
         string? normalizedName,
         CancellationToken cancellationToken = default)
@@ -136,11 +147,13 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return Task.CompletedTask;
     }
 
+    /// <summary>The key in <paramref name="id"/>, as Identity passes keys, or the default when it's empty.</summary>
     public virtual TKey? ConvertIdFromString(string? id) => IdentityKeys.FromString<TKey>(id);
 
     /// <summary>The id as a string, or <see langword="null"/> while it isn't set: <c>null</c>, or a struct's default.</summary>
     public virtual string? ConvertIdToString(TKey id) => EqualityComparer<TKey>.Default.Equals(id, default) ? null : id!.ToString();
 
+    /// <inheritdoc/>
     public virtual async Task<TRole?> FindByIdAsync(string id,
         CancellationToken cancellationToken = default)
     {
@@ -150,6 +163,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return ConvertIdFromString(id) is { } roleId ? await _roles.GetByKeyAsync(roleId, cancellationToken) : null;
     }
 
+    /// <inheritdoc/>
     public virtual async Task<TRole?> FindByNameAsync(string normalizedName,
         CancellationToken cancellationToken = default)
     {
@@ -160,6 +174,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return await find.FirstOrDefaultAsync(cancellationToken);
     }
 
+    /// <inheritdoc/>
     public virtual Task<IList<Claim>> GetClaimsAsync(TRole role,
         CancellationToken cancellationToken = default)
     {
@@ -169,6 +184,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return Task.FromResult<IList<Claim>>(role.Claims.Select(claim => claim.ToClaim()).ToList());
     }
 
+    /// <inheritdoc/>
     public virtual Task AddClaimAsync(TRole role,
         Claim claim,
         CancellationToken cancellationToken = default)
@@ -181,6 +197,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc/>
     public virtual Task RemoveClaimAsync(TRole role,
         Claim claim,
         CancellationToken cancellationToken = default)
@@ -189,8 +206,8 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         ArgumentNullException.ThrowIfNull(role);
         ArgumentNullException.ThrowIfNull(claim);
 
-        if (role.Claims.FirstOrDefault(existing => existing.ClaimType == claim.Type && existing.ClaimValue == claim.Value)
-            is { } roleClaim)
+        var matching = role.Claims.Where(existing => existing.ClaimType == claim.Type && existing.ClaimValue == claim.Value).ToList();
+        foreach (var roleClaim in matching)
         {
             role.Claims.Remove(roleClaim);
         }
@@ -202,6 +219,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
     public virtual MongoRoleStore<TVault, TRole, TKey> Without(FeatureKey feature) =>
         new(Vault, ErrorDescriber, _roles.Without(feature));
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         _disposed = true;
@@ -210,6 +228,7 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
 
     IRoleStore<TRole> IFeatureSwitchableStore<IRoleStore<TRole>>.Without(FeatureKey feature) => Without(feature);
 
+    /// <summary>Throws <see cref="ObjectDisposedException"/> once the store is disposed.</summary>
     protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
     private static IVaultCollection<TRole, TKey> RolesOf(TVault vault)
@@ -229,6 +248,11 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         }
         catch (ConcurrencyStampConflictException)
         {
+            return IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure());
+        }
+        catch (ClientBulkWriteException exception) when (IdentityWrites.IsWriteConflict(exception))
+        {
+            // Another request's transaction is changing the role: it fails as if that change were committed.
             return IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure());
         }
     }

@@ -84,10 +84,15 @@ internal static class SavePipeline
             enlisted = true;
 
             await run.SavingAsync(cancellationToken);
+
+            // A save its interceptors made may have failed and rolled the transaction back, and they carried on: the
+            // write would run outside it.
+            transaction.ThrowIfUnusable();
             activity.Writing(run.Operations.Count);
             writing = true;
             var result = await run.WriteAsync(cancellationToken);
             await run.SavedAsync(cancellationToken);
+            transaction.ThrowIfUnusable();
 
             // Before the commit, so a later save in an open transaction doesn't send these changes again.
             tracked?.Apply();
@@ -114,11 +119,12 @@ internal static class SavePipeline
             // Each path runs the interceptors' failure hooks. A rollback after the commit does nothing.
             if (outer is null)
             {
-                await transaction.RollbackAsync(CancellationToken.None);
+                await transaction.RollbackAsync(exception);
             }
-            else if (writing)
+            else if (writing || outer.IsDoomed)
             {
                 // Its writes may be in the open transaction, and MongoDB can't undo part of one: the whole of it goes.
+                // A save its interceptors made may have rolled it back already, running this save's failure hooks then.
                 await outer.DoomAsync(exception);
             }
             else if (enlisted)

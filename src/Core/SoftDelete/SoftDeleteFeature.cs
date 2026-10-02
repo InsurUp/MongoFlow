@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MongoFlow;
 
+/// <summary>
+/// The built-in soft delete: deletes mark documents deleted instead of removing them, and reads leave marked ones out.
+/// </summary>
 public static class SoftDeleteFeature
 {
     /// <summary>The key of the built-in soft-delete feature, added with <c>UseSoftDelete</c>.</summary>

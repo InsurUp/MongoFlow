@@ -13,5 +13,6 @@ namespace MongoFlow;
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class MongoVersionAttribute(string version) : Attribute
 {
+    /// <summary>The version the vault's data is migrated to.</summary>
     public string Version { get; } = version;
 }

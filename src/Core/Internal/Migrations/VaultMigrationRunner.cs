@@ -209,8 +209,17 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
                 await migration.DownAsync(context, cancellationToken);
                 ThrowIfUnsaved();
 
-                await history.DeleteOneAsync(session, Builders<MigrationRecord>.Filter.Eq(record => record.Version, planned.Version),
+                // Every record of it, as a history earlier versions wrote can hold two. None left means another
+                // instance reverted it meanwhile: failing rolls this revert back, as recording a migration twice does.
+                var deleted = await history.DeleteManyAsync(session,
+                    Builders<MigrationRecord>.Filter.Eq(record => record.Version, planned.Version),
                     cancellationToken: cancellationToken);
+
+                if (deleted.DeletedCount == 0)
+                {
+                    throw new InvalidOperationException(
+                        $"{planned.Version} is no longer recorded as applied: another instance reverted it meanwhile.");
+                }
             }
         }
 

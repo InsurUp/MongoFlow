@@ -14,6 +14,13 @@
     <!-- Local packs; a release takes its version from the tag. -->
     <Version>1.0.0-beta.1</Version>
     <PackageReleaseNotes>https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <!-- The API docs for IntelliSense, and a symbols package Source Link points at the commit with. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- A parameter is documented where it needs saying, so some of a member's can go without. -->
+    <NoWarn>$(NoWarn);CS1573</NoWarn>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>

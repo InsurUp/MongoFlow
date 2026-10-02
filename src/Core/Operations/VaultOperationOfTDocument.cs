@@ -4,6 +4,7 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
+/// <summary>A write queued on a vault collection of <typeparamref name="TDocument"/>.</summary>
 public abstract class VaultOperation<TDocument> : VaultOperation
 {
     private protected VaultOperation(CollectionModel<TDocument> model,

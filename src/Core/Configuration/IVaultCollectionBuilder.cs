@@ -19,6 +19,7 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
     /// <summary>The collection's name in the vault's database. Defaults to the property name.</summary>
     IVaultCollectionBuilder<TDocument> Name(string name);
 
+    /// <summary>Adds a query filter that's the same for every query.</summary>
     IVaultCollectionBuilder<TDocument> QueryFilter(Expression<Func<TDocument, bool>> filter);
 
     /// <summary>Adds a query filter decided per query from the request's services.</summary>

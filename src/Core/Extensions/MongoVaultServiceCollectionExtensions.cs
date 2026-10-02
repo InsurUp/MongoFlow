@@ -18,6 +18,7 @@ namespace MongoFlow;
 /// </remarks>
 public static class MongoVaultServiceCollectionExtensions
 {
+    /// <summary>Registers <typeparamref name="TVault"/>, scoped, configured by <paramref name="configure"/>.</summary>
     public static IServiceCollection AddMongoVault<TVault>(this IServiceCollection services,
         Action<IVaultBuilder<TVault>>? configure = null)
         where TVault : MongoVault
@@ -31,6 +32,10 @@ public static class MongoVaultServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers <typeparamref name="TVault"/>, scoped, configured by <paramref name="configure"/>, which is given the
+    /// root provider.
+    /// </summary>
     public static IServiceCollection AddMongoVault<TVault>(this IServiceCollection services,
         Action<IServiceProvider, IVaultBuilder<TVault>> configure)
         where TVault : MongoVault
@@ -41,6 +46,10 @@ public static class MongoVaultServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers <typeparamref name="TVault"/>, scoped, configured by <paramref name="configure"/>, and resolves
+    /// <typeparamref name="TInterface"/> to the scope's instance of it.
+    /// </summary>
     public static IServiceCollection AddMongoVault<TInterface, TVault>(this IServiceCollection services,
         Action<IVaultBuilder<TVault>>? configure = null)
         where TInterface : class
@@ -52,6 +61,10 @@ public static class MongoVaultServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers <typeparamref name="TVault"/>, scoped, configured by <paramref name="configure"/>, which is given the
+    /// root provider, and resolves <typeparamref name="TInterface"/> to the scope's instance of it.
+    /// </summary>
     public static IServiceCollection AddMongoVault<TInterface, TVault>(this IServiceCollection services,
         Action<IServiceProvider, IVaultBuilder<TVault>> configure)
         where TInterface : class

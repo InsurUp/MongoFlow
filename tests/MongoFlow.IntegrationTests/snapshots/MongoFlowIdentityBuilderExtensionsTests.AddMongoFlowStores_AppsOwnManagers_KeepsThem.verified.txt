@@ -1,0 +1,6 @@
+﻿{
+  UserManager: AppUserManager,
+  AppUserManager: AppUserManager,
+  RoleManager: AppRoleManager,
+  AppRoleManager: AppRoleManager
+}

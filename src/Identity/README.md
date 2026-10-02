@@ -1,7 +1,7 @@
 # MongoFlow.Identity
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![NuGet](https://img.shields.io/nuget/v/MongoFlow.Identity)](https://www.nuget.org/packages/MongoFlow.Identity)
+[![NuGet](https://img.shields.io/nuget/vpre/MongoFlow.Identity)](https://www.nuget.org/packages/MongoFlow.Identity)
 
 A MongoDB provider for ASP.NET Core Identity, built on [MongoFlow](https://github.com/InsurUp/MongoFlow). Users and roles
 are stored in a MongoFlow vault, so its query filters, features and interceptors apply to them like to any other
@@ -10,7 +10,7 @@ collection. It ships with MongoFlow, at the same version.
 ## Installation
 
 ```bash
-dotnet add package MongoFlow.Identity
+dotnet add package MongoFlow.Identity --prerelease
 ```
 
 ## Usage
@@ -47,9 +47,10 @@ public sealed class AppRole : MongoRole
 public sealed class AppVault : IdentityMongoVault<AppUser, AppRole, ObjectId>;
 ```
 
-`IdentityMongoVault<TUser>` and `IdentityMongoVault<TUser, TKey>` cover the cases with plain roles. The driver fills in a
-missing `ObjectId` when a user or role is created; with another key type, set the id first or give the driver an id
-generator for it.
+`IdentityMongoVault<TUser>` and `IdentityMongoVault<TUser, TKey>` cover the cases with plain roles. The driver fills in
+a missing `ObjectId` when a user, role or token is created. With `string` keys, set users' and roles' ids yourself;
+tokens, which the store creates, get an `ObjectId` string. With another key type, set the ids yourself, and register an
+id generator for it with `BsonSerializer.RegisterIdGenerator` for tokens.
 
 ### Switching a feature off
 
@@ -63,11 +64,15 @@ var user = await allTenants.FindByEmailAsync(email);
 var deletedRoles = roleManager.Without(SoftDeleteFeature.Key);
 ```
 
+They take the place of Identity's own managers. A manager of the app's own, registered with `AddUserManager` or
+`AddRoleManager`, is kept instead, and can't switch features off.
+
 ### Concurrency
 
 Updates and deletes of users and roles apply only while the stored `ConcurrencyStamp` is the one read, and an update
 renews it, as Identity's Entity Framework store does: one made after another request changed the user fails with
-`ConcurrencyFailure`, rather than overwriting the other's change. Deleting a user deletes its tokens with it.
+`ConcurrencyFailure`, rather than overwriting the other's change. So does one made while another request's transaction
+is changing the same user or role, which MongoDB rejects as a write conflict. Deleting a user deletes its tokens too.
 
 ## More
 

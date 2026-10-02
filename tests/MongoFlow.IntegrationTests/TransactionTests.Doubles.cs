@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 
 namespace MongoFlow.IntegrationTests;
 
@@ -34,6 +35,52 @@ public partial class TransactionTests
             }
 
             await ledger.SaveAsync(cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Records each order in the ledger vault from inside the order's save, while it saves or after its write. It can
+    /// carry on when the ledger's save fails, as a best-effort audit would, then write a note with the save's session.
+    /// </summary>
+    public sealed class LedgerSaver : VaultInterceptor
+    {
+        public bool WhileSaving { get; init; }
+
+        public bool IgnoringFailures { get; init; }
+
+        public bool ThenWritingANote { get; init; }
+
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken) =>
+            WhileSaving ? SaveLedgerAsync(context, cancellationToken) : ValueTask.CompletedTask;
+
+        public override ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken) =>
+            WhileSaving ? ValueTask.CompletedTask : SaveLedgerAsync(context, cancellationToken);
+
+        private async ValueTask SaveLedgerAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            var ledger = context.Services.GetRequiredService<LedgerVault>();
+            foreach (var operation in context.Operations)
+            {
+                if (operation.Document is Order order)
+                {
+                    ledger.Entries.Add(new LedgerEntry { Id = order.Id, Text = $"order {order.Id}" });
+                }
+            }
+
+            try
+            {
+                await ledger.SaveAsync(cancellationToken);
+            }
+            catch (InvalidOperationException) when (IgnoringFailures)
+            {
+            }
+
+            if (ThenWritingANote)
+            {
+                await ((ShopVault)context.Vault).Orders.MongoCollection.Database.GetCollection<BsonDocument>("Notes")
+                    .InsertOneAsync(context.Session, new BsonDocument("_id", "written after the ledger failed"),
+                        cancellationToken: cancellationToken);
+            }
         }
     }
 

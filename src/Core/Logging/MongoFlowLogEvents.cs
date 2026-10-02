@@ -17,6 +17,7 @@ public static class MongoFlowLogEvents
     /// <summary>Building a vault's model, once per vault, the first time it's resolved.</summary>
     public static class Model
     {
+        /// <summary>The logger category.</summary>
         public const string Category = "MongoFlow.Model";
 
         /// <summary><c>Debug</c>: a vault's model was built, with its database, collections and interceptors.</summary>
@@ -29,6 +30,7 @@ public static class MongoFlowLogEvents
     /// </summary>
     public static class Indexes
     {
+        /// <summary>The logger category.</summary>
         public const string Category = "MongoFlow.Indexes";
 
         /// <summary><c>Warning</c>: no unique index covers a key other than <c>_id</c>.</summary>
@@ -53,6 +55,7 @@ public static class MongoFlowLogEvents
     /// <summary>Saves: what they write, how they end, and what fails them.</summary>
     public static class Save
     {
+        /// <summary>The logger category.</summary>
         public const string Category = "MongoFlow.Save";
 
         /// <summary><c>Debug</c>: a save starts, in a transaction of its own.</summary>
@@ -97,15 +100,19 @@ public static class MongoFlowLogEvents
     /// </summary>
     public static class Transaction
     {
+        /// <summary>The logger category.</summary>
         public const string Category = "MongoFlow.Transaction";
 
+        /// <summary>A transaction began.</summary>
         public const int Began = 27_004_001;
 
+        /// <summary>The transaction committed, with how many saves joined it.</summary>
         public const int Committed = 27_004_002;
 
         /// <summary>The commit failed; the saves that joined run their failure hooks, and the exception is thrown.</summary>
         public const int CommitFailed = 27_004_003;
 
+        /// <summary>The transaction was rolled back, with how many saves joined it, whose failure hooks run.</summary>
         public const int RolledBack = 27_004_004;
 
         /// <summary>
@@ -118,6 +125,7 @@ public static class MongoFlowLogEvents
     /// <summary>Reads, at <c>Trace</c>: the query filters each runs with.</summary>
     public static class Query
     {
+        /// <summary>The logger category.</summary>
         public const string Category = "MongoFlow.Query";
 
         /// <summary><c>Trace</c>: <c>QueryAsync</c>, <c>FindAsync</c> or <c>AggregateAsync</c>, with its query filters.</summary>
@@ -130,6 +138,7 @@ public static class MongoFlowLogEvents
     /// <summary>Migrations <c>IVaultMigrator</c> applies and reverts.</summary>
     public static class Migrations
     {
+        /// <summary>The logger category.</summary>
         public const string Category = "MongoFlow.Migrations";
 
         /// <summary><c>Information</c>: a vault is migrated from its current version to a target.</summary>

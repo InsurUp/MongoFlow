@@ -17,8 +17,10 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
         Document = document;
     }
 
+    /// <inheritdoc/>
     public override OperationKind Kind => OperationKind.Delete;
 
+    /// <inheritdoc/>
     public override bool IsSetBased => Filter is not null;
 
     /// <summary>The key of the one document to delete, or <see langword="null"/> when the operation is set-based.</summary>

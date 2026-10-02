@@ -19,6 +19,7 @@ public readonly struct SaveContext
         _interceptor = interceptor;
     }
 
+    /// <summary>The vault being saved.</summary>
     public IMongoVault Vault => _run.Runtime.Vault;
 
     /// <summary>The request's services.</summary>

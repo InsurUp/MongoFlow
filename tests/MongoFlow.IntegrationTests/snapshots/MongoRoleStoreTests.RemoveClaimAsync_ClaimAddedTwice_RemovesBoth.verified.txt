@@ -1,0 +1,10 @@
+﻿[
+  {
+    _id: {
+      $oid: 6600000000000000000000b1
+    },
+    Name: admin,
+    NormalizedName: ADMIN,
+    Claims: []
+  }
+]

@@ -16,6 +16,10 @@ namespace MongoFlow;
 /// </remarks>
 public interface IVaultTransaction : IAsyncDisposable
 {
+    /// <summary>
+    /// The transaction's session, for driver calls that should be part of it. Asked for before any vault joins, it's
+    /// started on the <see cref="IMongoClient"/> registered in DI.
+    /// </summary>
     IClientSessionHandle Session { get; }
 
     /// <summary>Commits, then runs <see cref="VaultInterceptor.CommittedAsync"/> for every save that joined.</summary>

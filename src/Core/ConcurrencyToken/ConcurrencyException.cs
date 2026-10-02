@@ -16,6 +16,7 @@ public sealed class ConcurrencyException : Exception
         DocumentExists = documentExists;
     }
 
+    /// <summary>The write that matched nothing.</summary>
     public VaultOperation Operation { get; }
 
     /// <summary>

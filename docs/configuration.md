@@ -1,7 +1,8 @@
 # Configuration
 
-A vault is configured once, at startup, when it's first resolved. Its configuration is checked then: a mistake fails
-with `VaultConfigurationException` before any request uses the vault.
+A vault is configured once, when it's first resolved, or at startup when `MigrateAllAsync` runs, which configures every
+registered vault. Its configuration is checked then: a mistake fails with `VaultConfigurationException` before the vault
+is used. These docs call that failing at startup.
 
 ## Registering a vault
 
@@ -80,7 +81,8 @@ A key is matched as stored, so a key that converts its member, such as `x => (ob
 
 Lookups by key expect one document, so a key other than `_id` needs a unique index. MongoFlow doesn't create indexes:
 create them in a [migration](migrations.md). It logs a warning for a key no unique index covers; see
-[observability](observability.md).
+[observability](observability.md). The server still gives each document an `_id`, so a document type keyed by other
+members needs an `Id` member or `[BsonIgnoreExtraElements]`, as a keyless one does.
 
 ### Keyless collections
 
@@ -114,8 +116,9 @@ public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<P
 ### Configurations
 
 An `IVaultConfiguration<TVault>` is applied with `UseConfiguration<TConfiguration>()`, which creates it from the root
-provider, so it can take singletons and options; a scoped dependency fails at startup. Each configuration type applies
-once per vault, however often it's added.
+provider, so it can take singletons and options. Don't give it scoped services: the root provider resolves one for the
+app's life, and fails only when scopes are validated, as in Development. Each configuration type applies once per vault,
+however often it's added.
 
 ```csharp
 public sealed class CustomerVaultConfiguration(IOptions<CustomerOptions> options) : IVaultConfiguration<CustomerVault>

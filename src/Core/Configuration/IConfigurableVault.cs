@@ -9,5 +9,6 @@ namespace MongoFlow;
 /// </remarks>
 public interface IConfigurableVault<TSelf> where TSelf : MongoVault, IConfigurableVault<TSelf>
 {
+    /// <summary>Configures the vault, once.</summary>
     static abstract void Configure(IVaultBuilder<TSelf> vault);
 }

@@ -10,5 +10,6 @@ namespace MongoFlow;
 /// </remarks>
 public interface IVaultCollectionConfiguration
 {
+    /// <summary>Configures one of the vault's collections, with a builder typed to its documents.</summary>
     void Configure<TDocument>(IVaultCollectionBuilder<TDocument> collection);
 }

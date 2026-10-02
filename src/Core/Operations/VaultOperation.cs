@@ -19,8 +19,10 @@ public abstract class VaultOperation
         DisabledFeatures = disabledFeatures;
     }
 
+    /// <summary>What the operation writes.</summary>
     public abstract OperationKind Kind { get; }
 
+    /// <summary>The vault collection the operation was queued on.</summary>
     public IVaultCollectionInfo Collection { get; }
 
     /// <summary>The database and collection the operation writes to.</summary>

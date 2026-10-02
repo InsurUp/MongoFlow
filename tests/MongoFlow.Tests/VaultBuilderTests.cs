@@ -63,6 +63,17 @@ public partial class VaultBuilderTests
     }
 
     [Test]
+    public async Task Build_KeyedByAnotherMemberAndReadingNoId_ThrowsVaultConfigurationException()
+    {
+        // Arrange
+        await using var host = new VaultHost<NumberedVault>(vault => vault
+            .Collection(x => x.Notes, notes => notes.Key(x => x.Number)));
+
+        // Act & Assert
+        await Throws(() => host.Vault).IgnoreStackTrace();
+    }
+
+    [Test]
     public async Task Build_KeylessCollectionOfBsonDocuments_RegistersNoClassMapForThem()
     {
         // Arrange

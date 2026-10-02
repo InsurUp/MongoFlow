@@ -1,4 +1,4 @@
 ﻿{
   Type: VaultConfigurationException,
-  Message: Notes is keyless, but StrictNote doesn't ignore extra elements, so reading back the _id the server adds would fail. Mark it [BsonIgnoreExtraElements], or give it an Id.
+  Message: StrictNote, in Notes, has no member for the _id and doesn't ignore extra elements, so reading back the _id the server adds would fail. Mark it [BsonIgnoreExtraElements], or give it an Id.
 }

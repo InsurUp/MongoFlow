@@ -13,8 +13,10 @@ namespace MongoFlow;
 /// </remarks>
 public static class MongoFlowTelemetry
 {
+    /// <summary>The name of MongoFlow's <c>ActivitySource</c>, for <c>AddSource</c>.</summary>
     public const string ActivitySourceName = "MongoFlow";
 
+    /// <summary>The name of MongoFlow's meter, for <c>AddMeter</c>.</summary>
     public const string MeterName = "MongoFlow";
 
     /// <summary>The spans MongoFlow starts, by operation name.</summary>

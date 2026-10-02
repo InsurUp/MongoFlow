@@ -30,6 +30,19 @@ public partial class VaultBuilderTests
         public IVaultCollection<StrictNote> Notes { get; init; } = null!;
     }
 
+    /// <summary>A note keyed by its number, with no member stored as the <c>_id</c> the server adds.</summary>
+    public sealed class NumberedNote
+    {
+        public string Number { get; set; } = "";
+
+        public string Text { get; set; } = "";
+    }
+
+    public sealed class NumberedVault : MongoVault
+    {
+        public IVaultCollection<NumberedNote, string> Notes { get; init; } = null!;
+    }
+
     /// <summary>A document type that's an interface, which has no class map to check.</summary>
     public interface IEvent
     {

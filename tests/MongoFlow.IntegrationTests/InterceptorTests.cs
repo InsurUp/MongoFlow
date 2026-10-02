@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace MongoFlow.IntegrationTests;
 
@@ -97,6 +98,23 @@ public partial class InterceptorTests
         // Act & Assert
         await ThrowsTask(() => host.Vault.SaveAsync()).IgnoreStackTrace();
         await Assert.That(log.Entries).IsEquivalentTo(["first.Saving", "first.Failed"]);
+    }
+
+    [Test]
+    public async Task FailedAsync_SaveTheServerRejects_GetsTheServersError()
+    {
+        // Arrange — the order repeats a stored key.
+        var recorder = new FailureRecorder();
+        await using var host = Mongo.Host<ShopVault>(vault => vault.AddInterceptor(recorder));
+        await host.SeedAsync("Orders", new Order { Id = 1, Customer = "ada", Total = 10 });
+        host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
+
+        // Act
+        var exception = await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ClientBulkWriteException>();
+
+        // Assert
+        await Assert.That(recorder.Exceptions).HasSingleItem();
+        await Assert.That(recorder.Exceptions[0]).IsSameReferenceAs(exception);
     }
 
     [Test]

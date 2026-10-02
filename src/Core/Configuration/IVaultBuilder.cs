@@ -25,6 +25,7 @@ public interface IVaultBuilder<TVault> where TVault : MongoVault
     /// <summary>Uses the named database on the <see cref="IMongoClient"/> registered in DI.</summary>
     IVaultBuilder<TVault> UseDatabase(string name);
 
+    /// <summary>Uses <paramref name="database"/>, on its client, which needn't be the one registered in DI.</summary>
     IVaultBuilder<TVault> UseDatabase(IMongoDatabase database);
 
     /// <summary>
@@ -40,6 +41,7 @@ public interface IVaultBuilder<TVault> where TVault : MongoVault
     /// <summary>Applies a configuration created from the root provider. Each configuration type applies once per vault.</summary>
     IVaultBuilder<TVault> UseConfiguration<TConfiguration>() where TConfiguration : class, IVaultConfiguration<TVault>;
 
+    /// <summary>Applies a configuration instance. Each configuration type applies once per vault.</summary>
     IVaultBuilder<TVault> UseConfiguration(IVaultConfiguration<TVault> configuration);
 
     /// <summary>
@@ -111,6 +113,7 @@ public interface IVaultBuilder<TVault> where TVault : MongoVault
     /// <summary>Adds a feature created from the root provider.</summary>
     IVaultBuilder<TVault> AddFeature<TFeature>() where TFeature : class, IVaultFeature;
 
+    /// <summary>Adds a feature instance.</summary>
     IVaultBuilder<TVault> AddFeature<TFeature>(TFeature feature) where TFeature : class, IVaultFeature;
 
     /// <summary>Declares the vault's migrations, which <see cref="IVaultMigrator"/> applies.</summary>

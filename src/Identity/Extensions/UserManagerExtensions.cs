@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace MongoFlow.Identity;
 
+/// <summary>What the <see cref="UserManager{TUser}"/> <c>AddMongoFlowStores</c> registers adds to Identity's.</summary>
 public static class UserManagerExtensions
 {
     /// <summary>

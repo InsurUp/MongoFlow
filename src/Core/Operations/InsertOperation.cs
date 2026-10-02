@@ -15,8 +15,10 @@ public sealed class InsertOperation<TDocument> : VaultOperation<TDocument>
         Document = document;
     }
 
+    /// <inheritdoc/>
     public override OperationKind Kind => OperationKind.Insert;
 
+    /// <inheritdoc/>
     public override bool IsSetBased => false;
 
     internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,

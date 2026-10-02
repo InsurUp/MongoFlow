@@ -2,6 +2,10 @@ using System.Linq.Expressions;
 
 namespace MongoFlow;
 
+/// <summary>
+/// The built-in multi-tenancy: reads see only the current tenant's documents, and writes are stamped with it and can't
+/// reach another tenant's.
+/// </summary>
 public static class MultiTenancyFeature
 {
     /// <summary>The key of the built-in multi-tenancy feature, added with <c>UseMultiTenancy</c>.</summary>

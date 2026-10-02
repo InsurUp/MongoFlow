@@ -12,7 +12,8 @@ namespace MongoFlow.IntegrationTests;
 /// <list type="number">
 /// <item>pending migrations run oldest first, each in a transaction the vault's saves join unless it opts out, and are
 /// recorded in that transaction;</item>
-/// <item>a target stops short, and one below the applied versions reverts the migrations above it, newest first;</item>
+/// <item>a target stops short, and one below the applied versions reverts the migrations above it, newest first, each
+/// once, even when another instance reverts it at the same time;</item>
 /// <item>without a target, a vault goes to the version its <see cref="MongoVersionAttribute"/> names, which must be one of
 /// its migrations'; see <c>MigrationTests.Versions.cs</c>;</item>
 /// <item>a migration added below the current version still runs, and the history earlier MongoFlow versions wrote
@@ -246,12 +247,14 @@ public partial class MigrationTests
         await Verify(_sink.Snapshot(MongoFlowLogEvents.Migrations.Category));
     }
 
-    // A record of SeedEntries as earlier versions wrote it.
-    private static BsonDocument LegacyRecord(ObjectId id) => new()
+    // A record of a migration, SeedEntries unless named, as earlier versions wrote it.
+    private static BsonDocument LegacyRecord(ObjectId id,
+        string version = "1.0.0",
+        string name = "SeedEntries") => new()
     {
         ["_id"] = id,
-        ["Version"] = "1.0.0",
-        ["Name"] = "SeedEntries",
+        ["Version"] = version,
+        ["Name"] = name,
         ["Description"] = BsonNull.Value,
         ["Timestamp"] = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
     };

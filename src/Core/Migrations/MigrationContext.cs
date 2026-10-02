@@ -20,6 +20,9 @@ public sealed class MigrationContext<TVault> where TVault : MongoVault
     /// </summary>
     public TVault Vault { get; }
 
+    /// <summary>
+    /// The vault's database, for work through the driver, such as on indexes. Query filters and features don't apply.
+    /// </summary>
     public IMongoDatabase Database { get; }
 
     /// <summary>The session to pass to driver calls. It's in a transaction unless the migration opted out.</summary>

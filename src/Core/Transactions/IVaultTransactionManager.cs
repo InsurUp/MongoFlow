@@ -12,6 +12,7 @@ namespace MongoFlow;
 /// </remarks>
 public interface IVaultTransactionManager
 {
+    /// <summary>The scope's open transaction, or <see langword="null"/> when there's none.</summary>
     IVaultTransaction? Current { get; }
 
     /// <summary>Starts a transaction that every vault saved in this scope joins until it ends.</summary>

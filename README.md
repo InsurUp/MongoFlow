@@ -1,7 +1,7 @@
 # MongoFlow
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![NuGet](https://img.shields.io/nuget/v/MongoFlow)](https://www.nuget.org/packages/MongoFlow)
+[![NuGet](https://img.shields.io/nuget/vpre/MongoFlow)](https://www.nuget.org/packages/MongoFlow)
 
 A unit of work for MongoDB on .NET, built on the official driver. A vault holds a database's collections: reads return the
 driver's own types with your query filters applied, and writes are queued until `SaveAsync`, which sends them as one
@@ -19,7 +19,7 @@ migrations come with it, and it logs, traces and measures what it does.
 ## Installation
 
 ```bash
-dotnet add package MongoFlow
+dotnet add package MongoFlow --prerelease
 ```
 
 ## Quick start
@@ -88,7 +88,7 @@ public sealed class OrderService(ShopVault vault)
 Each vault is configured where it's registered, by the vault itself (`IConfigurableVault<TSelf>`), or by configurations
 that apply to every vault (`AddDefaultVaultConfiguration`), which a vault can skip. Collections are selected by their
 property, so a wrong key type or a collection the vault doesn't declare is a compile error. Everything is applied and
-validated once, at startup.
+validated once, when the vault is first resolved or migrated.
 
 ```csharp
 services.AddMongoVault<IPolicyVault, PolicyVault>(vault => vault

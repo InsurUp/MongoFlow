@@ -3,6 +3,7 @@ namespace MongoFlow;
 /// <summary>Declares a vault's migrations, applied by <see cref="IVaultMigrator"/>.</summary>
 public interface IMigrationBuilder<TVault> where TVault : MongoVault
 {
+    /// <summary>Adds a migration, created through DI when it runs.</summary>
     IMigrationBuilder<TVault> Add<TMigration>() where TMigration : class, IVaultMigration<TVault>;
 
     /// <summary>
