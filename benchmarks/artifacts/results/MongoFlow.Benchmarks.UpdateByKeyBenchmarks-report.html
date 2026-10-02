@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>MongoFlow.Benchmarks.UpdateByKeyBenchmarks-20261002-002747</title>
+<title>MongoFlow.Benchmarks.UpdateByKeyBenchmarks-20261002-174829</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -24,21 +24,21 @@ Apple M4 Max, 1 CPU, 16 logical and 16 physical cores
 <table>
 <thead><tr><th>Method                          </th><th>Count</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Allocated</th><th>Alloc Ratio</th>
 </tr>
-</thead><tbody><tr><td>&#39;Driver: client bulk write&#39;</td><td>1</td><td>1.363 ms</td><td>0.0892 ms</td><td>0.2473 ms</td><td>1.298 ms</td><td>1.03</td><td>0.25</td><td>5.8594</td><td>-</td><td>48.68 KB</td><td>1.00</td>
-</tr><tr><td>&#39;Driver: features&#39; filters&#39;</td><td>1</td><td>1.417 ms</td><td>0.0964 ms</td><td>0.2670 ms</td><td>1.320 ms</td><td>1.07</td><td>0.26</td><td>5.8594</td><td>-</td><td>56.34 KB</td><td>1.16</td>
-</tr><tr><td>&#39;MongoFlow: UpdateByKey&#39;</td><td>1</td><td>1.343 ms</td><td>0.0810 ms</td><td>0.2285 ms</td><td>1.311 ms</td><td>1.01</td><td>0.24</td><td>3.9063</td><td>-</td><td>49.62 KB</td><td>1.02</td>
-</tr><tr><td>&#39;MongoFlow: UpdateByKey with features&#39;</td><td>1</td><td>1.341 ms</td><td>0.0583 ms</td><td>0.1614 ms</td><td>1.310 ms</td><td>1.01</td><td>0.20</td><td>5.8594</td><td>-</td><td>56.99 KB</td><td>1.17</td>
-</tr><tr><td>&#39;MongoFlow: Update, token checked&#39;</td><td>1</td><td>1.255 ms</td><td>0.0514 ms</td><td>0.1500 ms</td><td>1.253 ms</td><td>0.95</td><td>0.19</td><td>3.9063</td><td>-</td><td>57.96 KB</td><td>1.19</td>
-</tr><tr><td>&#39;Driver: client bulk write&#39;</td><td>100</td><td>3.780 ms</td><td>0.2161 ms</td><td>0.6339 ms</td><td>3.686 ms</td><td>1.03</td><td>0.24</td><td>62.5000</td><td>7.8125</td><td>519.21 KB</td><td>1.00</td>
-</tr><tr><td>&#39;Driver: features&#39; filters&#39;</td><td>100</td><td>6.141 ms</td><td>0.2554 ms</td><td>0.7246 ms</td><td>6.018 ms</td><td>1.67</td><td>0.33</td><td>156.2500</td><td>31.2500</td><td>1318.44 KB</td><td>2.54</td>
-</tr><tr><td>&#39;MongoFlow: UpdateByKey&#39;</td><td>100</td><td>3.744 ms</td><td>0.2160 ms</td><td>0.6162 ms</td><td>3.644 ms</td><td>1.02</td><td>0.23</td><td>46.8750</td><td>-</td><td>385.54 KB</td><td>0.74</td>
-</tr><tr><td>&#39;MongoFlow: UpdateByKey with features&#39;</td><td>100</td><td>5.961 ms</td><td>0.2525 ms</td><td>0.7122 ms</td><td>5.858 ms</td><td>1.62</td><td>0.32</td><td>46.8750</td><td>7.8125</td><td>432.43 KB</td><td>0.83</td>
-</tr><tr><td>&#39;MongoFlow: Update, token checked&#39;</td><td>100</td><td>5.809 ms</td><td>0.1736 ms</td><td>0.4840 ms</td><td>5.782 ms</td><td>1.58</td><td>0.28</td><td>46.8750</td><td>-</td><td>507.8 KB</td><td>0.98</td>
-</tr><tr><td>&#39;Driver: client bulk write&#39;</td><td>1000</td><td>20.324 ms</td><td>0.6150 ms</td><td>1.7145 ms</td><td>20.018 ms</td><td>1.01</td><td>0.12</td><td>562.5000</td><td>187.5000</td><td>4835.9 KB</td><td>1.00</td>
-</tr><tr><td>&#39;Driver: features&#39; filters&#39;</td><td>1000</td><td>42.159 ms</td><td>1.2891 ms</td><td>3.5936 ms</td><td>41.234 ms</td><td>2.09</td><td>0.24</td><td>1538.4615</td><td>538.4615</td><td>12852.91 KB</td><td>2.66</td>
-</tr><tr><td>&#39;MongoFlow: UpdateByKey&#39;</td><td>1000</td><td>18.894 ms</td><td>0.5311 ms</td><td>1.4804 ms</td><td>18.483 ms</td><td>0.94</td><td>0.10</td><td>375.0000</td><td>125.0000</td><td>3478.71 KB</td><td>0.72</td>
-</tr><tr><td>&#39;MongoFlow: UpdateByKey with features&#39;</td><td>1000</td><td>34.394 ms</td><td>0.6864 ms</td><td>1.8203 ms</td><td>34.114 ms</td><td>1.70</td><td>0.16</td><td>461.5385</td><td>153.8462</td><td>3885.53 KB</td><td>0.80</td>
-</tr><tr><td>&#39;MongoFlow: Update, token checked&#39;</td><td>1000</td><td>35.578 ms</td><td>0.7035 ms</td><td>1.4685 ms</td><td>35.384 ms</td><td>1.76</td><td>0.16</td><td>538.4615</td><td>230.7692</td><td>4629.23 KB</td><td>0.96</td>
+</thead><tbody><tr><td>&#39;Driver: client bulk write&#39;</td><td>1</td><td>1.794 ms</td><td>0.1061 ms</td><td>0.2941 ms</td><td>1.699 ms</td><td>1.02</td><td>0.22</td><td>5.8594</td><td>-</td><td>48.68 KB</td><td>1.00</td>
+</tr><tr><td>&#39;Driver: features&#39; filters&#39;</td><td>1</td><td>2.947 ms</td><td>0.5173 ms</td><td>1.4419 ms</td><td>2.536 ms</td><td>1.68</td><td>0.86</td><td>5.8594</td><td>-</td><td>56.59 KB</td><td>1.16</td>
+</tr><tr><td>&#39;MongoFlow: UpdateByKey&#39;</td><td>1</td><td>3.053 ms</td><td>0.5724 ms</td><td>1.6239 ms</td><td>2.386 ms</td><td>1.74</td><td>0.96</td><td>5.8594</td><td>-</td><td>49.77 KB</td><td>1.02</td>
+</tr><tr><td>&#39;MongoFlow: UpdateByKey with features&#39;</td><td>1</td><td>2.326 ms</td><td>0.2890 ms</td><td>0.7861 ms</td><td>2.199 ms</td><td>1.33</td><td>0.49</td><td>5.8594</td><td>-</td><td>57.23 KB</td><td>1.18</td>
+</tr><tr><td>&#39;MongoFlow: Update, token checked&#39;</td><td>1</td><td>2.129 ms</td><td>0.3096 ms</td><td>0.9032 ms</td><td>1.908 ms</td><td>1.21</td><td>0.54</td><td>3.9063</td><td>-</td><td>58.27 KB</td><td>1.20</td>
+</tr><tr><td>&#39;Driver: client bulk write&#39;</td><td>100</td><td>3.845 ms</td><td>0.1772 ms</td><td>0.5198 ms</td><td>3.818 ms</td><td>1.02</td><td>0.19</td><td>62.5000</td><td>7.8125</td><td>519.09 KB</td><td>1.00</td>
+</tr><tr><td>&#39;Driver: features&#39; filters&#39;</td><td>100</td><td>6.133 ms</td><td>0.2176 ms</td><td>0.6172 ms</td><td>6.034 ms</td><td>1.62</td><td>0.27</td><td>156.2500</td><td>31.2500</td><td>1320.79 KB</td><td>2.54</td>
+</tr><tr><td>&#39;MongoFlow: UpdateByKey&#39;</td><td>100</td><td>3.794 ms</td><td>0.2123 ms</td><td>0.6127 ms</td><td>3.683 ms</td><td>1.00</td><td>0.21</td><td>46.8750</td><td>7.8125</td><td>385.68 KB</td><td>0.74</td>
+</tr><tr><td>&#39;MongoFlow: UpdateByKey with features&#39;</td><td>100</td><td>5.756 ms</td><td>0.1763 ms</td><td>0.5058 ms</td><td>5.692 ms</td><td>1.52</td><td>0.24</td><td>46.8750</td><td>7.8125</td><td>445.79 KB</td><td>0.86</td>
+</tr><tr><td>&#39;MongoFlow: Update, token checked&#39;</td><td>100</td><td>6.236 ms</td><td>0.3170 ms</td><td>0.8940 ms</td><td>5.973 ms</td><td>1.65</td><td>0.32</td><td>62.5000</td><td>7.8125</td><td>525.13 KB</td><td>1.01</td>
+</tr><tr><td>&#39;Driver: client bulk write&#39;</td><td>1000</td><td>18.966 ms</td><td>0.5237 ms</td><td>1.4858 ms</td><td>18.402 ms</td><td>1.01</td><td>0.11</td><td>562.5000</td><td>187.5000</td><td>4835.9 KB</td><td>1.00</td>
+</tr><tr><td>&#39;Driver: features&#39; filters&#39;</td><td>1000</td><td>38.764 ms</td><td>0.7688 ms</td><td>2.0387 ms</td><td>38.313 ms</td><td>2.06</td><td>0.18</td><td>1538.4615</td><td>538.4615</td><td>12852.91 KB</td><td>2.66</td>
+</tr><tr><td>&#39;MongoFlow: UpdateByKey&#39;</td><td>1000</td><td>17.803 ms</td><td>0.4036 ms</td><td>1.1250 ms</td><td>17.570 ms</td><td>0.94</td><td>0.09</td><td>406.2500</td><td>156.2500</td><td>3478.89 KB</td><td>0.72</td>
+</tr><tr><td>&#39;MongoFlow: UpdateByKey with features&#39;</td><td>1000</td><td>34.131 ms</td><td>0.8875 ms</td><td>2.5320 ms</td><td>33.484 ms</td><td>1.81</td><td>0.19</td><td>416.6667</td><td>166.6667</td><td>4018.27 KB</td><td>0.83</td>
+</tr><tr><td>&#39;MongoFlow: Update, token checked&#39;</td><td>1000</td><td>39.178 ms</td><td>1.6875 ms</td><td>4.8688 ms</td><td>37.758 ms</td><td>2.08</td><td>0.30</td><td>583.3333</td><td>250.0000</td><td>4762.7 KB</td><td>0.98</td>
 </tr></tbody></table>
 </body>
 </html>
