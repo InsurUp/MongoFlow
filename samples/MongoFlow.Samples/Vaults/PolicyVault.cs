@@ -8,6 +8,7 @@ namespace MongoFlow.Samples.Vaults;
 /// guard on claims, and its migrations, which also create its indexes. Anything environment-specific, like the database,
 /// stays at registration.
 /// </summary>
+[MongoVersion("2.0.0")] // the migration its data is at; a release lowering it reverts the ones above
 public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<PolicyVault>
 {
     public IVaultCollection<Policy, string> Policies { get; init; } = null!;

@@ -47,7 +47,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
         CancellationToken cancellationToken)
     {
         var migrations = await PlanAsync();
-        target ??= migrations[^1].Version;
+        target ??= Pinned(migrations) ?? migrations[^1].Version;
 
         // Two instances recording one version at once: the second fails, rolling back its migration if it has a transaction.
         await history.Indexes.CreateOneAsync(
@@ -107,6 +107,21 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
         }
 
         return migrations;
+    }
+
+    /// <summary>The version the vault's <see cref="MongoVersionAttribute"/> names, which must be one of its migrations'.</summary>
+    private SemVersion? Pinned(List<(Type Type, SemVersion Version)> migrations)
+    {
+        if (Model.Migrations!.Target is not { } pinned)
+        {
+            return null;
+        }
+
+        return migrations.Exists(migration => migration.Version == pinned)
+            ? pinned
+            : throw new VaultConfigurationException(
+                $"{typeof(TVault).Name} is at version {pinned} by its [MongoVersion], but none of its migrations has that " +
+                $"version. Its versions: {string.Join(", ", migrations.Select(migration => migration.Version))}.");
     }
 
     private async Task RunAsync(IMongoCollection<MigrationRecord> history,

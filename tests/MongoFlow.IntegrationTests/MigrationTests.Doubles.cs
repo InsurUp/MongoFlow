@@ -4,7 +4,7 @@ using Semver;
 namespace MongoFlow.IntegrationTests;
 
 // A registry vault and its migrations: through the vault, through the driver, outside a transaction, failing, leaving
-// writes unsaved, and recording what they see. Each notes its steps in a StepLog.
+// writes unsaved, and recording what they see; and vaults pinned to a version. Each notes its steps in a StepLog.
 public partial class MigrationTests
 {
     public sealed class Entry
@@ -193,5 +193,49 @@ public partial class MigrationTests
         }
 
         public Task DownAsync(MigrationContext<ShopVault> context, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    /// <summary>Pinned to 1.1.0, below its highest migration, 2.0.0.</summary>
+    [MongoVersion("1.1.0")]
+    public sealed class PinnedVault : MongoVault
+    {
+        public IVaultCollection<Entry, int> Entries { get; init; } = null!;
+    }
+
+    /// <summary>Pinned to 1.5.0, which none of its migrations has.</summary>
+    [MongoVersion("1.5.0")]
+    public sealed class MistypedVault : MongoVault
+    {
+        public IVaultCollection<Entry, int> Entries { get; init; } = null!;
+    }
+
+    public sealed class PinnedFirst(StepLog steps) : NotedMigration<PinnedVault>(steps, 1, 0);
+
+    public sealed class PinnedSecond(StepLog steps) : NotedMigration<PinnedVault>(steps, 1, 1);
+
+    public sealed class PinnedThird(StepLog steps) : NotedMigration<PinnedVault>(steps, 2, 0);
+
+    public sealed class MistypedFirst(StepLog steps) : NotedMigration<MistypedVault>(steps, 1, 0);
+
+    public sealed class MistypedSecond(StepLog steps) : NotedMigration<MistypedVault>(steps, 2, 0);
+
+    /// <summary>A migration that only notes its steps.</summary>
+    public abstract class NotedMigration<TVault>(StepLog steps,
+        int major,
+        int minor) : IVaultMigration<TVault> where TVault : MongoVault
+    {
+        public SemVersion Version { get; } = new(major, minor, 0);
+
+        public Task UpAsync(MigrationContext<TVault> context, CancellationToken cancellationToken)
+        {
+            steps.Add($"up {Version}");
+            return Task.CompletedTask;
+        }
+
+        public Task DownAsync(MigrationContext<TVault> context, CancellationToken cancellationToken)
+        {
+            steps.Add($"down {Version}");
+            return Task.CompletedTask;
+        }
     }
 }

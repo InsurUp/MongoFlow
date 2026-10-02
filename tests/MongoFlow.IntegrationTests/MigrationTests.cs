@@ -13,6 +13,8 @@ namespace MongoFlow.IntegrationTests;
 /// <item>pending migrations run oldest first, each in a transaction the vault's saves join unless it opts out, and are
 /// recorded in that transaction;</item>
 /// <item>a target stops short, and one below the applied versions reverts the migrations above it, newest first;</item>
+/// <item>without a target, a vault goes to the version its <see cref="MongoVersionAttribute"/> names, which must be one of
+/// its migrations'; see <c>MigrationTests.Versions.cs</c>;</item>
 /// <item>a migration added below the current version still runs, and the history earlier MongoFlow versions wrote
 /// counts;</item>
 /// <item>every registered vault is migrated, each recording in a collection of its own;</item>

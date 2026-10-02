@@ -13,17 +13,22 @@ namespace MongoFlow;
 /// </remarks>
 public interface IVaultMigrator
 {
-    /// <summary>For every registered vault, applies its pending migrations, up to its highest version.</summary>
+    /// <summary>
+    /// Migrates every registered vault to the version its <see cref="MongoVersionAttribute"/> names, or to its highest:
+    /// pending migrations up to it are applied, and applied ones above it reverted.
+    /// </summary>
     /// <exception cref="MigrationFailedException">A migration failed; what it did in its transaction was rolled back.</exception>
     /// <exception cref="VaultConfigurationException">
-    /// Two migrations of a vault have the same version, or two vaults record their migrations in the same collection.
+    /// Two migrations of a vault have the same version, a vault's <see cref="MongoVersionAttribute"/> names a version none
+    /// of its migrations has, or two vaults record their migrations in the same collection.
     /// </exception>
     Task MigrateAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Migrates one vault to <paramref name="target"/>, or to its highest version. Migrations up to the target that
-    /// haven't been applied are, oldest first, including ones added below the current version; applied migrations above
-    /// it are reverted, newest first.
+    /// Migrates one vault to <paramref name="target"/>, or without one to the version its
+    /// <see cref="MongoVersionAttribute"/> names, or to its highest. Migrations up to the target that haven't been applied
+    /// are, oldest first, including ones added below the current version; applied migrations above it are reverted,
+    /// newest first.
     /// </summary>
     /// <inheritdoc cref="MigrateAllAsync" path="/exception"/>
     /// <exception cref="InvalidOperationException"><typeparamref name="TVault"/> isn't registered with <c>AddMongoVault</c>.</exception>

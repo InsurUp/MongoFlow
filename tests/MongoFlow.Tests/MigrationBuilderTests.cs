@@ -8,7 +8,8 @@ namespace MongoFlow.Tests;
 /// <item>migrations are added one by one or from an assembly, which adds only the vault's concrete ones, each once;</item>
 /// <item>applied migrations are recorded in <c>migrations</c> unless a collection is named, the vault's name beating a
 /// default configuration's;</item>
-/// <item>a vault that declares none has none, and invalid arguments fail when the model is built.</item>
+/// <item>a vault that declares none has none, and invalid arguments fail when the model is built, as does a
+/// <see cref="MongoVersionAttribute"/> that isn't a semantic version or has no migrations to reach it.</item>
 /// </list>
 /// </summary>
 public partial class MigrationBuilderTests
@@ -114,6 +115,26 @@ public partial class MigrationBuilderTests
 
         // Act & Assert
         await Assert.That(() => host.Vault).ThrowsExactly<ArgumentNullException>();
+    }
+
+    [Test]
+    public async Task Build_MongoVersionThatIsntASemanticVersion_ThrowsVaultConfigurationException()
+    {
+        // Arrange
+        await using var host = new VaultHost<LooseVersionVault>();
+
+        // Act & Assert
+        await Throws(() => host.Vault).IgnoreStackTrace();
+    }
+
+    [Test]
+    public async Task Build_MongoVersionWithoutMigrations_ThrowsVaultConfigurationException()
+    {
+        // Arrange
+        await using var host = new VaultHost<UnmigratedVault>();
+
+        // Act & Assert
+        await Throws(() => host.Vault).IgnoreStackTrace();
     }
 
     private static MigrationModel? Migrations(VaultHost<ArchiveVault> host) =>

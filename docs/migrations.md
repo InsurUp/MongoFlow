@@ -89,15 +89,31 @@ Two migrations of a vault with the same version, or two vaults recording theirs 
 ```csharp
 var migrator = app.Services.GetRequiredService<IVaultMigrator>();
 
-// Every registered vault, up to its highest version: at startup, before serving requests.
+// Every registered vault, to its [MongoVersion] or its highest: at startup, before serving requests.
 await migrator.MigrateAllAsync();
 
-// One vault, to its highest version, or to a target.
+// One vault, the same way, or to a target.
 await migrator.MigrateAsync<PolicyVault>();
 await migrator.MigrateAsync<PolicyVault>(new SemVersion(1, 1, 0));
 
 SemVersion? version = await migrator.GetVersionAsync<PolicyVault>();
 ```
+
+### Pinning a vault's version
+
+`[MongoVersion]` on a vault names the version `MigrateAllAsync`, and `MigrateAsync<TVault>()` without a target, migrate it
+to, instead of its highest. A release can then ship migrations ahead of the data, and going back is a release with a
+lower version: the migrations above it are reverted.
+
+```csharp
+[MongoVersion("2.0.0")]
+public sealed class PolicyVault : MongoVault, IConfigurableVault<PolicyVault> { ... }
+```
+
+It must be a semantic version, on a vault that declares migrations, which is checked at startup; and the version of one
+of its migrations, which is checked when it's migrated. A target passed to `MigrateAsync` wins over it.
+
+### What migrating does
 
 Migrating to a target applies the migrations up to it that haven't been applied, oldest first, including ones added
 below the current version, and reverts the applied migrations above it, newest first, with their `DownAsync`. A
@@ -114,4 +130,4 @@ Migrations log under `MongoFlow.Migrations`, and are traced as `MongoFlow.Migrat
 ## From 0.5
 
 The history 0.5 recorded, in each vault's `migrations` collection, carries over: versions applied by 0.5 count as
-applied.
+applied. A vault's `[MongoVersion]` still names the version it migrates to.

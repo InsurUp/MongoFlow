@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: MistypedVault is at version 1.5.0 by its [MongoVersion], but none of its migrations has that version. Its versions: 1.0.0, 2.0.0.
+}

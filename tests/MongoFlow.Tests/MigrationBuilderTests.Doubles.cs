@@ -2,10 +2,25 @@ using Semver;
 
 namespace MongoFlow.Tests;
 
-// A vault with migrations of every shape an assembly can hold: concrete, abstract, open generic, and another vault's.
+// A vault with migrations of every shape an assembly can hold: concrete, abstract, open generic, and another vault's; and
+// vaults pinned to a version wrongly.
 public partial class MigrationBuilderTests
 {
     public sealed class ArchiveVault : MongoVault
+    {
+        public IVaultCollection<Order, int> Orders { get; init; } = null!;
+    }
+
+    /// <summary>Pinned to a version that isn't a full semantic version.</summary>
+    [MongoVersion("2.0")]
+    public sealed class LooseVersionVault : MongoVault
+    {
+        public IVaultCollection<Order, int> Orders { get; init; } = null!;
+    }
+
+    /// <summary>Pinned to a version, but without migrations to reach it.</summary>
+    [MongoVersion("1.0.0")]
+    public sealed class UnmigratedVault : MongoVault
     {
         public IVaultCollection<Order, int> Orders { get; init; } = null!;
     }

@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: LooseVersionVault's [MongoVersion("2.0")] isn't a semantic version, such as 2.0.0.
+}

@@ -46,6 +46,8 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
 - Migrations: `vault.Migrations(m => ...)`, `IVaultMigration<TVault>` and `IVaultMigrator`.
   - Each migration runs in a DI scope of its own, in a transaction unless it opts out.
   - Migrations can be reverted down to a target version.
+  - `[MongoVersion("2.0.0")]` on a vault, as in 0.5, is the version `MigrateAllAsync` migrates it to, up or down;
+    without it, the highest.
   - The history of 0.5, in the `migrations` collection, carries over.
 - Logging through the `ILoggerFactory` in DI, with every event ID in `MongoFlowLogEvents`. It warns about keys and
   feature fields without indexes; MongoFlow doesn't create indexes.
@@ -75,7 +77,7 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
 - `DocumentSet<T>`, `VaultConfigurationManager<T>`, `VaultConfigurationBuilder`, `IVaultConfigurationSpecification`
   and `MongoVaultOptionsBuilder<T>`.
 - Interceptor diagnostics (`EnableDiagnostics`): every operation's result is reported.
-- `IMongoMigration`, `[MongoVersion]`, `MigrateOnStartup()`, `IMongoVaultMigrationManager` and `MigrateResult`.
+- `IMongoMigration`, `MigrateOnStartup()`, `IMongoVaultMigrationManager` and `MigrateResult`.
 - `IMongoVaultTransaction` and `IMongoGlobalTransactionManager`.
 - `DisableContext`.
 
@@ -92,7 +94,7 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
 | `AddOperation` and `AddRangeOperation` | `InsertOperation`, one for each document |
 | `DisableContext` | `collection.Without(SoftDeleteFeature.Key)` |
 | `IMongoMigration` with `Up(db, session)` | `IVaultMigration<TVault>` with `UpAsync(context)` |
-| `[MongoVersion]` on the vault | The highest migration is the target; `MigrateAsync<TVault>(version)` for another |
+| `[MongoVersion]` on the vault | Unchanged; it must now be the version of one of the vault's migrations |
 | `MigrateOnStartup()` | `await services.GetRequiredService<IVaultMigrator>().MigrateAllAsync()` at startup |
 | `IMongoVaultTransaction` | `IVaultTransactionManager.BeginAsync()` returning `IVaultTransaction` |
 
