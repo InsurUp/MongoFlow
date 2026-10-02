@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: A query in the unit database can't be joined with one on archive.Customers: a $lookup only reaches collections of its own database.
+}

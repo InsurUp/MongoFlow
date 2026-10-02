@@ -1,0 +1,16 @@
+﻿[
+  {
+    Category: MongoFlow.Query,
+    Level: Trace,
+    EventId: 27005002,
+    Event: ReadingByKey,
+    Message: GetByKeyAsync on Orders by key 1, with query filters x => (x.Customer != "hidden").
+  },
+  {
+    Category: MongoFlow.Query,
+    Level: Trace,
+    EventId: 27005002,
+    Event: ReadingByKey,
+    Message: GetByKeyAsync on Orders by key 2, with query filters none.
+  }
+]

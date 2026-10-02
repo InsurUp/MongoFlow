@@ -1,0 +1,28 @@
+﻿{
+  Query: [
+    {
+      Name: ada,
+      Number: C-10
+    },
+    {
+      Name: ada,
+      Number: C-14
+    },
+    {
+      Name: dee
+    }
+  ],
+  Method: [
+    {
+      Name: ada,
+      Number: C-10
+    },
+    {
+      Name: ada,
+      Number: C-14
+    },
+    {
+      Name: dee
+    }
+  ]
+}

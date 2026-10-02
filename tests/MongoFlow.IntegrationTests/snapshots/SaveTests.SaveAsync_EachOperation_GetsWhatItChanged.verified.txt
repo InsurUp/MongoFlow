@@ -1,0 +1,62 @@
+﻿[
+  {
+    Kind: Insert,
+    IsSetBased: false,
+    Result: {
+      Inserted: 1,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 0
+    }
+  },
+  {
+    Kind: Replace,
+    IsSetBased: false,
+    Result: {
+      Inserted: 0,
+      Matched: 1,
+      Modified: 1,
+      Deleted: 0
+    }
+  },
+  {
+    Kind: Update,
+    IsSetBased: true,
+    Result: {
+      Inserted: 0,
+      Matched: 2,
+      Modified: 2,
+      Deleted: 0
+    }
+  },
+  {
+    Kind: Update,
+    IsSetBased: false,
+    Result: {
+      Inserted: 0,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 0
+    }
+  },
+  {
+    Kind: Delete,
+    IsSetBased: false,
+    Result: {
+      Inserted: 0,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 0
+    }
+  },
+  {
+    Kind: Delete,
+    IsSetBased: true,
+    Result: {
+      Inserted: 0,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 2
+    }
+  }
+]

@@ -1,0 +1,14 @@
+﻿{
+  History: [
+    {
+      Version: 1.0.0,
+      Name: SeedEntries,
+      Description: Seed the registry,
+      Timestamp: DateTime_1
+    }
+  ],
+  Collections: [
+    Entries,
+    registry_migrations
+  ]
+}

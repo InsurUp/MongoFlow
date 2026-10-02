@@ -1,0 +1,9 @@
+﻿[
+  {
+    Value: 0.25,
+    Tags: {
+      mongoflow.save.transaction: own,
+      mongoflow.vault: ShopVault
+    }
+  }
+]

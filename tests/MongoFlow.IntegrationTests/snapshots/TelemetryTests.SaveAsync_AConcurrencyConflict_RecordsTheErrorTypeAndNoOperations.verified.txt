@@ -1,0 +1,10 @@
+﻿{
+  Saves: [
+    {
+      error.type: MongoFlow.ConcurrencyException,
+      mongoflow.save.transaction: own,
+      mongoflow.vault: TicketVault
+    }
+  ],
+  Operations: []
+}

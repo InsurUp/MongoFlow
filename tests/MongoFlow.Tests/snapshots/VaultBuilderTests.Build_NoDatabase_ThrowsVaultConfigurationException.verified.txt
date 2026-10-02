@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: ShopVault has no database. Call UseDatabase when registering it, or in a configuration.
+}

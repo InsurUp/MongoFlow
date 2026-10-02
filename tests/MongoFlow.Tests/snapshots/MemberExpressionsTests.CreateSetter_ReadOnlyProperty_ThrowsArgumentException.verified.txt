@@ -1,0 +1,5 @@
+﻿{
+  Type: ArgumentException,
+  Message: Expected a settable property or field of the parameter, such as x => x.Member, but got x => x.Name.,
+  ParamName: member
+}

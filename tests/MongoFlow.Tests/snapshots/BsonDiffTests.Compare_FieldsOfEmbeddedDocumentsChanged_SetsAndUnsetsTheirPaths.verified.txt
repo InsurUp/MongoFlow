@@ -1,0 +1,12 @@
+﻿{
+  Update: {
+    $set: {
+      Address.Geo.Lat: 41,
+      Address.Zip: 35000
+    },
+    $unset: {
+      Address.Geo.Lng: 
+    }
+  },
+  NeedsReplace: false
+}

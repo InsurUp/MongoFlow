@@ -1,61 +1,29 @@
-using System.Linq.Expressions;
 using MongoDB.Driver;
 
 namespace MongoFlow;
 
-public sealed class ReplaceOperation<TDocument> : VaultOperation
+/// <summary>Replaces the document with the same key.</summary>
+public sealed class ReplaceOperation<TDocument> : VaultOperation<TDocument>
 {
-    private readonly Expression<Func<TDocument, bool>> _filter;
-    private readonly TDocument _document;
-    private TDocument? _oldDocument;
-
-    public ReplaceOperation(Expression<Func<TDocument, bool>> filter, 
-        TDocument document,
-        DisableContext interceptorDisableContext)
+    internal ReplaceOperation(CollectionModel<TDocument> model,
+        FeatureSet disabledFeatures,
+        KeyTarget<TDocument> target,
+        TDocument document)
+        : base(model, disabledFeatures, target)
     {
-        _filter = filter;
-        _document = document;
-        InterceptorDisableContext = interceptorDisableContext;
+        Document = document;
     }
 
-    public override Type DocumentType => typeof(TDocument);
+    /// <inheritdoc/>
+    public override OperationKind Kind => OperationKind.Replace;
 
-    public override object? CurrentDocument => _document;
+    /// <inheritdoc/>
+    public override bool IsSetBased => false;
 
-    public override object? OldDocument => _oldDocument;
+    /// <summary>The key read from the document when it was queued.</summary>
+    public object Key => Target!.Key;
 
-    public override OperationType OperationType => OperationType.Update;
-    
-    public override DisableContext InterceptorDisableContext { get; }
-
-    internal override async Task<int> ExecuteAsync(VaultOperationContext context, CancellationToken cancellationToken = default)
-    {
-        var collection = context.Vault.GetCollection<TDocument>();
-
-        if (context.EnableDiagnostic)
-        {
-            _oldDocument = await collection.FindOneAndReplaceAsync(context.Session, _filter, _document, new FindOneAndReplaceOptions<TDocument>
-            {
-                ReturnDocument = ReturnDocument.Before
-            }, cancellationToken: cancellationToken);
-
-            return 1;
-        }
-
-        var replaceResult = await collection.ReplaceOneAsync(context.Session, _filter, _document, cancellationToken: cancellationToken);
-
-        return replaceResult.ModifiedCount == 1 ? 1 : 0;
-    }
-
-    public override bool To(OperationType operationType, out VaultOperation operation)
-    {
-        operation = operationType switch
-        {
-            OperationType.Add => new AddOperation<TDocument>(_document, InterceptorDisableContext),
-            OperationType.Delete => new DeleteOperation<TDocument>(_filter, _document, InterceptorDisableContext),
-            _ => this
-        };
-
-        return true;
-    }
+    internal override async ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
+        CancellationToken cancellationToken) =>
+        new BulkWriteReplaceOneModel<TDocument>(Namespace, await WriteFilterAsync(run, null, cancellationToken), Document!);
 }

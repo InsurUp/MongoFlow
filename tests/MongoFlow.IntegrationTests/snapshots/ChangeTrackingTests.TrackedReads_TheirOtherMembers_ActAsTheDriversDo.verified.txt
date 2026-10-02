@@ -1,0 +1,25 @@
+﻿{
+  Counts: [
+    3,
+    3,
+    3,
+    3
+  ],
+  Filter: {
+    _id: {
+      $gt: 0
+    }
+  },
+  Sorted: [
+    3,
+    2,
+    1
+  ],
+  Counted: 3,
+  LoggedStages: [
+    {
+      $count: _v
+    }
+  ],
+  ElementType: ChangeTrackingTests.Customer
+}

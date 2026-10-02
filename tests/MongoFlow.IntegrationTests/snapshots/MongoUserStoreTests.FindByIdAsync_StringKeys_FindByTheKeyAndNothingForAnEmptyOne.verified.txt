@@ -1,0 +1,5 @@
+﻿{
+  User: ada,
+  Role: admin,
+  RoleId: r-admin
+}

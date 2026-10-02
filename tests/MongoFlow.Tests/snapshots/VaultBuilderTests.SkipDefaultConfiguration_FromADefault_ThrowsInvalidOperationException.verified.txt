@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: SkipDefaultConfiguration can't be called from a default configuration.
+}

@@ -1,0 +1,11 @@
+﻿{
+  InTransaction: true,
+  ResultWhileSaving: false,
+  ResultOnceSaved: {
+    Inserted: 1,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Item: written while saving
+}

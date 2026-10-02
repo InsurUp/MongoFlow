@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      benchmarks:
+        description: 'Also check that every benchmark runs (a dry job, against a MongoDB container)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # The SDK global.json pins, and the .NET 10 runtime the net10.0 builds run on.
+          global-json-file: global.json
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore MongoFlow.sln
+
+      - name: Build
+        run: dotnet build MongoFlow.sln --configuration Release --no-restore
+
+      # Both lanes on both frameworks, each with a coverage file of its own. The integration lane starts MongoDB in
+      # Docker, which the runner has. Every run goes ahead when one fails, so the report shows them all.
+      - name: Test
+        run: |
+          status=0
+          for project in MongoFlow.Tests MongoFlow.IntegrationTests; do
+            for framework in net10.0 net11.0; do
+              dotnet test --project "tests/$project" --framework "$framework" --configuration Release --no-build -- \
+                --coverage --coverage-settings "$GITHUB_WORKSPACE/coverage.settings.xml" \
+                --coverage-output-format cobertura --coverage-output "$project.$framework.cobertura.xml" \
+                --report-trx || status=1
+            done
+          done
+          exit $status
+
+      # The samples' walkthrough, against a MongoDB container of its own. A step that fails ends the run with an error.
+      - name: Samples
+        if: success() || failure()
+        run: dotnet run --project samples/MongoFlow.Samples --configuration Release --no-build
+
+      - name: Coverage
+        if: success() || failure()
+        run: |
+          dotnet tool install --global dotnet-coverage
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          # Each run's file sits in TestResults; the collector leaves a copy in a folder below, which isn't needed.
+          dotnet-coverage merge --output coverage/coverage.cobertura.xml --output-format cobertura TestResults/*.cobertura.xml
+          reportgenerator -reports:coverage/coverage.cobertura.xml -targetdir:coverage/report \
+            -reporttypes:"MarkdownSummaryGithub;Html"
+          cat coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/TestResults/**
+            coverage/report/**
+            tests/**/snapshots/*.received.*
+          if-no-files-found: ignore
+
+  benchmarks:
+    name: Benchmarks run
+    if: github.event_name == 'workflow_dispatch' && inputs.benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          dotnet-version: 10.0.x
+
+      # One iteration each, to check they run; timings from a shared runner mean nothing.
+      - name: Dry run
+        run: dotnet run --configuration Release --project benchmarks/MongoFlow.Benchmarks -- --filter '*' --job dry

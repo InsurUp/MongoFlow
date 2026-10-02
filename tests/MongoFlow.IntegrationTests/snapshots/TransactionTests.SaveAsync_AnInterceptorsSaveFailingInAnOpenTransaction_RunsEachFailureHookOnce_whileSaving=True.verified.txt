@@ -1,0 +1,12 @@
+﻿[
+  shop.Saving,
+  ledger.Saving,
+  ledger.Saved,
+  shop.Saved,
+  shop.Saving,
+  ledger.Saving,
+  ledger.Failed,
+  shop.Failed,
+  ledger.Failed,
+  shop.Failed
+]

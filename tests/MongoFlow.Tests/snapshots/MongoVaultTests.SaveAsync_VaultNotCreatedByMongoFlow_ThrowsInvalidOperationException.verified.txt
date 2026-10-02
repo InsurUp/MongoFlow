@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: ShopVault wasn't created by MongoFlow. Register it with AddMongoVault and resolve it from DI.
+}

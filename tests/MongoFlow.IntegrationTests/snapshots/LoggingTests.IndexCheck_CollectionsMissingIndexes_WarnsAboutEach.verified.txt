@@ -1,0 +1,37 @@
+﻿[
+  {
+    Category: MongoFlow.Indexes,
+    Level: Warning,
+    EventId: 27002001,
+    Event: KeyIndexMissing,
+    Message: {database}.Policies is keyed by number, but no unique index covers the key. Lookups and writes by key scan the collection, and a key can match more than one document.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Warning,
+    EventId: 27002002,
+    Event: KeyIndexNotUnique,
+    Message: {database}.Receipts is keyed by Code, but its index Code_1 on the key isn't unique, so a key can match more than one document.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Warning,
+    EventId: 27002003,
+    Event: FieldIndexMissing,
+    Message: Reads of {database}.Articles filter on IsDeleted for soft-delete, but no index includes the field, so they scan the collection.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002004,
+    Event: IndexCheckSkipped,
+    Message: {database}.Drafts has no indexes, so they weren't checked; it may not exist yet.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002006,
+    Event: IndexCheckCompleted,
+    Message: Checked the indexes of IndexedVault.
+  }
+]

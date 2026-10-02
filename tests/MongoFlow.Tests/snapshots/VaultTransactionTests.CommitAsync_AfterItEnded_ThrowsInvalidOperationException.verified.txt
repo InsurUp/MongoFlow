@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: The transaction has already ended.
+}

@@ -1,0 +1,4 @@
+﻿{
+  Orders: unit.Orders.Aggregate([{ "$match" : { "IsDeleted" : { "$ne" : true } } }]),
+  Audit: unit.Audit.Aggregate([])
+}

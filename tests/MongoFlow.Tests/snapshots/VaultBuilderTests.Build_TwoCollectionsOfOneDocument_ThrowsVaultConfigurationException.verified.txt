@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: DuplicateVault declares more than one collection of Order (Orders, MoreOrders).
+}

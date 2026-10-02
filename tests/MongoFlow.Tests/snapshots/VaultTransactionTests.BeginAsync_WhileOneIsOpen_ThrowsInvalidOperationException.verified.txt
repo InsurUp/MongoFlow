@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: A transaction is already open in this scope.
+}

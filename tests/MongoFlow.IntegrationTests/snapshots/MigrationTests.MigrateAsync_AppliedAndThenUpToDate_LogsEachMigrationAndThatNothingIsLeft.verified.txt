@@ -1,0 +1,30 @@
+﻿[
+  {
+    Category: MongoFlow.Migrations,
+    Level: Information,
+    EventId: 27006001,
+    Event: Migrating,
+    Message: Migrating RegistryVault from none to 1.1.0: 2 to apply, 0 to revert.
+  },
+  {
+    Category: MongoFlow.Migrations,
+    Level: Information,
+    EventId: 27006002,
+    Event: MigrationApplied,
+    Message: Applied migration 1.0.0 of RegistryVault, SeedEntries, in {elapsed} ms.
+  },
+  {
+    Category: MongoFlow.Migrations,
+    Level: Information,
+    EventId: 27006002,
+    Event: MigrationApplied,
+    Message: Applied migration 1.1.0 of RegistryVault, ActivateEntries, in {elapsed} ms.
+  },
+  {
+    Category: MongoFlow.Migrations,
+    Level: Debug,
+    EventId: 27006004,
+    Event: UpToDate,
+    Message: RegistryVault is at 1.1.0, its target; there's nothing to migrate.
+  }
+]

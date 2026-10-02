@@ -1,0 +1,12 @@
+﻿{
+  Orders: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 10
+      }
+    }
+  ],
+  Entries: []
+}

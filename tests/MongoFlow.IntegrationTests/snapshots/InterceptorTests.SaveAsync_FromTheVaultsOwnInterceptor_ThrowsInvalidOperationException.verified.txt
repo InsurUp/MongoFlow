@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: ShopVault is already saving. A save can't start from the vault's own interceptors, or while another save of the same vault instance runs.
+}

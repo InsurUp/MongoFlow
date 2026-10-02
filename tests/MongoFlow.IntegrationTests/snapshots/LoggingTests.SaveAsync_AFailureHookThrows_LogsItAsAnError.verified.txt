@@ -1,0 +1,10 @@
+﻿[
+  {
+    Category: MongoFlow.Save,
+    Level: Error,
+    EventId: 27003006,
+    Event: FailureHookThrew,
+    Message: ThrowingOnFailure.FailedAsync threw while a save of ShopVault failed. Its exception is ignored, so the save's own failure surfaces.,
+    Exception: InvalidOperationException
+  }
+]

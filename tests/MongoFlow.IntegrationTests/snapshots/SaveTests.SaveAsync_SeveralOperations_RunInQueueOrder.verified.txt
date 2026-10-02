@@ -1,0 +1,17 @@
+﻿{
+  result: {
+    Inserted: 2,
+    Matched: 1,
+    Modified: 1,
+    Deleted: 1
+  },
+  Stored: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 15
+      }
+    }
+  ]
+}

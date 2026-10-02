@@ -1,0 +1,10 @@
+﻿[
+  {
+    Category: MongoFlow.Transaction,
+    Level: Debug,
+    EventId: 27004003,
+    Event: CommitFailed,
+    Message: Committing the transaction failed. Saves that joined it: 1.,
+    Exception: MongoCommandException
+  }
+]

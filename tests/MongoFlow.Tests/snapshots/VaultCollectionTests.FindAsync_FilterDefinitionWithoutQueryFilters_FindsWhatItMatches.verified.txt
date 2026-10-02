@@ -1,0 +1,1 @@
+﻿find({ "Total" : { "$gt" : { "$numberDecimal" : "10" } } })

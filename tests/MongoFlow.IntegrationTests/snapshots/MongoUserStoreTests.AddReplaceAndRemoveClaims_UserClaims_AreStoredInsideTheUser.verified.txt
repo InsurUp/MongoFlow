@@ -1,0 +1,30 @@
+﻿{
+  Claims: [
+    level: 2
+  ],
+  Stored: [
+    {
+      _id: {
+        $oid: 6600000000000000000000a1
+      },
+      UserName: ada,
+      NormalizedUserName: ADA,
+      Email: ada@example.com,
+      NormalizedEmail: ADA@EXAMPLE.COM,
+      EmailConfirmed: false,
+      PasswordHash: null,
+      PhoneNumber: null,
+      PhoneNumberConfirmed: false,
+      TwoFactorEnabled: false,
+      LockoutEnd: null,
+      LockoutEnabled: true,
+      AccessFailedCount: 0,
+      Claims: [
+        {
+          ClaimType: level,
+          ClaimValue: 2
+        }
+      ]
+    }
+  ]
+}

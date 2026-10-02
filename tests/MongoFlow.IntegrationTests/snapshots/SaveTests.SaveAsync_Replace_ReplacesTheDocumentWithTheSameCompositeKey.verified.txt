@@ -1,0 +1,14 @@
+﻿[
+  {
+    _id: 1,
+    UserId: u-1,
+    provider: github,
+    Value: new
+  },
+  {
+    _id: 2,
+    UserId: u-1,
+    provider: google,
+    Value: old
+  }
+]

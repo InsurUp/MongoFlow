@@ -1,0 +1,12 @@
+﻿{
+  Update: {
+    $set: {
+      Customer: bob,
+      Total: 10
+    },
+    $unset: {
+      Note: 
+    }
+  },
+  NeedsReplace: false
+}

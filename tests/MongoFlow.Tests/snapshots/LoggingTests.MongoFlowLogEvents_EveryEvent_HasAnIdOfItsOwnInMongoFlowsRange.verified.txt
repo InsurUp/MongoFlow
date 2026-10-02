@@ -1,0 +1,152 @@
+﻿[
+  {
+    Group: Model,
+    Event: ModelBuilt,
+    Id: 27001001
+  },
+  {
+    Group: Indexes,
+    Event: KeyIndexMissing,
+    Id: 27002001
+  },
+  {
+    Group: Indexes,
+    Event: KeyIndexNotUnique,
+    Id: 27002002
+  },
+  {
+    Group: Indexes,
+    Event: FieldIndexMissing,
+    Id: 27002003
+  },
+  {
+    Group: Indexes,
+    Event: IndexCheckSkipped,
+    Id: 27002004
+  },
+  {
+    Group: Indexes,
+    Event: IndexCheckFailed,
+    Id: 27002005
+  },
+  {
+    Group: Indexes,
+    Event: IndexCheckCompleted,
+    Id: 27002006
+  },
+  {
+    Group: Save,
+    Event: SavingAlone,
+    Id: 27003001
+  },
+  {
+    Group: Save,
+    Event: SavingInTransaction,
+    Id: 27003002
+  },
+  {
+    Group: Save,
+    Event: Writing,
+    Id: 27003003
+  },
+  {
+    Group: Save,
+    Event: Saved,
+    Id: 27003004
+  },
+  {
+    Group: Save,
+    Event: SaveFailed,
+    Id: 27003005
+  },
+  {
+    Group: Save,
+    Event: FailureHookThrew,
+    Id: 27003006
+  },
+  {
+    Group: Save,
+    Event: ConcurrencyConflict,
+    Id: 27003007
+  },
+  {
+    Group: Save,
+    Event: TenantRejected,
+    Id: 27003008
+  },
+  {
+    Group: Save,
+    Event: BulkWritesSupported,
+    Id: 27003009
+  },
+  {
+    Group: Save,
+    Event: ChangesDetected,
+    Id: 27003010
+  },
+  {
+    Group: Save,
+    Event: CommittedHookThrew,
+    Id: 27003011
+  },
+  {
+    Group: Transaction,
+    Event: Began,
+    Id: 27004001
+  },
+  {
+    Group: Transaction,
+    Event: Committed,
+    Id: 27004002
+  },
+  {
+    Group: Transaction,
+    Event: CommitFailed,
+    Id: 27004003
+  },
+  {
+    Group: Transaction,
+    Event: RolledBack,
+    Id: 27004004
+  },
+  {
+    Group: Transaction,
+    Event: Doomed,
+    Id: 27004005
+  },
+  {
+    Group: Query,
+    Event: Reading,
+    Id: 27005001
+  },
+  {
+    Group: Query,
+    Event: ReadingByKey,
+    Id: 27005002
+  },
+  {
+    Group: Migrations,
+    Event: Migrating,
+    Id: 27006001
+  },
+  {
+    Group: Migrations,
+    Event: MigrationApplied,
+    Id: 27006002
+  },
+  {
+    Group: Migrations,
+    Event: MigrationFailed,
+    Id: 27006003
+  },
+  {
+    Group: Migrations,
+    Event: UpToDate,
+    Id: 27006004
+  },
+  {
+    Group: Migrations,
+    Event: HistoryHasDuplicates,
+    Id: 27006005
+  }
+]

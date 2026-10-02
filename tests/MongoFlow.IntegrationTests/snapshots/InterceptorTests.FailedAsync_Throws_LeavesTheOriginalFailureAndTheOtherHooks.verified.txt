@@ -1,0 +1,4 @@
+﻿{
+  Type: InterceptorException,
+  Message: Saving failed.
+}

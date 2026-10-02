@@ -1,0 +1,9 @@
+﻿{
+  Operations: [],
+  Transactions: [
+    {
+      error.type: MongoDB.Driver.MongoCommandException,
+      mongoflow.transaction.outcome: commit_failed
+    }
+  ]
+}

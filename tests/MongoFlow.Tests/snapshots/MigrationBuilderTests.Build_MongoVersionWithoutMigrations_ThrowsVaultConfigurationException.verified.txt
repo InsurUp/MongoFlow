@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: UnmigratedVault is at version 1.0.0 by its [MongoVersion], but declares no migrations. Declare them with Migrations(m => ...), or remove the attribute.
+}

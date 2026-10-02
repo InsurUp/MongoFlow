@@ -1,0 +1,17 @@
+﻿{
+  Entries: [
+    up 1.1.0
+  ],
+  History: [
+    {
+      Version: 1.0.0,
+      Name: SeedEntries,
+      Timestamp: DateTime_1
+    },
+    {
+      Version: 1.1.0,
+      Name: ActivateEntries,
+      Timestamp: DateTime_2
+    }
+  ]
+}

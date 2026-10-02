@@ -1,0 +1,6 @@
+﻿{
+  Keyless: [
+    Insert AuditEntry
+  ],
+  None: []
+}

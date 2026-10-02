@@ -1,326 +1,211 @@
 # MongoFlow
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![.NET C#](https://img.shields.io/badge/.NET-C%23-blue)](https://docs.microsoft.com/en-us/dotnet/csharp/)
-[![NuGet](https://img.shields.io/nuget/v/MongoFlow)](https://www.nuget.org/packages/MongoFlow)
+[![NuGet](https://img.shields.io/nuget/vpre/MongoFlow)](https://www.nuget.org/packages/MongoFlow)
 
-> [!WARNING]
-> This package is not ready for production use. It is still in development and should not be used in a production environment.
->
-> We welcome your feedback! You can reach us by [opening a GitHub issue](https://github.com/InsurUp/MongoFlow/issues).
+A unit of work for MongoDB on .NET, built on the official driver. A vault holds a database's collections: reads return the
+driver's own types with your query filters applied, and writes are queued until `SaveAsync`, which sends them as one
+client bulk write, in a transaction. Soft delete, multi-tenancy, a concurrency token, interceptors, change tracking and
+migrations come with it, and it logs, traces and measures what it does.
 
-MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver. It simplifies database operations with features like Unit of work & Repository pattern, query filters, interceptors, and more.
+> **1.0 is in beta.** Feedback is welcome in [the issues](https://github.com/InsurUp/MongoFlow/issues).
+> [The changelog](https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md#moving-from-05) maps 0.5's API to 1.0's.
 
-## Features
+## Requirements
 
-- 🔄 Unit of Work & Repository patterns
-- 🎯 Interceptors for custom logic
-- 🔍 Query filters with LINQ support
-- 🗑️ Built-in soft delete support
-- 🏢 Multi-tenant support
-- ⚡ Transaction support
+- MongoDB 8.0 or later, as a replica set: a save is one client bulk write, in a transaction.
+- .NET 10 or .NET 11, and MongoDB.Driver 3.12.
 
-## Getting Started
-
-### Installation
-
-To install MongoFlow, add the following package to your project:
+## Installation
 
 ```bash
-dotnet add package MongoFlow
+dotnet add package MongoFlow --prerelease
 ```
 
-### Create Your Vault and Models
+## Quick start
+
+A vault declares its collections as properties. A keyed collection is looked up by key: by default the member the driver
+maps to `_id`.
 
 ```csharp
-public class BloggingVault : MongoVault
+public sealed class Order
 {
-    public BloggingVault(VaultConfigurationManager<BloggingVault> configurationManager) : base(configurationManager)
-    {
-    }
-
-    public DocumentSet<Blog> Blogs { get; set; } = null!;
+    public int Id { get; set; }
+    public string Customer { get; set; } = "";
+    public decimal Total { get; set; }
+    public bool IsDeleted { get; set; }
 }
 
-public class Blog
+public sealed class ShopVault : MongoVault
 {
-    public ObjectId Id { get; init; }
-    public required string Title { get; set; }
-    public required string Content { get; set; }
-    public bool Deleted { get; set; }
-    public int TenantId { get; set; }
+    public IVaultCollection<Order, int> Orders { get; init; } = null!;
 }
 ```
 
-### Create Configuration
+Register it with the database it uses, and resolve it from DI; it's scoped, like a request.
 
 ```csharp
-public sealed class BloggingConfiguration : IVaultConfigurationSpecification
-{
-    private readonly IMongoDatabase _db;
-
-    // You can inject singleton services here
-    public BloggingConfiguration(IMongoDatabase db)
-    {
-        _db = db;
-    }
-
-    public void Configure(VaultConfigurationBuilder builder)
-    {
-        builder.SetDatabase(_db);
-    }
-}
+services.AddSingleton<IMongoClient>(new MongoClient("mongodb://localhost:27017/?replicaSet=rs0"));
+services.AddMongoVault<ShopVault>(vault => vault
+    .UseDatabase("shop")
+    .UseSoftDelete((Order x) => x.IsDeleted));
 ```
 
-### Register MongoVault
-
-MongoVault is registered as a scoped service, so you can inject it into a service.
-
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddSingleton<IMongoDatabase>(_ =>
-{
-    var client = new MongoClient("mongodb://localhost:27017");
-    return client.GetDatabase("Blogging");
-});
-
-// You can combine multiple specifications
-builder.Services.AddMongoVault<BloggingVault>(x => x.AddSpecification<BloggingConfiguration>());
-```
-
-### Basic MongoVault Usage
+Reads start with one await, which resolves the query filters, and return the driver's types. Writes are queued, and
+written when the vault is saved.
 
 ```csharp
-public class BlogService
+public sealed class OrderService(ShopVault vault)
 {
-    private readonly BloggingVault _vault;
-
-    public BlogService(BloggingVault vault)
+    public async Task<List<Order>> LargeAsync(CancellationToken cancellationToken)
     {
-        _vault = vault;
+        var orders = await vault.Orders.QueryAsync(cancellationToken);
+
+        return await orders.Where(x => x.Total > 100).ToListAsync(cancellationToken);
     }
 
-    public async Task<Blog> GetBlogAsync(ObjectId id)
+    // Both writes go in one bulk write, in a transaction: the new order is stored and the old one deleted, or neither.
+    public async Task ReplaceAsync(int oldOrderId, Order newOrder, CancellationToken cancellationToken)
     {
-        return await _vault.Blogs.Find(x => x.Id == id).FirstOrDefaultAsync();
+        vault.Orders.Add(newOrder);
+        vault.Orders.DeleteByKey(oldOrderId); // soft delete turns this into an update that sets IsDeleted
+
+        await vault.SaveAsync(cancellationToken);
     }
 
-    public async Task AddBlogAsync(Blog blog)
+    public async Task DiscountAsync(int orderId, decimal amount, CancellationToken cancellationToken)
     {
-        _vault.Blogs.Add(blog);
-        await _vault.SaveAsync();
+        vault.Orders.UpdateByKey(orderId, Builders<Order>.Update.Inc(x => x.Total, -amount));
+        await vault.SaveAsync(cancellationToken);
     }
 }
 ```
 
-### Add Documents
+## What it does
 
-MongoVault is unit of work, so you can add, update or delete documents to the vault and save them all at once with a single transaction.
+### Configuration
 
-```csharp
-var blog1 = new Blog
-{
-    Title = "Hello World",
-    Content = "This is a blog post",
-    TenantId = 1
-};
-var blog2 = new Blog
-{
-    Title = "Hello World 2",
-    Content = "This is a blog post 2",
-    TenantId = 2
-};
-
-vault.Blogs.Add(blog1); // It doesn't save to the database yet
-vault.Blogs.Add(blog2)
-
-await vault.SaveAsync(); // Saves all changes in a single transaction
-```
-
-### Query Documents
-
-Because MongoFlow is built on top of MongoDB.Driver, you can use LINQ, Find, Aggregate, etc. to query documents.
+Each vault is configured where it's registered, by the vault itself (`IConfigurableVault<TSelf>`), or by configurations
+that apply to every vault (`AddDefaultVaultConfiguration`), which a vault can skip. Collections are selected by their
+property, so a wrong key type or a collection the vault doesn't declare is a compile error. Everything is applied and
+validated once, when the vault is first resolved or migrated.
 
 ```csharp
-// Query documents using LINQ
-var blogsWithLinq = await vault.Blogs
-    .AsQueryable()
-    .Where(x => x.Title.Contains("Hello"))
-    .ToListAsync();
-
-// Query documents using Find
-var blogsWithFind = await vault.Blogs
-    .Find(x => x.Title.Contains("Hello"))
-    .ToListAsync();
-
-// Query documents using Aggregate
-var blogsWithAggregate = await vault.Blogs
-    .Aggregate()
-    .Match(x => x.Title.Contains("Hello"))
-    .ToListAsync();
+services.AddMongoVault<IPolicyVault, PolicyVault>(vault => vault
+    .UseDatabase("policies")
+    .Collection(x => x.Policies, policies => policies
+        .Name("insurance_policies")
+        .Key(p => p.PolicyNumber)));
 ```
 
-Also you can access the underlying `MongoDB.Driver.IMongoCollection<T>`, but it's not recommended because MongoFlow has some features that are not supported by `MongoDB.Driver.IMongoCollection<T>` like query filters, interceptors, etc.
+[Configuration](https://github.com/InsurUp/MongoFlow/blob/main/docs/configuration.md): registration, keys and composite
+keys, defaults, and the order settings apply in.
+
+### Reads and writes
+
+`QueryAsync`, `FindAsync`, `AggregateAsync` and `GetByKeyAsync` read; `Add`, `AddRange`, `Replace`, `Update`,
+`UpdateByKey`, `UpdateMany`, `Delete`, `DeleteByKey` and `DeleteMany` queue writes. A write by key or filter also carries
+the query filters, so it can't reach a document a read couldn't see. A query joined with another collection's query
+joins only what that query's filters show. `MongoCollection` is the driver's collection, with nothing applied.
+
+[Reads and writes](https://github.com/InsurUp/MongoFlow/blob/main/docs/reads-and-writes.md): joins, what a save sends, its
+result, and what may run in parallel.
+
+### Change tracking
+
+With `vault.UseChangeTracking()`, the documents reads return are tracked, and `SaveAsync` writes what changed in them:
+one update by key, setting the changed fields and nothing else.
 
 ```csharp
-var collection = vault.Blogs.Collection;
+var policy = await vault.Policies.GetByKeyAsync("P-1001");
+policy!.Status = PolicyStatus.Cancelled;
+await vault.SaveAsync(); // { $set: { Status: "Cancelled" } }
 ```
+
+[Change tracking](https://github.com/InsurUp/MongoFlow/blob/main/docs/change-tracking.md).
+
+### Transactions
+
+A save runs in a transaction of its own, or joins the scope's open one. `IVaultTransactionManager.BeginAsync` opens one
+that every vault saved in the scope joins, so saves of several vaults commit together, or roll back together.
+
+```csharp
+await using var transaction = await transactions.BeginAsync();
+policies.Claims.Add(claim);
+await policies.SaveAsync();
+customers.Customers.UpdateByKey(customerId, Builders<Customer>.Update.Inc(x => x.OpenClaims, 1));
+await customers.SaveAsync();
+await transaction.CommitAsync();
+```
+
+[Transactions](https://github.com/InsurUp/MongoFlow/blob/main/docs/transactions.md): rollback, and what a failed save
+does to an open transaction.
+
+### Query filters and features
+
+Query filters apply to every read and write by key or filter: static, built per query from the request's services, or
+asynchronous. Features bundle filters and interceptors behind a `FeatureKey`, so they can be switched off for one read
+or one collection. Soft delete, multi-tenancy and a concurrency token are built in.
+
+```csharp
+vault.UseSoftDelete((ISoftDeletable x) => x.IsDeleted)
+    .UseMultiTenancy((ITenantOwned x) => x.TenantId, services => services.GetRequiredService<ITenant>().Id)
+    .UseConcurrencyToken((IVersioned x) => x.Version);
+
+var everything = await vault.Orders.Without(MultiTenancyFeature.Key).QueryAsync();
+```
+
+[Query filters and features](https://github.com/InsurUp/MongoFlow/blob/main/docs/features.md).
 
 ### Interceptors
 
-MongoFlow has interceptors to intercept the operations before or after they are sent to the database.
+A `VaultInterceptor` sees a save's writes before they're sent and their results after, and can replace, remove or add
+writes, or guard one with a condition the server checks. Its hooks run before the write, after it, after the commit, and
+when the save fails.
+
+[Interceptors](https://github.com/InsurUp/MongoFlow/blob/main/docs/interceptors.md): hooks, write conditions, and an
+audit trail and an outbox written in the same transaction.
+
+### Migrations
+
+Migrations are classes with a version, applied once, in order, each in a transaction unless it opts out, and recorded.
+They can be reverted down to a version.
 
 ```csharp
-public class MyInterceptor : VaultInterceptor
-{
-    private readonly MyService _myService;
-
-    // You can inject services here
-    public MyInterceptor(MyService myService)
-    {
-        _myService = myService;
-    }
-
-    // This method is called before the changes are saved to the database
-    public override async ValueTask SavingChangesAsync(VaultInterceptorContext context, CancellationToken cancellationToken)
-    {
-        MongoVault vault = context.Vault; // You can get the vault instance
-        List<VaultOperation> operations = context.Operations; // You can get and write operations that will be saved to the database
-        IClientSessionHandle session = context.Session; // You can get the current session that is used to save the changes
-
-        await _myService.DoSomethingBeforeSaveAsync();
-    }
-
-    // This method is called after the changes are saved to the database
-    public override async ValueTask SavedChangesAsync(VaultInterceptorContext context, int result, CancellationToken cancellationToken)
-    {
-        await _myService.DoSomethingAfterSaveAsync();
-    }
-
-    // This method is called when an exception is thrown
-    public override async ValueTask SaveChangesFailedAsync(Exception exception, VaultInterceptorContext context, CancellationToken cancellationToken)
-    {
-        await _myService.DoSomethingOnExceptionAsync(exception);
-    }
-}
+await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
 ```
 
-Then you can register the interceptor in the `VaultConfigurationBuilder`:
+[Migrations](https://github.com/InsurUp/MongoFlow/blob/main/docs/migrations.md).
+
+### Logging, tracing and metrics
+
+MongoFlow logs through the `ILoggerFactory` in DI, and warns about keys and feature fields no index covers. It traces
+saves and migrations, and measures saves and transactions, through `System.Diagnostics`, for OpenTelemetry.
 
 ```csharp
-public class BloggingConfiguration : IVaultConfigurationSpecification
-{
-    public void Configure(VaultConfigurationBuilder builder)
-    {
-        builder.AddInterceptor<MyInterceptor>(); 
-        // or builder.AddInterceptor(new MyInterceptor());
-    }
-}
+services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource(MongoFlowTelemetry.ActivitySourceName, MongoTelemetry.ActivitySourceName))
+    .WithMetrics(metrics => metrics.AddMeter(MongoFlowTelemetry.MeterName));
 ```
 
-### Query Filters
+[Logging, tracing and metrics](https://github.com/InsurUp/MongoFlow/blob/main/docs/observability.md).
 
-MongoFlow has built-in query filters to filter documents. Common use cases are soft delete and multi-tenancy which are supported out of the box.
+### ASP.NET Core Identity
 
-To configure basic query filters, you can enable with `AddQueryFilter` method in `IVaultConfigurationSpecification`:
+[MongoFlow.Identity](https://github.com/InsurUp/MongoFlow/blob/main/src/Identity/README.md) stores Identity's users and
+roles in a vault, where your features and interceptors apply to them too.
 
-```csharp
-public class BloggingConfiguration : IVaultConfigurationSpecification
-{
-    public void Configure(VaultConfigurationBuilder builder)
-    {
-        builder.ConfigureDocumentType<Blog>(blogBuilder =>
-        {
-            // Static query filter
-            blogBuilder.AddQueryFilter(x => !x.Deleted);
+## Samples
 
-            // You can use IServiceProvider to resolve services
-            blogBuilder.AddQueryFilter(services =>
-                x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId);
-        });
-    }
-}
-```
-
-You can ignore query filters by calling `IgnoreQueryFilters` method on `DocumentSet<T>`:
-
-```csharp
-vault.Blogs.IgnoreQueryFilter().Find(x => x.TenantId == 1).ToListAsync();
-```
-
-If you want to add query filters to all document types that are implemented by an interface, you can use `AddMultiQueryFilters` method:
-
-```csharp
-// This will add !x.Deleted to all document types that implement ISoftDelete
-builder.AddMultiQueryFilters<ISoftDelete>(x => !x.Deleted);
-
-// This will add to all document types that implement IMultiTenant
-builder.AddMultiQueryFilters<IMultiTenant>(services => x => x.TenantId == services.GetRequiredService<ITenantProvider>().TenantId);
-```
-
-### Soft Delete
-
-You can enable soft delete support with interceptors and query filters easily. However, MongoFlow supports soft delete out of the box.
-
-To enable soft delete support, you can use `AddSoftDelete` method in `IVaultConfigurationSpecification`:
-
-```csharp
-builder.AddSoftDelete(new VaultSoftDeleteOptions<ISoftDelete>
-{
-    IsDeletedAccessor = x => x.Deleted,
-    ChangeIsDeleted = (entity, isDeleted) => entity.Deleted = isDeleted
-});
-```
-
-Now it is done! AddSoftDelete adds a query filter and interceptor to all document types that implement `ISoftDelete`.
-
-### Multi-tenancy
-
-To enable multi-tenancy support, you can use `AddMultiTenancy` method in `IVaultConfigurationSpecification`:
-
-```csharp
-builder.AddMultiTenancy(new VaultMultiTenancyOptions<IMultiTenant, int>
-{
-    TenantIdAccessor = x => x.TenantId,
-    TenantIdSetter = (entity, tenantId) => entity.TenantId = tenantId,
-    TenantIdProvider = serviceProvider => serviceProvider.GetRequiredService<ITenantProvider>().TenantId
-});
-```
-
-### Transaction
-
-MongoFlow applies all operations to the database with a single transaction when `SaveChangesAsync` is called. However, you can use `BeginTransaction` method to start a transaction explicitly.
-
-```csharp
-using var transaction = vault.BeginTransaction();
-
-try
-{
-    // Do something
-    await transaction.CommitAsync();
-}
-catch
-{
-    await transaction.RollbackAsync();
-    throw;
-}
-```
+[The samples](https://github.com/InsurUp/MongoFlow/tree/main/samples/MongoFlow.Samples) are a small insurance platform
+that runs: `dotnet run --project samples/MongoFlow.Samples` starts MongoDB in Docker and walks through every feature
+above, as requests would.
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Issues and pull requests are welcome. The tests need Docker for their MongoDB; `.claude/rules/` describes how tests and
+benchmarks are written.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
-## Support
-
-- 📫 [Report a bug](https://github.com/InsurUp/MongoFlow/issues)
-- 💡 [Request a feature](https://github.com/InsurUp/MongoFlow/issues)
-- 📖 [Documentation](https://github.com/InsurUp/MongoFlow/wiki)
+MIT; see [LICENSE.md](https://github.com/InsurUp/MongoFlow/blob/main/LICENSE.md).

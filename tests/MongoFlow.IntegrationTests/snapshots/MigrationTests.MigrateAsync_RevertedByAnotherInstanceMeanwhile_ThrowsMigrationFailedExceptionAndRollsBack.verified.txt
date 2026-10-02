@@ -1,0 +1,17 @@
+﻿{
+  Message: Reverting migration 2.2.0 of RegistryVault failed.,
+  Cause: 2.2.0 is no longer recorded as applied: another instance reverted it meanwhile.,
+  History: [
+    {
+      Version: 1.0.0,
+      Name: SeedEntries,
+      Description: Seed the registry,
+      Timestamp: DateTime_1
+    },
+    {
+      Version: 2.2.0,
+      Name: RevertedElsewhere,
+      Timestamp: DateTime_1
+    }
+  ]
+}

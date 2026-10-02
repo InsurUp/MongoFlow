@@ -1,0 +1,27 @@
+﻿{
+  Query: [
+    1,
+    3,
+    4
+  ],
+  Find: [
+    {
+      Id: 4,
+      Customer: dee,
+      Total: 40.0
+    }
+  ],
+  Aggregate: [
+    {
+      Id: 4,
+      Customer: dee,
+      Total: 40.0
+    }
+  ],
+  ByKey: {
+    Id: 4,
+    Customer: dee,
+    Total: 40.0
+  },
+  SeenOutside: false
+}

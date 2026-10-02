@@ -1,0 +1,14 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Number: I-1 revised,
+      TenantId: t-1
+    }
+  ],
+  Document: {
+    Id: 1,
+    Number: I-1 revised,
+    TenantId: t-1
+  }
+}

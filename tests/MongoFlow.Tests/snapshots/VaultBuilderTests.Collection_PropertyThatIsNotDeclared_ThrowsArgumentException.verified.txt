@@ -1,0 +1,5 @@
+﻿{
+  Type: ArgumentException,
+  Message: Hidden isn't a collection declared on MixedVault.,
+  ParamName: collection
+}

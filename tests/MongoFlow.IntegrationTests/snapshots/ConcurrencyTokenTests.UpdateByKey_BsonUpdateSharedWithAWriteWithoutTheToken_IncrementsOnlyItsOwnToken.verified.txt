@@ -1,0 +1,19 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Hits: 6,
+      Version: 3
+    },
+    {
+      _id: 2,
+      Hits: 6,
+      Version: 2
+    }
+  ],
+  Definition: {
+    $inc: {
+      Hits: 1
+    }
+  }
+}

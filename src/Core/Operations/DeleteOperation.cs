@@ -3,57 +3,46 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-public sealed class DeleteOperation<TDocument> : VaultOperation
+/// <summary>Deletes the document with a key, or every document matching a filter.</summary>
+public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
 {
-    private readonly Expression<Func<TDocument, bool>> _filter;
-    private TDocument? _document;
-
-    public DeleteOperation(Expression<Func<TDocument, bool>> filter, 
-        TDocument? document,
-        DisableContext interceptorDisableContext)
+    internal DeleteOperation(CollectionModel<TDocument> model,
+        FeatureSet disabledFeatures,
+        KeyTarget<TDocument>? target,
+        Expression<Func<TDocument, bool>>? filter,
+        TDocument? document)
+        : base(model, disabledFeatures, target)
     {
-        _filter = filter;
-        _document = document;
-        InterceptorDisableContext = interceptorDisableContext;
+        Filter = filter;
+        Document = document;
     }
 
-    public override Type DocumentType => typeof(TDocument);
+    /// <inheritdoc/>
+    public override OperationKind Kind => OperationKind.Delete;
 
-    public override object? OldDocument => _document;
+    /// <inheritdoc/>
+    public override bool IsSetBased => Filter is not null;
 
-    public override object? CurrentDocument => null;
+    /// <summary>The key of the one document to delete, or <see langword="null"/> when the operation is set-based.</summary>
+    public object? Key => Target?.Key;
 
-    public override OperationType OperationType => OperationType.Delete;
-    
-    public override DisableContext InterceptorDisableContext { get; }
+    /// <summary>The documents to delete, or <see langword="null"/> when the operation targets a key.</summary>
+    public Expression<Func<TDocument, bool>>? Filter { get; }
 
-    internal override async Task<int> ExecuteAsync(VaultOperationContext context, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The same target, document and condition as an update, keeping the features switched off. This is how soft delete turns a
+    /// delete into setting a flag.
+    /// </summary>
+    public UpdateOperation<TDocument> ToUpdate(UpdateDefinition<TDocument> update) =>
+        new(TypedModel, DisabledFeatures, Target, Filter, update, Document) { Condition = Condition };
+
+    internal override async ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
+        CancellationToken cancellationToken)
     {
-        var collection = context.Vault.GetCollection<TDocument>();
+        var filter = await WriteFilterAsync(run, Filter, cancellationToken);
 
-        if (context.EnableDiagnostic && _document is null)
-        {
-            _document = await collection.FindOneAndDeleteAsync(context.Session, _filter, cancellationToken: cancellationToken);
-
-            return _document is not null ? 1 : 0;
-        }
-
-        var result = await collection.DeleteOneAsync(context.Session, _filter, cancellationToken: cancellationToken);
-
-        return result.DeletedCount == 1 ? 1 : 0;
-    }
-
-    public override bool To(OperationType operationType, out VaultOperation? operation)
-    {
-        operation = operationType switch
-        {
-            _ when _document is null => null,
-            OperationType.Add => new AddOperation<TDocument>(_document, InterceptorDisableContext),
-            OperationType.Update => new ReplaceOperation<TDocument>(_filter, _document, InterceptorDisableContext),
-            OperationType.Delete => this,
-            _ => null
-        };
-
-        return operation is not null;
+        return IsSetBased
+            ? new BulkWriteDeleteManyModel<TDocument>(Namespace, filter)
+            : new BulkWriteDeleteOneModel<TDocument>(Namespace, filter);
     }
 }

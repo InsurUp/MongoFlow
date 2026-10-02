@@ -1,0 +1,30 @@
+﻿[
+  {
+    Category: MongoFlow.Transaction,
+    Level: Debug,
+    EventId: 27004001,
+    Event: Began,
+    Message: Began a transaction in the scope.
+  },
+  {
+    Category: MongoFlow.Transaction,
+    Level: Debug,
+    EventId: 27004002,
+    Event: Committed,
+    Message: Committed the transaction. Saves that joined it: 0.
+  },
+  {
+    Category: MongoFlow.Transaction,
+    Level: Debug,
+    EventId: 27004001,
+    Event: Began,
+    Message: Began a transaction in the scope.
+  },
+  {
+    Category: MongoFlow.Transaction,
+    Level: Debug,
+    EventId: 27004004,
+    Event: RolledBack,
+    Message: Rolled back the transaction. Saves that joined it: 0.
+  }
+]

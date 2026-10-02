@@ -1,0 +1,4 @@
+﻿{
+  Orders: shop_Orders,
+  Audit: shop_Audit
+}

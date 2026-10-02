@@ -1,0 +1,9 @@
+﻿[
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003010,
+    Event: ChangesDetected,
+    Message: Found 1 changed of 2 tracked documents in ShopVault.
+  }
+]

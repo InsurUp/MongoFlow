@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Invoice of tenant t-2 can't be written while the current tenant is t-1.
+}

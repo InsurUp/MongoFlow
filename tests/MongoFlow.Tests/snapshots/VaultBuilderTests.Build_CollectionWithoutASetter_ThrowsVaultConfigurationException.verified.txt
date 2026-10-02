@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: NoSetterVault.Orders needs a setter or an init accessor for MongoFlow to fill it.
+}

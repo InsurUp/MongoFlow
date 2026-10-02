@@ -1,0 +1,9 @@
+﻿[
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003007,
+    Event: ConcurrencyConflict,
+    Message: A write to Tickets by key 1 matched no document with the token it was read with; still stored: True. The save fails with a concurrency conflict.
+  }
+]

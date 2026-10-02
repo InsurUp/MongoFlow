@@ -1,0 +1,4 @@
+﻿[
+  other.Saving,
+  other.Failed
+]

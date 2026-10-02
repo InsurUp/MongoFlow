@@ -1,0 +1,25 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 1,
+    Modified: 1,
+    Deleted: 0
+  },
+  Stored: [
+    {
+      _id: 1,
+      Title: first,
+      IsDeleted: true
+    },
+    {
+      _id: 2,
+      Title: second,
+      IsDeleted: false
+    }
+  ],
+  Document: {
+    Id: 1,
+    Title: first,
+    IsDeleted: true
+  }
+}

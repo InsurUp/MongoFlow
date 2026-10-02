@@ -1,0 +1,7 @@
+﻿{
+  Types: [
+    CreateArchive,
+    FillArchive
+  ],
+  CollectionName: migrations
+}

@@ -1,0 +1,9 @@
+﻿[
+  {
+    _id: 2,
+    Customer: bob,
+    Total: {
+      $numberDecimal: 20
+    }
+  }
+]

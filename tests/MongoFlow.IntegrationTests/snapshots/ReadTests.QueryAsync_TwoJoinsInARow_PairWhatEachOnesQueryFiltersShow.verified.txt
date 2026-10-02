@@ -1,0 +1,7 @@
+﻿[
+  {
+    Name: ada,
+    Number: C-10,
+    Amount: 50.0
+  }
+]

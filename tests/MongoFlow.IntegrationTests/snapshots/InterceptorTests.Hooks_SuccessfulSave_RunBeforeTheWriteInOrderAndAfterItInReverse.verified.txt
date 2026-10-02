@@ -1,0 +1,14 @@
+﻿[
+  default.Saving,
+  vault.Saving,
+  orders.Saving,
+  scoped.Saving,
+  scoped.Saved,
+  orders.Saved,
+  vault.Saved,
+  default.Saved,
+  scoped.Committed,
+  orders.Committed,
+  vault.Committed,
+  default.Committed
+]

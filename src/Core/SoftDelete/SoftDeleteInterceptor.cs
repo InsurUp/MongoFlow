@@ -1,35 +1,74 @@
+using System.Linq.Expressions;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
+
 namespace MongoFlow;
 
-public class SoftDeleteInterceptor<TSoftDeleteInterface> : VaultInterceptor
+/// <summary>
+/// Turns each delete into an update that marks the document deleted, and marks the deleted document too, putting it back
+/// if the save fails, so a document that wasn't deleted doesn't look deleted, nor a tracked one carry the mark into the
+/// next save.
+/// </summary>
+internal sealed class SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(
+    Expression<Func<TSoftDelete, TValue>> member,
+    Func<TSoftDelete, TValue> getMember,
+    Action<TSoftDelete, TValue> setMember,
+    Func<IServiceProvider, TValue> deletedValue) : VaultInterceptor
 {
-    private readonly VaultSoftDeleteOptions<TSoftDeleteInterface> _options;
+    private readonly Expression<Func<TDocument, TValue>> _field = MemberExpressions.Rebind<TSoftDelete, TDocument, TValue>(member);
 
-    public SoftDeleteInterceptor(VaultSoftDeleteOptions<TSoftDeleteInterface> options)
+    // Rendered on first use, with the collection's serializers. Two requests may both render it; they get the same.
+    private RenderedFieldDefinition? _renderedField;
+
+    public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
     {
-        _options = options;
+        // Decided once per save that deletes, and serialized once, so the driver doesn't translate the member per delete.
+        TValue value = default!;
+        BsonValue? stored = null;
+        List<(TSoftDelete, TValue)> marked = null!;
+
+        foreach (var operation in context.Operations)
+        {
+            if (operation is not DeleteOperation<TDocument> delete)
+            {
+                continue;
+            }
+
+            var field = _renderedField ??= FilterDocuments.RenderField(_field, delete.TypedModel.RenderArgs);
+            if (stored is null)
+            {
+                value = deletedValue(context.Services);
+                stored = field.FieldSerializer.ToBsonValue(value);
+
+                // The interceptor is shared by every request, so what it marks is kept with the save.
+                marked = [];
+                context.Items[this] = marked;
+            }
+
+            if (delete.Document is TSoftDelete document)
+            {
+                marked.Add((document, getMember(document)));
+                setMember(document, value);
+            }
+
+            // A document of its own for each update: combining updates merges later ones into the documents of earlier ones.
+            var markDeleted = new BsonDocument("$set", new BsonDocument(field.FieldName, stored));
+            context.Replace(delete, delete.ToUpdate(new BsonDocumentUpdateDefinition<TDocument>(markDeleted)));
+        }
+
+        return ValueTask.CompletedTask;
     }
 
-    public override ValueTask SavingChangesAsync(VaultInterceptorContext context,
-        CancellationToken cancellationToken = default)
+    /// <summary>Puts back what the deleted documents were marked with, newest first, since their deletes were rolled back.</summary>
+    public override ValueTask FailedAsync(SaveContext context, Exception exception, CancellationToken cancellationToken)
     {
-        for (int i = 0; i < context.Operations.Count; i++)
+        if (context.Items.Remove(this, out var items))
         {
-            var operation = context.Operations[i];
-
-            if (operation.OperationType is OperationType.Delete && operation.OldDocument is TSoftDeleteInterface softDeleteDocument)
+            var marked = (List<(TSoftDelete Document, TValue Previous)>)items!;
+            for (var i = marked.Count - 1; i >= 0; i--)
             {
-                _options.ChangeIsDeleted(softDeleteDocument, true);
-
-                var index = context.Operations.IndexOf(operation);
-
-                if (operation.To(OperationType.Update, out var updateOperation) && updateOperation is not null)
-                {
-                    context.Operations[index] = updateOperation;
-                }
-                else
-                {
-                    throw new InvalidOperationException("Failed to convert delete operation to update operation.");
-                }
+                setMember(marked[i].Document, marked[i].Previous);
             }
         }
 

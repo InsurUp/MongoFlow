@@ -1,0 +1,32 @@
+﻿{
+  Writes: [
+    {
+      Kind: Delete,
+      Key: 1
+    },
+    {
+      Kind: Update,
+      Key: 1,
+      Update: {
+        $set: {
+          Name: Ada Lovelace
+        }
+      }
+    }
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada Lovelace,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: first,
+      Tags: [
+        early
+      ],
+      Legacy: kept
+    }
+  ]
+}

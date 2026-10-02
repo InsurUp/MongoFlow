@@ -1,0 +1,12 @@
+﻿{
+  Update: {
+    $set: {
+      Prices: {
+        v1.2: {
+          base: 2
+        }
+      }
+    }
+  },
+  NeedsReplace: false
+}

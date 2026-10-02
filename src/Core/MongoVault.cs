@@ -1,185 +1,32 @@
-using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
-
 namespace MongoFlow;
 
-public abstract class MongoVault : IDisposable
+/// <summary>
+/// The base of a vault: a unit of work over the collections it declares as <see cref="IVaultCollection{TDocument}"/>
+/// and <see cref="IVaultCollection{TDocument, TKey}"/> properties. Register it with <c>AddMongoVault</c>, and resolve
+/// it from DI, which fills in its collections.
+/// </summary>
+public abstract class MongoVault : IMongoVault, IDisposable
 {
-    private readonly VaultConfigurationManager _configurationManager;
-    private readonly List<VaultOperation> _operations = [];
+    private VaultRuntime? _runtime;
 
-    private MongoVaultTransaction? _transaction;
+    internal VaultRuntime Runtime => _runtime ?? throw new InvalidOperationException(
+        $"{GetType().Name} wasn't created by MongoFlow. Register it with AddMongoVault and resolve it from DI.");
 
-    protected MongoVault(VaultConfigurationManager configurationManager)
-    {
-        _configurationManager = configurationManager;
+    /// <inheritdoc/>
+    public Task<SaveResult> SaveAsync(CancellationToken cancellationToken = default) =>
+        SavePipeline.RunAsync(Runtime, cancellationToken);
 
-        DocumentTypes = VaultPropertyCache.GetProperties(GetType()).Values;
+    /// <inheritdoc/>
+    public IVaultCollection<TDocument> Collection<TDocument>() => Runtime.GetCollection<TDocument>();
 
-        foreach (var documentType in DocumentTypes)
-        {
-            var setType = typeof(DocumentSet<>).MakeGenericType(documentType.DocumentType);
-            var set = Activator.CreateInstance(setType, this, null, null)!;
-            documentType.PropertyInfo.SetValue(this, set);
-        }
-    }
+    /// <inheritdoc/>
+    public IVaultCollection<TDocument, TKey> Collection<TDocument, TKey>() => Runtime.GetCollection<TDocument, TKey>();
 
-    protected IEnumerable<VaultProperty> DocumentTypes { get; }
+    /// <summary>
+    /// Gives back the pooled memory the vault holds: its tracked documents' snapshots, and writes queued but never saved,
+    /// which are dropped. Its scope disposes it; afterwards it starts again with nothing tracked or queued.
+    /// </summary>
+    public void Dispose() => _runtime?.Dispose();
 
-    internal VaultConfiguration Configuration => _configurationManager.Configuration;
-
-    internal IServiceProvider ServiceProvider => _configurationManager.ServiceProvider;
-    
-    private IMongoGlobalTransactionManager? GlobalTransactionManager => ServiceProvider.GetService<IMongoGlobalTransactionManager>();
-
-    internal IMongoDatabase MongoDatabase => Configuration.Database!;
-
-    public bool MigrationEnabled => _configurationManager.MigrationEnabled;
-    
-    public IMongoVaultMigrationManager MigrationManager => _configurationManager.MigrationManager;
-
-    internal IMongoCollection<TDocument> GetCollection<TDocument>()
-    {
-        var setConfiguration = Configuration.GetDocumentSetConfiguration<TDocument>();
-
-        return MongoDatabase.GetCollection<TDocument>(setConfiguration.Name);
-    }
-
-    public IDocumentSet<TDocument> Set<TDocument>()
-    {
-        return new DocumentSet<TDocument>(this);
-    }
-
-    public bool IsInTransaction => _transaction is not null || GlobalTransactionManager?.CurrentTransaction is not null;
-    
-    public IMongoVaultTransaction? CurrentTransaction => _transaction ?? GlobalTransactionManager?.CurrentTransaction;
-
-    public IMongoVaultTransaction BeginTransaction()
-    {
-        if (IsInTransaction)
-        {
-            throw new InvalidOperationException("BeginTransaction cannot be called inside a transaction.");
-        }
-
-        _transaction = new MongoVaultTransaction(this, MongoDatabase.Client.StartSession());
-
-        return _transaction;
-    }
-
-    internal void ClearTransaction()
-    {
-        _transaction = null;
-    }
-
-    public DocumentProperty GetDocumentKeyProperty(Type documentType)
-    {
-        return Configuration.GetDocumentSetConfiguration(documentType).Key;
-    }
-
-    public virtual async Task<int> SaveAsync(CancellationToken cancellationToken = default)
-    {
-        var operations = _operations.ToList();
-
-        _operations.Clear();
-
-        if (operations.Count == 0)
-        {
-            return 0;
-        }
-        
-        var session = CurrentTransaction is not null
-            ? CurrentTransaction.Session
-            : await MongoDatabase.Client.StartSessionAsync(cancellationToken: cancellationToken);
-
-        if (!session.IsInTransaction)
-        {
-            session.StartTransaction();
-        }
-
-        var interceptors = _configurationManager.ResolveInterceptors();
-        List<(VaultInterceptor, VaultInterceptorContext)> interceptorMappings = [];
-
-        foreach (var (name, interceptor) in interceptors)
-        {
-            var interceptorOperations = operations
-                .Where(x => !x.InterceptorDisableContext.AllDisabled && !x.InterceptorDisableContext.DisabledItems.Contains(name))
-                .ToList();
-            
-            if (interceptorOperations.Count == 0)
-            {
-                continue;
-            }
-            
-            var interceptorContext = new VaultInterceptorContext(this, interceptorOperations, session, ServiceProvider);
-            
-            interceptorMappings.Add((interceptor, interceptorContext));
-        }
-
-        foreach (var (interceptor, context) in interceptorMappings)
-        {
-            await interceptor.SavingChangesAsync(context, cancellationToken);
-        }
-
-        var affected = 0;
-
-        try
-        {
-            var diagnosticEnabled = interceptorMappings.Any(x => x.Item2.DiagnosticsEnabled);
-            var operationContext = new VaultOperationContext(session, this, diagnosticEnabled);
-
-            foreach (var operation in operations)
-            {
-                affected += await operation.ExecuteAsync(operationContext, cancellationToken);
-            }
-
-            foreach (var (interceptor, context) in interceptorMappings)
-            {
-                await interceptor.SavedChangesAsync(context, affected, cancellationToken);
-            }
-        }
-        catch (Exception e)
-        {
-            foreach (var (interceptor, context) in interceptorMappings)
-            {
-                await interceptor.SaveChangesFailedAsync(e, context, cancellationToken);
-            }
-
-            if (CurrentTransaction is null)
-            {
-                await session.AbortTransactionAsync(cancellationToken);
-            }
-
-            throw;
-        }
-        
-        if (CurrentTransaction is null)
-        {
-            try
-            {
-                await session.CommitTransactionAsync(cancellationToken);
-            }
-            finally
-            {
-                session.Dispose();
-            }
-        }
-
-        return affected;
-    }
-
-    internal void AddOperation(VaultOperation operation)
-    {
-        if (!_operations.Exists(x => x.DocumentType == operation.DocumentType &&
-                                     x.CurrentDocument is not null &&
-                                     x.CurrentDocument == operation.CurrentDocument))
-        {
-            _operations.Add(operation);
-        }
-    }
-
-    public void Dispose()
-    {
-        _transaction?.Dispose();
-        GC.SuppressFinalize(this);
-    }
+    internal void Attach(VaultRuntime runtime) => _runtime = runtime;
 }

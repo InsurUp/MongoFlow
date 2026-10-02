@@ -1,24 +1,34 @@
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
 
 namespace MongoFlow;
 
+/// <summary>Puts an expression in place of a lambda's parameter, so lambdas can be joined or retyped into one plain lambda.</summary>
 internal sealed class ParameterReplacer : ExpressionVisitor
 {
-    private readonly Expression _old;
-    private readonly Expression _new;
+    private readonly ParameterExpression _parameter;
+    private readonly Expression _replacement;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ParameterReplacer(Expression oldParam, Expression newParam)
+    private ParameterReplacer(ParameterExpression parameter,
+        Expression replacement)
     {
-        _old = oldParam;
-        _new = newParam;
+        _parameter = parameter;
+        _replacement = replacement;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override Expression? Visit(Expression? node)
+    /// <summary>The body of <c>x =&gt; body</c> with <paramref name="argument"/> in place of x, as if the lambda were called inline.</summary>
+    public static Expression Inline(LambdaExpression lambda,
+        Expression argument)
     {
-        if (node is null) return null;
-        return ReferenceEquals(node, _old) ? _new : base.Visit(node);
+        var parameter = lambda.Parameters[0];
+
+        return parameter == argument ? lambda.Body : new ParameterReplacer(parameter, argument).Visit(lambda.Body);
     }
+
+    /// <summary>The body of <c>(x, y) =&gt; body</c> with <paramref name="first"/> in place of x and <paramref name="second"/> of y.</summary>
+    public static Expression Inline(LambdaExpression lambda,
+        Expression first,
+        Expression second) =>
+        new ParameterReplacer(lambda.Parameters[1], second).Visit(Inline(lambda, first));
+
+    protected override Expression VisitParameter(ParameterExpression node) => node == _parameter ? _replacement : node;
 }

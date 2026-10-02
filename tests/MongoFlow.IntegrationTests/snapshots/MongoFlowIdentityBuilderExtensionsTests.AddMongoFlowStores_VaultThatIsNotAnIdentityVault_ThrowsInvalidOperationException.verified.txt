@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: AddMongoFlowStores needs a vault derived from IdentityMongoVault<TUser, TRole, TKey>, but ShopVault isn't.
+}

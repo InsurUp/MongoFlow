@@ -1,0 +1,7 @@
+﻿[
+  {
+    _id: 1,
+    Name: Ada Lovelace,
+    IsDeleted: true
+  }
+]

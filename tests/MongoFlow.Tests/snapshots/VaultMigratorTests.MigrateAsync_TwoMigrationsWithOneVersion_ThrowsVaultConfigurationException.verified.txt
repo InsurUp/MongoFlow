@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: JournalVault has more than one migration with version 1.0.0: OpenJournal, ReopenJournal.
+}

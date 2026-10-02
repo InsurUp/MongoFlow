@@ -1,0 +1,16 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Text: first,
+      DeletedAt: {
+        $date: 2026-10-01T12:30:00Z
+      }
+    }
+  ],
+  Document: {
+    Id: 1,
+    Text: first,
+    DeletedAt: 2026-10-01 12:30 Utc
+  }
+}

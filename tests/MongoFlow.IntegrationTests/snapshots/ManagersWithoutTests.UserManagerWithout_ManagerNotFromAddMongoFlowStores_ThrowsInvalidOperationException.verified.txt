@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Without needs the UserManager that AddMongoFlowStores registers.
+}

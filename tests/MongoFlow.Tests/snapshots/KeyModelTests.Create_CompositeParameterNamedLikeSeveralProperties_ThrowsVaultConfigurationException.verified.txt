@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: The key of keys passes t.UserId as userId, but AmbiguousKey has several properties named like it (UserId, Userid). Name the parameter exactly like one of them.
+}

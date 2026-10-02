@@ -1,0 +1,27 @@
+﻿{
+  Pairs: [
+    {
+      Name: ada,
+      Number: C-10
+    },
+    {
+      Name: ada,
+      Number: C-14
+    }
+  ],
+  Count: 2,
+  First: {
+    Name: ada,
+    Number: C-10
+  },
+  Enumerated: [
+    {
+      Name: ada,
+      Number: C-10
+    },
+    {
+      Name: ada,
+      Number: C-14
+    }
+  ]
+}

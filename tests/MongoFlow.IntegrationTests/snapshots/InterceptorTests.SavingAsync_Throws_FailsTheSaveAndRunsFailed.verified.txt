@@ -1,0 +1,8 @@
+﻿{
+  Entries: [
+    first.Saving,
+    last.Failed,
+    first.Failed
+  ],
+  Stored: []
+}

@@ -1,0 +1,11 @@
+﻿{
+  BeforeCommit: [
+    shop.Saving,
+    shop.Saved
+  ],
+  AfterCommit: [
+    shop.Saving,
+    shop.Saved,
+    shop.Committed
+  ]
+}

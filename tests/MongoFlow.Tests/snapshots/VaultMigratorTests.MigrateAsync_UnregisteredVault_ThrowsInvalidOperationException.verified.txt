@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: JournalVault isn't registered. Register it with AddMongoVault.
+}

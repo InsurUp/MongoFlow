@@ -1,0 +1,40 @@
+﻿{
+  Writes: [
+    {
+      Kind: Update,
+      Key: 1,
+      Update: {
+        $set: {
+          Balance: {
+            $numberDecimal: 90
+          }
+        }
+      }
+    },
+    {
+      Kind: Update,
+      Key: 1,
+      Update: {
+        $set: {
+          Balance: {
+            $numberDecimal: 80
+          }
+        }
+      }
+    }
+  ],
+  account: {
+    Id: 1,
+    Balance: 80.0,
+    Version: 2
+  },
+  Stored: [
+    {
+      _id: 1,
+      Balance: {
+        $numberDecimal: 80
+      },
+      Version: 2
+    }
+  ]
+}

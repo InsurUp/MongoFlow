@@ -1,0 +1,19 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Version: 4,
+      IsArchived: true
+    },
+    {
+      _id: 2,
+      Version: 5,
+      IsArchived: false
+    }
+  ],
+  Document: {
+    Id: 1,
+    Version: 4,
+    IsArchived: true
+  }
+}

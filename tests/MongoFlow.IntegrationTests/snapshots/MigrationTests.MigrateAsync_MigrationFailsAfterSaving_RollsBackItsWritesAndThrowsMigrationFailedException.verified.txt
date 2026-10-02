@@ -1,0 +1,50 @@
+﻿{
+  Message: Applying migration 3.0.0 of RegistryVault failed.,
+  Version: 3.0.0,
+  Vault: RegistryVault,
+  Cause: The migration failed after saving.,
+  Stored: [
+    {
+      _id: 1,
+      Name: first,
+      Status: null
+    },
+    {
+      _id: 2,
+      Name: second,
+      Status: null
+    }
+  ],
+  History: [
+    {
+      Version: 1.0.0,
+      Name: SeedEntries,
+      Description: Seed the registry,
+      Timestamp: DateTime_1
+    }
+  ],
+  Log: [
+    {
+      Category: MongoFlow.Migrations,
+      Level: Information,
+      EventId: 27006001,
+      Event: Migrating,
+      Message: Migrating RegistryVault from none to 3.0.0: 2 to apply, 0 to revert.
+    },
+    {
+      Category: MongoFlow.Migrations,
+      Level: Information,
+      EventId: 27006002,
+      Event: MigrationApplied,
+      Message: Applied migration 1.0.0 of RegistryVault, SeedEntries, in {elapsed} ms.
+    },
+    {
+      Category: MongoFlow.Migrations,
+      Level: Error,
+      EventId: 27006003,
+      Event: MigrationFailed,
+      Message: Applying migration 3.0.0 of RegistryVault, FailAfterSaving, failed after {elapsed} ms.,
+      Exception: InvalidOperationException
+    }
+  ]
+}

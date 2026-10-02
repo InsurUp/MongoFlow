@@ -1,0 +1,4 @@
+﻿[
+  1.0.0: the vault's database True, in a transaction True, the scope's True,
+  1.1.0: the vault's database True, in a transaction False, the scope's False
+]

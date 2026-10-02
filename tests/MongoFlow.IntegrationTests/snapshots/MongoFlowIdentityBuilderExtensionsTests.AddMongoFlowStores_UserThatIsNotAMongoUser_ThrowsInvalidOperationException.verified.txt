@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: AddMongoFlowStores needs users derived from MongoUser<TKey>, but PlainUser isn't.
+}

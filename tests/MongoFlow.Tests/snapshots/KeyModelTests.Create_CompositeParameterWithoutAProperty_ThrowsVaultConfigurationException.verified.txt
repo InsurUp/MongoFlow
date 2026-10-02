@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: The key of keys passes t.UserId as user, but RenamedKey has no property of that name.
+}

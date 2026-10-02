@@ -1,0 +1,8 @@
+﻿{
+  Entries: [
+    shop.Saving,
+    shop.Saved,
+    shop.Failed
+  ],
+  Stored: []
+}

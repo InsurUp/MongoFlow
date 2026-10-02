@@ -1,0 +1,17 @@
+﻿[
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002005,
+    Event: IndexCheckFailed,
+    Message: Couldn't check the indexes of unit.Orders.,
+    Exception: TimeoutException
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002006,
+    Event: IndexCheckCompleted,
+    Message: Checked the indexes of ShopVault.
+  }
+]

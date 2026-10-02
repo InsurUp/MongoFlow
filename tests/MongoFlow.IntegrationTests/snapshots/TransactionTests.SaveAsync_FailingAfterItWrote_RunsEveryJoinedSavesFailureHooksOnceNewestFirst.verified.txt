@@ -1,0 +1,7 @@
+﻿[
+  shop.Saving,
+  shop.Saved,
+  shop.Saving,
+  shop.Failed,
+  shop.Failed
+]

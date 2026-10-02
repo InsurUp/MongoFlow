@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: keys is keyed by String, but Note has no member mapped to _id. Configure a key, or declare the collection as keyless.
+}

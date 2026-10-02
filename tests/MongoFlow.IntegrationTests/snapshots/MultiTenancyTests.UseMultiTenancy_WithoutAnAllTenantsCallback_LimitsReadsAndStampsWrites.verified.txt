@@ -1,0 +1,7 @@
+﻿{
+  Visible: [
+    1,
+    3
+  ],
+  Stamped: t-1
+}

@@ -1,0 +1,9 @@
+﻿[
+  {
+    Category: MongoFlow.Save,
+    Level: Debug,
+    EventId: 27003008,
+    Event: TenantRejected,
+    Message: A write to Bills carries tenant t-2 while the current tenant is t-1. The save fails.
+  }
+]

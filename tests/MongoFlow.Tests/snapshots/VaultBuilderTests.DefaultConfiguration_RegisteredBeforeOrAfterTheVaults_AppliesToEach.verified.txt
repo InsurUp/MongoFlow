@@ -1,0 +1,6 @@
+﻿{
+  ShopOrders: default_Orders,
+  ShopAudit: default_Audit,
+  AuditedOrders: default_Orders,
+  AuditedAudit: audit_log
+}

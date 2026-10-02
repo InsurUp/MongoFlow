@@ -1,0 +1,26 @@
+﻿{
+  AfterFirst: [
+    {
+      _id: 1,
+      Title: first,
+      IsDeleted: false
+    },
+    {
+      _id: 2,
+      Title: second,
+      IsDeleted: false
+    }
+  ],
+  AfterSecond: [
+    {
+      _id: 1,
+      Title: first,
+      IsDeleted: true
+    },
+    {
+      _id: 2,
+      Title: second,
+      IsDeleted: false
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+﻿{
+  Operations: [],
+  Transactions: [
+    {
+      mongoflow.transaction.outcome: rolled_back
+    }
+  ]
+}

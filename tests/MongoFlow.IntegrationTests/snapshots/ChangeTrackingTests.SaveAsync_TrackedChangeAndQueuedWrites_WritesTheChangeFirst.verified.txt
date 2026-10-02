@@ -1,0 +1,32 @@
+﻿{
+  Writes: [
+    {
+      Kind: Update,
+      Key: 1,
+      Update: {
+        $set: {
+          Balance: {
+            $numberDecimal: 90
+          }
+        }
+      }
+    },
+    {
+      Kind: Delete,
+      Key: 1
+    },
+    {
+      Kind: Replace,
+      Key: 2
+    }
+  ],
+  Stored: [
+    {
+      _id: 2,
+      Balance: {
+        $numberDecimal: 250
+      },
+      Version: 1
+    }
+  ]
+}

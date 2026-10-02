@@ -1,0 +1,23 @@
+﻿{
+  Entries: [
+    up 1.1.0
+  ],
+  History: [
+    {
+      Version: 1.0.0,
+      Name: SeedEntries,
+      Description: Seed the registry,
+      Timestamp: DateTime_1
+    },
+    {
+      Version: 2.0.0,
+      Name: IndexNames,
+      Timestamp: DateTime_1
+    },
+    {
+      Version: 1.1.0,
+      Name: ActivateEntries,
+      Timestamp: DateTime_1
+    }
+  ]
+}

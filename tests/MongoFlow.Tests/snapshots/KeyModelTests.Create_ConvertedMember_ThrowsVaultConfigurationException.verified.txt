@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: The key of keys converts p.Year to Int64. Key it by a member of type Int64.
+}

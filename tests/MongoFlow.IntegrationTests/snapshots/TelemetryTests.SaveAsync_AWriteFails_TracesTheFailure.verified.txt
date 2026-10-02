@@ -1,0 +1,17 @@
+﻿[
+  {
+    Name: MongoFlow.Save,
+    Parent: test,
+    Status: Error,
+    StatusDescription: An error occurred during ordered bulkWrite operation. See WriteErrors for more details.,
+    Tags: {
+      error.type: MongoDB.Driver.ClientBulkWriteException,
+      mongoflow.save.operation_count: 1,
+      mongoflow.save.transaction: own,
+      mongoflow.vault: ShopVault
+    },
+    Events: [
+      exception
+    ]
+  }
+]

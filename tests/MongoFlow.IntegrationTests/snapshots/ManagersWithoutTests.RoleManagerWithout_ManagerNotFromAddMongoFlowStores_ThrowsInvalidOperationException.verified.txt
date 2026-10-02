@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Without needs the RoleManager that AddMongoFlowStores registers.
+}
