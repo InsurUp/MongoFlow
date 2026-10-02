@@ -26,6 +26,12 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.10.0" />
   </ItemGroup>
 
+  <!-- Samples: telemetry exported the way an app would. -->
+  <ItemGroup>
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.1" />
+  </ItemGroup>
+
   <!-- Benchmarks. -->
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />

@@ -6,18 +6,19 @@ using MongoFlow.Samples.Vaults;
 
 namespace MongoFlow.Samples.Services;
 
-/// <summary>Everyday reads and writes against a keyed collection.</summary>
+/// <summary>Everyday reads and writes against a keyed collection whose vault tracks changes.</summary>
 public sealed class PolicyService(IPolicyVault vault)
 {
-    // Lookup by the collection's key. The key is typed, so passing a Guid here is a compile error.
+    // Lookup by the collection's key. The key is typed, so passing a Guid here is a compile error. The vault tracks
+    // changes, so the policy returned is tracked: change it and save.
     public Task<Policy?> FindAsync(string policyNumber, CancellationToken cancellationToken) =>
         vault.Policies.GetByKeyAsync(policyNumber, cancellationToken);
 
     // The first await resolves the tenant, soft-delete, permission and module filters (the last two asynchronously);
-    // everything after it is the driver's own LINQ.
+    // everything after it is the driver's own LINQ. A list isn't changed, so it's read without tracking.
     public async Task<List<Policy>> ActiveForCustomerAsync(ObjectId customerId, CancellationToken cancellationToken)
     {
-        var policies = await vault.Policies.QueryAsync(cancellationToken);
+        var policies = await vault.Policies.WithNoTracking().QueryAsync(cancellationToken);
 
         return await policies
             .Where(p => p.CustomerId == customerId && p.Status == PolicyStatus.Active)
@@ -27,7 +28,8 @@ public sealed class PolicyService(IPolicyVault vault)
 
     public async Task<(List<Policy> Items, long Total)> PageAsync(int page, int size, CancellationToken cancellationToken)
     {
-        var policies = (await vault.Policies.QueryAsync(cancellationToken)).Where(p => p.Status != PolicyStatus.Draft);
+        var policies = (await vault.Policies.WithNoTracking().QueryAsync(cancellationToken))
+            .Where(p => p.Status != PolicyStatus.Draft);
 
         var total = await policies.LongCountAsync(cancellationToken);
         var items = await policies.OrderBy(p => p.PolicyNumber).Skip(page * size).Take(size).ToListAsync(cancellationToken);
@@ -35,18 +37,20 @@ public sealed class PolicyService(IPolicyVault vault)
         return (items, total);
     }
 
+    // A projection is never tracked: it isn't the stored document.
     public async Task<List<PolicySummary>> SummariesAsync(CancellationToken cancellationToken)
     {
         var policies = await vault.Policies.QueryAsync(cancellationToken);
 
         return await policies
+            .OrderBy(p => p.PolicyNumber)
             .Select(p => new PolicySummary(p.PolicyNumber, p.Status, p.Premium))
             .ToListAsync(cancellationToken);
     }
 
     public async Task<List<Policy>> ExpiringAsync(DateTime before, CancellationToken cancellationToken)
     {
-        var find = await vault.Policies.FindAsync(p => p.EndsAt < before, cancellationToken);
+        var find = await vault.Policies.WithNoTracking().FindAsync(p => p.EndsAt < before, cancellationToken);
 
         return await find.SortBy(p => p.EndsAt).Limit(100).ToListAsync(cancellationToken);
     }
@@ -57,6 +61,7 @@ public sealed class PolicyService(IPolicyVault vault)
 
         return await aggregate
             .Group(p => p.Status, group => new PremiumByStatus(group.Key, group.Sum(p => p.Premium)))
+            .SortBy(total => total.Status)
             .ToListAsync(cancellationToken);
     }
 
@@ -69,13 +74,21 @@ public sealed class PolicyService(IPolicyVault vault)
         await vault.SaveAsync(cancellationToken);
     }
 
+    // Change tracking: no write is queued. The save writes { $set: { Status: "Cancelled" } }, plus the timestamp, and
+    // fails with ConcurrencyException if someone saved the policy since it was read.
     public async Task CancelAsync(string policyNumber, CancellationToken cancellationToken)
     {
         var policy = await FindAsync(policyNumber, cancellationToken) ?? throw new KeyNotFoundException(policyNumber);
 
         policy.Status = PolicyStatus.Cancelled;
-        vault.Policies.Replace(policy); // fails with ConcurrencyException if someone saved it since the read
 
+        await vault.SaveAsync(cancellationToken);
+    }
+
+    // A whole document from elsewhere, such as the legacy system, replaces what's stored, checked against its token.
+    public async Task ImportAsync(Policy policy, CancellationToken cancellationToken)
+    {
+        vault.Policies.Replace(policy);
         await vault.SaveAsync(cancellationToken);
     }
 
@@ -86,9 +99,10 @@ public sealed class PolicyService(IPolicyVault vault)
         await vault.SaveAsync(cancellationToken);
     }
 
+    // No read first either: the token goes up by itself, but there's nothing to check it against.
     public async Task RenewAsync(string policyNumber, DateTime until, CancellationToken cancellationToken)
     {
-        vault.Policies.UpdateByKey(policyNumber, Builders<Policy>.Update.Set(p => p.EndsAt, until)); // Version goes up by itself
+        vault.Policies.UpdateByKey(policyNumber, Builders<Policy>.Update.Set(p => p.EndsAt, until));
         await vault.SaveAsync(cancellationToken);
     }
 

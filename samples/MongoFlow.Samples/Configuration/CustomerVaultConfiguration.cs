@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using MongoFlow.Samples.Domain;
 using MongoFlow.Samples.Vaults;
 
 namespace MongoFlow.Samples.Configuration;
@@ -13,12 +14,14 @@ public sealed class CustomerVaultConfiguration(IOptions<CustomerOptions> options
         .Collection(x => x.Customers, customers =>
         {
             // Duplicates merged into another record stay in the database for history but are never shown.
-            customers.QueryFilter(customer => customer.Status != Domain.CustomerStatus.Merged);
+            customers.QueryFilter(customer => customer.Status != CustomerStatus.Merged);
 
             if (options.Value.HardDeleteCustomers)
             {
                 customers.Without(SoftDeleteFeature.Key);
             }
         })
-        .Collection(x => x.Agencies, agencies => agencies.Key(agency => agency.AgencyId));
+        .Collection(x => x.Agencies, agencies => agencies.Key(agency => agency.AgencyId))
+        // A composite key: the constructor's arguments are matched to the members they're built from.
+        .Collection(x => x.Consents, consents => consents.Key(consent => new ConsentKey(consent.CustomerId, consent.Purpose)));
 }

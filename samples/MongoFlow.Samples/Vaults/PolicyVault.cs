@@ -1,10 +1,12 @@
 using MongoFlow.Samples.Domain;
+using MongoFlow.Samples.Interceptors;
 
 namespace MongoFlow.Samples.Vaults;
 
 /// <summary>
-/// Configures its own shape: keys, concurrency, a collection name inherited from an older system, and its migrations,
-/// which also create its indexes. Anything environment-specific, like the database, stays at registration.
+/// Configures its own shape: keys, concurrency, change tracking, a collection name inherited from an older system, a
+/// guard on claims, and its migrations, which also create its indexes. Anything environment-specific, like the database,
+/// stays at registration.
 /// </summary>
 public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<PolicyVault>
 {
@@ -17,8 +19,11 @@ public sealed class PolicyVault : MongoVault, IPolicyVault, IConfigurableVault<P
         .Collection(x => x.Policies, policies => policies
             .Key(p => p.PolicyNumber)) // its unique index comes from the CreatePolicyIndexes migration
         .Collection(x => x.Claims, claims => claims
-            .Name("insurance_claims")) // the vault's own setting, so it beats the snake_case default
+            .Name("insurance_claims") // the vault's own setting, so it beats the snake_case default
+            .AddInterceptor(new ClaimDecisionGuard()))
         .UseConcurrencyToken((Policy p) => p.Version)
+        // Policies are changed where they're read: the save writes what changed. Lists read without tracking.
+        .UseChangeTracking()
         // Claims record when they were deleted. Customers and policies use the platform's flag.
         .UseSoftDelete((IDeletedAt x) => x.DeletedAt)
         .Migrations(m => m.AddFromAssemblyOf<PolicyVault>());
