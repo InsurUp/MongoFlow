@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using MongoDB.Driver;
 
 namespace MongoFlow.Tests;
@@ -34,6 +35,32 @@ public partial class VaultCollectionTests
 
         // Act
         var find = await host.Vault.Orders.FindAsync(x => x.Customer == "ada");
+
+        // Assert
+        await Verify(find.ToString());
+    }
+
+    [Test]
+    public async Task FindAsync_FilterDefinitionWithQueryFilters_FindsWhatBothMatch()
+    {
+        // Arrange
+        await using var host = new VaultHost<ShopVault>(vault => vault.QueryFilter<ISoftDeletable>(x => !x.IsDeleted));
+
+        // Act
+        var find = await host.Vault.Orders.FindAsync(Builders<Order>.Filter.Eq(x => x.Customer, "ada"));
+
+        // Assert
+        await Verify(find.ToString());
+    }
+
+    [Test]
+    public async Task FindAsync_FilterDefinitionWithoutQueryFilters_FindsWhatItMatches()
+    {
+        // Arrange
+        await using var host = new VaultHost<ShopVault>();
+
+        // Act
+        var find = await host.Vault.Orders.FindAsync(Builders<Order>.Filter.Gt(x => x.Total, 10));
 
         // Assert
         await Verify(find.ToString());
@@ -155,7 +182,19 @@ public partial class VaultCollectionTests
         await using var host = new VaultHost<CatalogVault>();
 
         // Act & Assert
-        await Assert.That(async () => await host.Vault.Products.FindAsync(null!)).ThrowsExactly<ArgumentNullException>();
+        await Assert.That(async () => await host.Vault.Products.FindAsync((Expression<Func<Product, bool>>)null!))
+            .ThrowsExactly<ArgumentNullException>();
+    }
+
+    [Test]
+    public async Task FindAsync_NullFilterDefinition_ThrowsArgumentNullException()
+    {
+        // Arrange
+        await using var host = new VaultHost<CatalogVault>();
+
+        // Act & Assert
+        await Assert.That(async () => await host.Vault.Products.FindAsync((FilterDefinition<Product>)null!))
+            .ThrowsExactly<ArgumentNullException>();
     }
 
     [Test]

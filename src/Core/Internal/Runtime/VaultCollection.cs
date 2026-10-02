@@ -38,11 +38,19 @@ internal class VaultCollection<TDocument>(
         LogReading(nameof(FindAsync), queryFilter);
 
         var combined = FilterExpressions.Combine(filter, queryFilter);
-        FilterDefinition<TDocument> definition = combined is null ? FilterDefinition<TDocument>.Empty : combined;
 
-        var session = await Runtime.GetSessionAsync(cancellationToken);
+        return await FindInSessionAsync(combined is null ? FilterDefinition<TDocument>.Empty : combined, cancellationToken);
+    }
 
-        return session is null ? model.MongoCollection.Find(definition) : model.MongoCollection.Find(session, definition);
+    public async ValueTask<IFindFluent<TDocument, TDocument>> FindAsync(FilterDefinition<TDocument> filter,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        var queryFilter = await model.ResolveFilterAsync(Runtime.Services, Disabled, cancellationToken);
+        LogReading(nameof(FindAsync), queryFilter);
+
+        return await FindInSessionAsync(queryFilter is null ? filter : filter & queryFilter, cancellationToken);
     }
 
     public async ValueTask<IAggregateFluent<TDocument>> AggregateAsync(CancellationToken cancellationToken = default)
@@ -86,6 +94,15 @@ internal class VaultCollection<TDocument>(
         ArgumentNullException.ThrowIfNull(filter);
 
         Runtime.Enqueue(new DeleteOperation<TDocument>(model, Disabled, null, filter, default));
+    }
+
+    /// <summary>Finds with <paramref name="filter"/>, in the scope's open transaction if there is one.</summary>
+    private async ValueTask<IFindFluent<TDocument, TDocument>> FindInSessionAsync(FilterDefinition<TDocument> filter,
+        CancellationToken cancellationToken)
+    {
+        var session = await Runtime.GetSessionAsync(cancellationToken);
+
+        return session is null ? model.MongoCollection.Find(filter) : model.MongoCollection.Find(session, filter);
     }
 
     private void LogReading(string method,

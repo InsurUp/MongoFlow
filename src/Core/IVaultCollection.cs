@@ -32,6 +32,13 @@ public interface IVaultCollection<TDocument>
     ValueTask<IFindFluent<TDocument, TDocument>> FindAsync(Expression<Func<TDocument, bool>> filter,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Finds with a filter built with the driver, such as <c>Builders&lt;T&gt;.Filter.ElemMatch(...)</c>, joined with the
+    /// query filters.
+    /// </summary>
+    ValueTask<IFindFluent<TDocument, TDocument>> FindAsync(FilterDefinition<TDocument> filter,
+        CancellationToken cancellationToken = default);
+
     /// <summary>An aggregation whose first stage matches the query filters.</summary>
     ValueTask<IAggregateFluent<TDocument>> AggregateAsync(CancellationToken cancellationToken = default);
 

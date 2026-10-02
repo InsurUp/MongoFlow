@@ -20,8 +20,8 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
   (`IConfigurableVault<TSelf>`), and configurations can apply to every vault (`AddDefaultVaultConfiguration`), which a
   vault can skip.
 - `IVaultCollection<TDocument>`, and keyed `IVaultCollection<TDocument, TKey>`:
-  - reads resolve the query filters with one await and return the driver's own types: `QueryAsync`, `FindAsync`,
-    `AggregateAsync` and `GetByKeyAsync`;
+  - reads resolve the query filters with one await and return the driver's own types: `QueryAsync`, `FindAsync` (with an
+    expression or the driver's `FilterDefinition`), `AggregateAsync` and `GetByKeyAsync`;
   - writes are queued until `SaveAsync`: `Add`, `AddRange`, `UpdateMany` and `DeleteMany`, plus `Replace`, `Update`,
     `UpdateByKey`, `Delete` and `DeleteByKey` on keyed collections;
   - `Without(FeatureKey)` gives a view with a feature switched off.
