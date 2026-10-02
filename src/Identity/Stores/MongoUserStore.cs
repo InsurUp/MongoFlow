@@ -5,434 +5,244 @@ using MongoDB.Driver;
 
 namespace MongoFlow.Identity;
 
-public class MongoUserStore<TVault, TUser, TRole, TKey> : 
-    UserStoreBase<TUser, TRole, TKey, IdentityUserClaim<TKey>, IdentityUserRole<TKey>, IdentityUserLogin<TKey>, MongoUserToken<TKey>, IdentityRoleClaim<TKey>>,
-    ICloneUserStore<TUser>, IUserPasskeyStore<TUser>
+/// <summary>
+/// Identity's user store over an <see cref="IdentityMongoVault{TUser, TRole, TKey}"/>. Reads apply the vault's query
+/// filters, and writes are saved through the vault, so its features and interceptors apply.
+/// </summary>
+/// <remarks>
+/// Claims, logins, roles and passkeys are kept inside the user and changed on it; <see cref="UserManager{TUser}"/> saves
+/// them with <see cref="UpdateAsync"/> after each change, along with any token the change queued.
+/// </remarks>
+public class MongoUserStore<TVault, TUser, TRole, TKey> :
+    UserStoreBase<TUser, TRole, TKey, IdentityUserClaim<TKey>, IdentityUserRole<TKey>, IdentityUserLogin<TKey>, MongoUserToken<TKey>,
+        IdentityRoleClaim<TKey>>,
+    IUserPasskeyStore<TUser>,
+    IFeatureSwitchableStore<IUserStore<TUser>>
     where TVault : IdentityMongoVault<TUser, TRole, TKey>
     where TUser : MongoUser<TKey>
     where TRole : MongoRole<TKey>
     where TKey : IEquatable<TKey>
 {
     private readonly TVault _vault;
-    private readonly IdentityErrorDescriber _describer;
-    private readonly IDocumentSet<TUser> _users;
-    private readonly IDocumentSet<TRole> _roles;
-    private readonly IDocumentSet<MongoUserToken<TKey>> _userTokens;
+    private readonly IVaultCollection<TUser, TKey> _users;
+    private readonly IVaultCollection<TRole, TKey> _roles;
+    private readonly IVaultCollection<MongoUserToken<TKey>, TKey> _userTokens;
 
-    public MongoUserStore(TVault vault, IdentityErrorDescriber describer) : base(describer)
+    public MongoUserStore(TVault vault,
+        IdentityErrorDescriber describer)
+        : this(vault, describer, vault.Users, vault.Roles, vault.UserTokens)
+    {
+    }
+
+    private MongoUserStore(TVault vault,
+        IdentityErrorDescriber describer,
+        IVaultCollection<TUser, TKey> users,
+        IVaultCollection<TRole, TKey> roles,
+        IVaultCollection<MongoUserToken<TKey>, TKey> userTokens)
+        : base(describer)
     {
         _vault = vault;
-        _describer = describer;
-        _users = _vault.Set<TUser>();
-        _roles = _vault.Set<TRole>();
-        _userTokens = _vault.Set<MongoUserToken<TKey>>();
-    }
-    
-    private MongoUserStore(TVault vault, 
-        IdentityErrorDescriber describer,
-        DisableContext queryFilterDisableContext,
-        DisableContext interceptorDisableContext) : this(vault, describer)
-    {
-        var users = _vault.Set<TUser>();
-        var roles = _vault.Set<TRole>();
-        var userTokens = _vault.Set<MongoUserToken<TKey>>();
-
-        users = queryFilterDisableContext switch
-        {
-            { AllDisabled: true } => users.DisableAllQueryFilters(),
-            { DisabledItems.Length: > 0 } => users.DisableQueryFilters(interceptorDisableContext.DisabledItems),
-            _ => users
-        };
-
-        users = interceptorDisableContext switch
-        {
-            { AllDisabled: true } => users.DisableAllInterceptors(),
-            { DisabledItems.Length: > 0 } => users.DisableInterceptors(interceptorDisableContext.DisabledItems),
-            _ => users
-        };
-        
-        roles = queryFilterDisableContext switch
-        {
-            { AllDisabled: true } => roles.DisableAllQueryFilters(),
-            { DisabledItems.Length: > 0 } => roles.DisableQueryFilters(interceptorDisableContext.DisabledItems),
-            _ => roles
-        };
-        
-        roles = interceptorDisableContext switch
-        {
-            { AllDisabled: true } => roles.DisableAllInterceptors(),
-            { DisabledItems.Length: > 0 } => roles.DisableInterceptors(interceptorDisableContext.DisabledItems),
-            _ => roles
-        };
-        
-        userTokens = queryFilterDisableContext switch
-        {
-            { AllDisabled: true } => userTokens.DisableAllQueryFilters(),
-            { DisabledItems.Length: > 0 } => userTokens.DisableQueryFilters(interceptorDisableContext.DisabledItems),
-            _ => userTokens
-        };
-        
-        userTokens = interceptorDisableContext switch
-        {
-            { AllDisabled: true } => userTokens.DisableAllInterceptors(),
-            { DisabledItems.Length: > 0 } => userTokens.DisableInterceptors(interceptorDisableContext.DisabledItems),
-            _ => userTokens
-        };
-
         _users = users;
         _roles = roles;
         _userTokens = userTokens;
     }
 
-    public override async Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken = default)
+    /// <summary>The users, with the vault's query filters applied.</summary>
+    /// <remarks>Synchronous, as Identity declares it: asynchronous query filters are waited for.</remarks>
+    public override IQueryable<TUser> Users => VaultQueries.Resolve(_users.QueryAsync());
+
+    public override async Task<IdentityResult> CreateAsync(TUser user,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
-        
+
         _users.Add(user);
         await _vault.SaveAsync(cancellationToken);
-        
+
         return IdentityResult.Success;
     }
 
-    public override async Task<IdentityResult> UpdateAsync(TUser user, CancellationToken cancellationToken = default)
+    public override async Task<IdentityResult> UpdateAsync(TUser user,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
-        
+
         _users.Replace(user);
         await _vault.SaveAsync(cancellationToken);
-        
+
         return IdentityResult.Success;
     }
 
-    public override async Task<IdentityResult> DeleteAsync(TUser user, CancellationToken cancellationToken = default)
+    public override async Task<IdentityResult> DeleteAsync(TUser user,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
-        
+
         _users.Delete(user);
         await _vault.SaveAsync(cancellationToken);
-        
+
         return IdentityResult.Success;
     }
 
-    public override async Task<TUser?> FindByIdAsync(string userId, CancellationToken cancellationToken = default)
+    public override TKey? ConvertIdFromString(string? id) => IdentityKeys.FromString<TKey>(id);
+
+    public override async Task<TUser?> FindByIdAsync(string userId,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(userId);
-        
-        var id = ConvertIdFromString(userId);
-        if (id is null)
-        {
-            return null;
-        }
-        
-        return await _users.GetByKeyAsync(id, cancellationToken);
+
+        return ConvertIdFromString(userId) is { } id ? await _users.GetByKeyAsync(id, cancellationToken) : null;
     }
 
-    public override async Task<TUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
+    public override Task<TUser?> FindByNameAsync(string normalizedUserName,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(normalizedUserName);
-        
-        var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedUserName, normalizedUserName);
-        return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
+
+        return FirstUserAsync(Builders<TUser>.Filter.Eq(x => x.NormalizedUserName, normalizedUserName), cancellationToken);
     }
 
-    protected override async Task<TUser?> FindUserAsync(TKey userId, CancellationToken cancellationToken)
+    public override Task<TUser?> FindByEmailAsync(string normalizedEmail,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
-        
-        return await _users.GetByKeyAsync(userId, cancellationToken);
+        ArgumentNullException.ThrowIfNull(normalizedEmail);
+
+        return FirstUserAsync(Builders<TUser>.Filter.Eq(x => x.NormalizedEmail, normalizedEmail), cancellationToken);
     }
 
-    protected override async Task<IdentityUserLogin<TKey>?> FindUserLoginAsync(TKey userId, string loginProvider, string providerKey, CancellationToken cancellationToken)
+    public override Task<IList<Claim>> GetClaimsAsync(TUser user,
+        CancellationToken cancellationToken = default)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
-        
-        var filter = Builders<TUser>.Filter.Eq(x => x.Id, userId);
-        var user = await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
-        
-        return user?.Logins.FirstOrDefault(x => x.LoginProvider == loginProvider && x.ProviderKey == providerKey);
+        ArgumentNullException.ThrowIfNull(user);
+
+        return Task.FromResult<IList<Claim>>(user.Claims.Select(claim => claim.ToClaim()).ToList());
     }
 
-    protected override async Task<IdentityUserLogin<TKey>?> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        
-        var filter = Builders<TUser>.Filter.ElemMatch(
-            x => x.Logins,
-            l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey);
-        
-        var user = await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
-        
-        return user?.Logins.FirstOrDefault(x => x.LoginProvider == loginProvider && x.ProviderKey == providerKey);
-    }
-
-    public override Task<IList<Claim>> GetClaimsAsync(TUser user, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IList<Claim>>(user.Claims
-            .Select(x => x.ToClaim())
-            .ToList());
-    }
-
-    public override Task AddClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
+    public override Task AddClaimsAsync(TUser user,
+        IEnumerable<Claim> claims,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(claims);
-        
+
         foreach (var claim in claims)
         {
-            user.Claims.Add(new IdentityUserClaim<TKey>
-            {
-                ClaimType = claim.Type,
-                ClaimValue = claim.Value
-            });
+            user.Claims.Add(new IdentityUserClaim<TKey> { ClaimType = claim.Type, ClaimValue = claim.Value });
         }
-        
-        _users.Replace(user);
-        
+
         return Task.CompletedTask;
     }
 
-    public override Task ReplaceClaimAsync(TUser user, Claim claim, Claim newClaim,
+    public override Task ReplaceClaimAsync(TUser user,
+        Claim claim,
+        Claim newClaim,
         CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(claim);
         ArgumentNullException.ThrowIfNull(newClaim);
-        
-        var userClaim = user.Claims.FirstOrDefault(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value);
-        
-        if (userClaim is not null)
+
+        foreach (var userClaim in user.Claims.Where(existing => existing.ClaimType == claim.Type && existing.ClaimValue == claim.Value))
         {
             userClaim.ClaimType = newClaim.Type;
             userClaim.ClaimValue = newClaim.Value;
         }
-        
-        _users.Replace(user);
-        
+
         return Task.CompletedTask;
     }
 
-    public override Task RemoveClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
+    public override Task RemoveClaimsAsync(TUser user,
+        IEnumerable<Claim> claims,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(claims);
-        
+
         foreach (var claim in claims)
         {
-            var userClaim = user.Claims.FirstOrDefault(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value);
-            if (userClaim is not null)
+            var matching = user.Claims.Where(existing => existing.ClaimType == claim.Type && existing.ClaimValue == claim.Value).ToList();
+            foreach (var userClaim in matching)
             {
                 user.Claims.Remove(userClaim);
             }
         }
-        
-        _users.Replace(user);
-        
+
         return Task.CompletedTask;
     }
 
-    public override async Task<IList<TUser>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken = default)
+    public override async Task<IList<TUser>> GetUsersForClaimAsync(Claim claim,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(claim);
-        
-        var filter = Builders<TUser>.Filter.ElemMatch(
-            x => x.Claims,
-            c => c.ClaimType == claim.Type && c.ClaimValue == claim.Value);
-        
-        return await _users.Find(filter).ToListAsync(cancellationToken);
+
+        var filter = Builders<TUser>.Filter.ElemMatch(x => x.Claims, c => c.ClaimType == claim.Type && c.ClaimValue == claim.Value);
+        return await (await _users.FindAsync(filter, cancellationToken)).ToListAsync(cancellationToken);
     }
 
-    protected override async Task<MongoUserToken<TKey>?> FindTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(user);
-        
-        var filter = Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.UserId, user.Id)
-                   & Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.LoginProvider, loginProvider)
-                   & Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.Name, name);
-        
-        return await _userTokens.Find(filter).FirstOrDefaultAsync(cancellationToken);
-    }
-
-    protected override Task AddUserTokenAsync(MongoUserToken<TKey> token)
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(token);
-        
-        _userTokens.Add(token);
-        
-        return Task.CompletedTask;
-    }
-
-    protected override async Task RemoveUserTokenAsync(MongoUserToken<TKey> token)
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(token);
-        
-        var filter = Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.UserId, token.UserId)
-                   & Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.LoginProvider, token.LoginProvider)
-                   & Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.Name, token.Name);
-        
-        var existingToken = await _userTokens.Find(filter).FirstOrDefaultAsync();
-        
-        if (existingToken is not null)
-        {
-            _userTokens.Delete(existingToken);
-        }
-    }
-
-    public override IQueryable<TUser> Users => _users.AsQueryable();
-
-    public override Task AddLoginAsync(TUser user, UserLoginInfo login, CancellationToken cancellationToken = default)
+    public override Task AddLoginAsync(TUser user,
+        UserLoginInfo login,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(login);
-        
+
         user.Logins.Add(new IdentityUserLogin<TKey>
         {
             LoginProvider = login.LoginProvider,
             ProviderKey = login.ProviderKey,
             ProviderDisplayName = login.ProviderDisplayName
         });
-        
-        _users.Replace(user);
-        
+
         return Task.CompletedTask;
     }
 
-    public override Task RemoveLoginAsync(TUser user, 
-        string loginProvider, 
+    public override Task RemoveLoginAsync(TUser user,
+        string loginProvider,
         string providerKey,
         CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
-        
-        var login = user.Logins.FirstOrDefault(x => x.LoginProvider == loginProvider && x.ProviderKey == providerKey);
-        if (login is not null)
+
+        if (user.Logins.FirstOrDefault(login => login.LoginProvider == loginProvider && login.ProviderKey == providerKey) is { } existing)
         {
-            user.Logins.Remove(login);
+            user.Logins.Remove(existing);
         }
-        
-        _users.Replace(user);
-        
+
         return Task.CompletedTask;
     }
 
-    public override Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user, CancellationToken cancellationToken = default)
+    public override Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user,
+        CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
         return Task.FromResult<IList<UserLoginInfo>>(user.Logins
-            .Select(x => new UserLoginInfo(x.LoginProvider, x.ProviderKey, x.ProviderDisplayName))
+            .Select(login => new UserLoginInfo(login.LoginProvider, login.ProviderKey, login.ProviderDisplayName))
             .ToList());
     }
 
-    public override async Task<TUser?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(normalizedEmail);
-        
-        var filter = Builders<TUser>.Filter.Eq(x => x.NormalizedEmail, normalizedEmail);
-        return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
-    }
-
-    public override async Task<bool> IsInRoleAsync(TUser user, string normalizedRoleName,
-        CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(user);
-        ArgumentNullException.ThrowIfNull(normalizedRoleName);
-        
-        var roleIds = user.Roles;
-        
-        var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedRoleName)
-                   & Builders<TRole>.Filter.In(x => x.Id, roleIds);
-        
-        return await _roles.Find(filter).AnyAsync(cancellationToken);
-    }
-
-    protected override async Task<TRole?> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(normalizedRoleName);
-        
-        var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedRoleName);
-        return await _roles.Find(filter).FirstOrDefaultAsync(cancellationToken);
-    }
-
-    protected override async Task<IdentityUserRole<TKey>?> FindUserRoleAsync(TKey userId, TKey roleId, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        
-        var filter = Builders<TUser>.Filter.Eq(x => x.Id, userId);
-        var user = await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
-        
-        if (user?.Roles.Contains(roleId) == true)
-        {
-            return new IdentityUserRole<TKey> { UserId = userId, RoleId = roleId };
-        }
-        
-        return null;
-    }
-
-    public override async Task<IList<TUser>> GetUsersInRoleAsync(string normalizedRoleName, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(normalizedRoleName);
-        
-        var role = await FindRoleAsync(normalizedRoleName, cancellationToken);
-        if (role is null)
-        {
-            return new List<TUser>();
-        }
-        
-        var filter = Builders<TUser>.Filter.AnyEq(x => x.Roles, role.Id);
-        return await _users.Find(filter).ToListAsync(cancellationToken);
-    }
-
-    public override async Task AddToRoleAsync(TUser user, string normalizedRoleName,
-        CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(user);
-        ArgumentNullException.ThrowIfNull(normalizedRoleName);
-        
-        var role = await FindRoleAsync(normalizedRoleName, cancellationToken);
-        if (role is null)
-        {
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Role {0} does not exist.", normalizedRoleName));
-        }
-        
-        user.Roles.Add(role.Id);
-        
-        _users.Replace(user);
-    }
-
-    public override async Task RemoveFromRoleAsync(TUser user, 
+    public override async Task<bool> IsInRoleAsync(TUser user,
         string normalizedRoleName,
         CancellationToken cancellationToken = default)
     {
@@ -440,140 +250,294 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(normalizedRoleName);
-        
-        var role = await FindRoleAsync(normalizedRoleName, cancellationToken);
-        if (role is null)
-        {
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Role {0} does not exist.", normalizedRoleName));
-        }
-        
-        user.Roles.Remove(role.Id);
-        
-        _users.Replace(user);
+
+        var filter = Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedRoleName) &
+                     Builders<TRole>.Filter.In(x => x.Id, user.Roles);
+
+        return await (await _roles.FindAsync(filter, cancellationToken)).AnyAsync(cancellationToken);
     }
 
-    public override async Task<IList<string>> GetRolesAsync(TUser user, CancellationToken cancellationToken = default)
+    public override async Task AddToRoleAsync(TUser user,
+        string normalizedRoleName,
+        CancellationToken cancellationToken = default)
     {
-        var roleIds = user.Roles;
-        
-        var filter = Builders<TRole>.Filter.In(x => x.Id, roleIds)
-                   & Builders<TRole>.Filter.Ne(x => x.Name, null);
-        
-        return await _roles.Find(filter)
-            .Project(x => x.Name!)
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(normalizedRoleName);
+
+        user.Roles.Add((await RequireRoleAsync(normalizedRoleName, cancellationToken)).Id);
+    }
+
+    public override async Task RemoveFromRoleAsync(TUser user,
+        string normalizedRoleName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(normalizedRoleName);
+
+        user.Roles.Remove((await RequireRoleAsync(normalizedRoleName, cancellationToken)).Id);
+    }
+
+    public override async Task<IList<string>> GetRolesAsync(TUser user,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        var filter = Builders<TRole>.Filter.In(x => x.Id, user.Roles) & Builders<TRole>.Filter.Ne(x => x.Name, null);
+        return await (await _roles.FindAsync(filter, cancellationToken)).Project(x => x.Name!).ToListAsync(cancellationToken);
+    }
+
+    public override async Task<IList<TUser>> GetUsersInRoleAsync(string normalizedRoleName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(normalizedRoleName);
+
+        if (await FindRoleAsync(normalizedRoleName, cancellationToken) is not { } role)
+        {
+            return [];
+        }
+
+        return await (await _users.FindAsync(Builders<TUser>.Filter.AnyEq(x => x.Roles, role.Id), cancellationToken))
             .ToListAsync(cancellationToken);
     }
-    
-    public IUserStore<TUser> Clone(DisableContext queryFilterDisableContext, DisableContext interceptorDisableContext)
+
+    /// <summary>Sets the token's value, adding the token if the user has none of that name; saved with the user.</summary>
+    public override async Task SetTokenAsync(TUser user,
+        string loginProvider,
+        string name,
+        string? value,
+        CancellationToken cancellationToken)
     {
-        return new MongoUserStore<TVault, TUser, TRole, TKey>(_vault, _describer, queryFilterDisableContext, interceptorDisableContext);
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        if (await FindTokenAsync(user, loginProvider, name, cancellationToken) is { } token)
+        {
+            token.Value = value;
+            _userTokens.Replace(token);
+        }
+        else
+        {
+            await AddUserTokenAsync(CreateUserToken(user, loginProvider, name, value));
+        }
     }
 
-    public Task AddOrUpdatePasskeyAsync(TUser user, UserPasskeyInfo passkey, CancellationToken cancellationToken)
+    public Task AddOrUpdatePasskeyAsync(TUser user,
+        UserPasskeyInfo passkey,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(passkey);
 
-        var existingPasskey = user.Passkeys.FirstOrDefault(p => p.CredentialId.SequenceEqual(passkey.CredentialId));
-        
-        if (existingPasskey is not null)
+        var data = new IdentityPasskeyData
         {
-            existingPasskey.Data = new IdentityPasskeyData
-            {
-                PublicKey = passkey.PublicKey,
-                Name = passkey.Name,
-                CreatedAt = passkey.CreatedAt,
-                SignCount = passkey.SignCount,
-                Transports = passkey.Transports,
-                IsUserVerified = passkey.IsUserVerified,
-                IsBackupEligible = passkey.IsBackupEligible,
-                IsBackedUp = passkey.IsBackedUp,
-                AttestationObject = passkey.AttestationObject,
-                ClientDataJson = passkey.ClientDataJson
-            };
+            PublicKey = passkey.PublicKey,
+            Name = passkey.Name,
+            CreatedAt = passkey.CreatedAt,
+            SignCount = passkey.SignCount,
+            Transports = passkey.Transports,
+            IsUserVerified = passkey.IsUserVerified,
+            IsBackupEligible = passkey.IsBackupEligible,
+            IsBackedUp = passkey.IsBackedUp,
+            AttestationObject = passkey.AttestationObject,
+            ClientDataJson = passkey.ClientDataJson
+        };
+
+        if (FindPasskey(user, passkey.CredentialId) is { } existing)
+        {
+            existing.Data = data;
         }
         else
         {
-            user.Passkeys.Add(new IdentityUserPasskey<TKey>
-            {
-                UserId = user.Id,
-                CredentialId = passkey.CredentialId,
-                Data = new IdentityPasskeyData
-                {
-                    PublicKey = passkey.PublicKey,
-                    Name = passkey.Name,
-                    CreatedAt = passkey.CreatedAt,
-                    SignCount = passkey.SignCount,
-                    Transports = passkey.Transports,
-                    IsUserVerified = passkey.IsUserVerified,
-                    IsBackupEligible = passkey.IsBackupEligible,
-                    IsBackedUp = passkey.IsBackedUp,
-                    AttestationObject = passkey.AttestationObject,
-                    ClientDataJson = passkey.ClientDataJson
-                }
-            });
+            user.Passkeys.Add(new IdentityUserPasskey<TKey> { UserId = user.Id, CredentialId = passkey.CredentialId, Data = data });
         }
-        
-        _users.Replace(user);
-        
+
         return Task.CompletedTask;
     }
 
-    public Task<IList<UserPasskeyInfo>> GetPasskeysAsync(TUser user, CancellationToken cancellationToken)
+    public Task<IList<UserPasskeyInfo>> GetPasskeysAsync(TUser user,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
 
-        return Task.FromResult<IList<UserPasskeyInfo>>(user.Passkeys
-            .Select(p => new UserPasskeyInfo(
-                p.CredentialId,
-                p.Data.PublicKey,
-                p.Data.CreatedAt,
-                p.Data.SignCount,
-                p.Data.Transports,
-                p.Data.IsUserVerified,
-                p.Data.IsBackupEligible,
-                p.Data.IsBackedUp,
-                p.Data.AttestationObject,
-                p.Data.ClientDataJson)
-            {
-                Name = p.Data.Name
-            })
-            .ToList());
+        return Task.FromResult<IList<UserPasskeyInfo>>(user.Passkeys.Select(ToInfo).ToList());
     }
 
-    public async Task<TUser?> FindByPasskeyIdAsync(byte[] credentialId, CancellationToken cancellationToken)
+    public async Task<TUser?> FindByPasskeyIdAsync(byte[] credentialId,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(credentialId);
 
-        var filter = Builders<TUser>.Filter.ElemMatch(
-            x => x.Passkeys,
-            p => p.CredentialId == credentialId);
-        
-        return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
+        return await FirstUserAsync(Builders<TUser>.Filter.ElemMatch(x => x.Passkeys, p => p.CredentialId == credentialId),
+            cancellationToken);
     }
 
-    public Task<UserPasskeyInfo?> FindPasskeyAsync(TUser user, byte[] credentialId, CancellationToken cancellationToken)
+    public Task<UserPasskeyInfo?> FindPasskeyAsync(TUser user,
+        byte[] credentialId,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(credentialId);
 
-        var passkey = user.Passkeys.FirstOrDefault(p => p.CredentialId.SequenceEqual(credentialId));
-        
-        if (passkey is null)
+        return Task.FromResult(FindPasskey(user, credentialId) is { } passkey ? ToInfo(passkey) : null);
+    }
+
+    public Task RemovePasskeyAsync(TUser user,
+        byte[] credentialId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(credentialId);
+
+        if (FindPasskey(user, credentialId) is { } passkey)
         {
-            return Task.FromResult<UserPasskeyInfo?>(null);
+            user.Passkeys.Remove(passkey);
         }
 
-        return Task.FromResult<UserPasskeyInfo?>(new UserPasskeyInfo(
-            passkey.CredentialId,
+        return Task.CompletedTask;
+    }
+
+    /// <summary>A copy of the store whose reads and writes are made with <paramref name="feature"/> switched off.</summary>
+    public virtual MongoUserStore<TVault, TUser, TRole, TKey> Without(FeatureKey feature) =>
+        new(_vault, ErrorDescriber, _users.Without(feature), _roles.Without(feature), _userTokens.Without(feature));
+
+    IUserStore<TUser> IFeatureSwitchableStore<IUserStore<TUser>>.Without(FeatureKey feature) => Without(feature);
+
+    protected override Task<TUser?> FindUserAsync(TKey userId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+
+        return _users.GetByKeyAsync(userId, cancellationToken);
+    }
+
+    protected override async Task<IdentityUserLogin<TKey>?> FindUserLoginAsync(TKey userId,
+        string loginProvider,
+        string providerKey,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+
+        return LoginOf(await _users.GetByKeyAsync(userId, cancellationToken), loginProvider, providerKey);
+    }
+
+    protected override async Task<IdentityUserLogin<TKey>?> FindUserLoginAsync(string loginProvider,
+        string providerKey,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+
+        var filter = Builders<TUser>.Filter.ElemMatch(x => x.Logins, l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey);
+        return LoginOf(await FirstUserAsync(filter, cancellationToken), loginProvider, providerKey);
+    }
+
+    protected override async Task<TRole?> FindRoleAsync(string normalizedRoleName,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+
+        var find = await _roles.FindAsync(Builders<TRole>.Filter.Eq(x => x.NormalizedName, normalizedRoleName), cancellationToken);
+        return await find.FirstOrDefaultAsync(cancellationToken);
+    }
+
+    protected override async Task<IdentityUserRole<TKey>?> FindUserRoleAsync(TKey userId,
+        TKey roleId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+
+        var user = await _users.GetByKeyAsync(userId, cancellationToken);
+        return user?.Roles.Contains(roleId) == true ? new IdentityUserRole<TKey> { UserId = userId, RoleId = roleId } : null;
+    }
+
+    protected override async Task<MongoUserToken<TKey>?> FindTokenAsync(TUser user,
+        string loginProvider,
+        string name,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        var find = await _userTokens.FindAsync(TokenFilter(user.Id, loginProvider, name), cancellationToken);
+        return await find.FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>Queues the token, which is saved with the user.</summary>
+    protected override Task AddUserTokenAsync(MongoUserToken<TKey> token)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(token);
+
+        _userTokens.Add(token);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Queues the token's removal, which is saved with the user.</summary>
+    protected override async Task RemoveUserTokenAsync(MongoUserToken<TKey> token)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(token);
+
+        var find = await _userTokens.FindAsync(TokenFilter(token.UserId, token.LoginProvider, token.Name));
+        if (await find.FirstOrDefaultAsync() is { } stored)
+        {
+            _userTokens.Delete(stored);
+        }
+    }
+
+    private static FilterDefinition<MongoUserToken<TKey>> TokenFilter(TKey userId,
+        string loginProvider,
+        string name) =>
+        Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.UserId, userId) &
+        Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.LoginProvider, loginProvider) &
+        Builders<MongoUserToken<TKey>>.Filter.Eq(x => x.Name, name);
+
+    /// <summary>
+    /// The user's login, with its <c>UserId</c>, which isn't stored inside the user: Identity looks the user up by it.
+    /// </summary>
+    private static IdentityUserLogin<TKey>? LoginOf(TUser? user,
+        string loginProvider,
+        string providerKey) =>
+        user?.Logins.FirstOrDefault(login => login.LoginProvider == loginProvider && login.ProviderKey == providerKey) is { } login
+            ? new IdentityUserLogin<TKey>
+            {
+                UserId = user.Id,
+                LoginProvider = login.LoginProvider,
+                ProviderKey = login.ProviderKey,
+                ProviderDisplayName = login.ProviderDisplayName
+            }
+            : null;
+
+    private static IdentityUserPasskey<TKey>? FindPasskey(TUser user,
+        byte[] credentialId) =>
+        user.Passkeys.FirstOrDefault(passkey => passkey.CredentialId.SequenceEqual(credentialId));
+
+    private static UserPasskeyInfo ToInfo(IdentityUserPasskey<TKey> passkey) =>
+        new(passkey.CredentialId,
             passkey.Data.PublicKey,
             passkey.Data.CreatedAt,
             passkey.Data.SignCount,
@@ -585,48 +549,14 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
             passkey.Data.ClientDataJson)
         {
             Name = passkey.Data.Name
-        });
-    }
+        };
 
-    public Task RemovePasskeyAsync(TUser user, byte[] credentialId, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(user);
-        ArgumentNullException.ThrowIfNull(credentialId);
+    private async Task<TUser?> FirstUserAsync(FilterDefinition<TUser> filter,
+        CancellationToken cancellationToken) =>
+        await (await _users.FindAsync(filter, cancellationToken)).FirstOrDefaultAsync(cancellationToken);
 
-        var passkey = user.Passkeys.FirstOrDefault(p => p.CredentialId.SequenceEqual(credentialId));
-        
-        if (passkey is not null)
-        {
-            user.Passkeys.Remove(passkey);
-            _users.Replace(user);
-        }
-        
-        return Task.CompletedTask;
-    }
-    
-    public override async Task SetTokenAsync(TUser user, string loginProvider, string name, string? value, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfDisposed();
-
-        ArgumentNullException.ThrowIfNull(user);
-
-        var token = await FindTokenAsync(user, loginProvider, name, cancellationToken).ConfigureAwait(false);
-        if (token == null)
-        {
-            await AddUserTokenAsync(CreateUserToken(user, loginProvider, name, value)).ConfigureAwait(false);
-        }
-        else
-        {
-            token.Value = value;
-            _userTokens.Replace(token);
-        }
-    }
-}
-
-public interface ICloneUserStore<TUser> where TUser : class
-{
-    IUserStore<TUser> Clone(DisableContext queryFilterDisableContext, DisableContext interceptorDisableContext);
+    private async Task<TRole> RequireRoleAsync(string normalizedRoleName,
+        CancellationToken cancellationToken) =>
+        await FindRoleAsync(normalizedRoleName, cancellationToken)
+        ?? throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Role {0} does not exist.", normalizedRoleName));
 }

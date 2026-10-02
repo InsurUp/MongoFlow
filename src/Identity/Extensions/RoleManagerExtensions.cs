@@ -1,72 +1,22 @@
 using Microsoft.AspNetCore.Identity;
-using MongoFlow.Identity.Wrappers;
 
 namespace MongoFlow.Identity;
 
 public static class RoleManagerExtensions
 {
-    public static RoleManager<TRole> DisableAllQueryFilters<TRole>(this RoleManager<TRole> roleManager) where TRole : class
+    /// <summary>
+    /// A copy of the manager whose reads and writes are made with a vault feature switched off, such as
+    /// <c>roleManager.Without(MultiTenancyFeature.Key)</c> to reach every tenant's roles.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The manager isn't the one <c>AddMongoFlowStores</c> registers.</exception>
+    public static RoleManager<TRole> Without<TRole>(this RoleManager<TRole> roleManager,
+        FeatureKey feature)
+        where TRole : class
     {
-        if (roleManager is RoleManagerWrapper<TRole> wrapper)
-        {
-            return wrapper.DisableAllQueryFilters();
-        }
+        ArgumentNullException.ThrowIfNull(roleManager);
 
-        return roleManager;
+        return roleManager is RoleManagerWrapper<TRole> wrapper
+            ? wrapper.Without(feature)
+            : throw new InvalidOperationException($"Without needs the RoleManager that AddMongoFlowStores registers.");
     }
-    
-    public static RoleManager<TRole> DisableQueryFilters<TRole>(this RoleManager<TRole> roleManager, params string[] names) where TRole : class
-    {
-        if (roleManager is RoleManagerWrapper<TRole> wrapper)
-        {
-            return wrapper.DisableQueryFilters(names);
-        }
-
-        return roleManager;
-    }
-    
-    public static RoleManager<TRole> DisableAllInterceptors<TRole>(this RoleManager<TRole> roleManager) where TRole : class
-    {
-        if (roleManager is RoleManagerWrapper<TRole> wrapper)
-        {
-            return wrapper.DisableAllInterceptors();
-        }
-
-        return roleManager;
-    }
-    
-    public static RoleManager<TRole> DisableInterceptors<TRole>(this RoleManager<TRole> roleManager, params string[] names) where TRole : class
-    {
-        if (roleManager is RoleManagerWrapper<TRole> wrapper)
-        {
-            return wrapper.DisableInterceptors(names);
-        }
-
-        return roleManager;
-    }
-    
-    public static RoleManager<TRole> DisableMultiTenancy<TRole>(this RoleManager<TRole> roleManager) where TRole : class
-    {
-        if (roleManager is RoleManagerWrapper<TRole> wrapper)
-        {
-            return wrapper
-                .DisableQueryFilters("multi-tenancy")
-                .DisableInterceptors("multi-tenancy");
-        }
-
-        return roleManager;
-    }
-    
-    public static RoleManager<TRole> DisableSoftDelete<TRole>(this RoleManager<TRole> roleManager) where TRole : class
-    {
-        if (roleManager is RoleManagerWrapper<TRole> wrapper)
-        {
-            return wrapper
-                .DisableQueryFilters("soft-delete")
-                .DisableInterceptors("soft-delete");
-        }
-
-        return roleManager;
-    }
-    
 }

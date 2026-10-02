@@ -17,6 +17,8 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
 - `tests/MongoFlow.IntegrationTests`: the integration lane, through the public API only. A Testcontainers MongoDB 8.2
   single-node replica set (`MongoFixture`), shared by the whole run: saves need MongoDB 8.0+ (client bulk writes) and
   a replica set (transactions). Its tests are in the `Integration` category (`AssemblyInfo.cs`) and need Docker.
+  MongoFlow.Identity's tests live here too, under `Identity/`, through the `UserManager` and `RoleManager`
+  `AddMongoFlowStores` registers; Identity's random stamps are left out of snapshots (`IdentityDocuments.Stable`).
 - Both target `net10.0` and `net11.0`, like the library.
 
 ## Framework and tooling

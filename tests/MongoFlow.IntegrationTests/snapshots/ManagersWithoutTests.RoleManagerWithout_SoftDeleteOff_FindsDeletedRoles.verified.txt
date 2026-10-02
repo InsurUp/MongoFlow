@@ -1,0 +1,6 @@
+﻿{
+  FoundWithout: {
+    Name: admin,
+    IsDeleted: true
+  }
+}

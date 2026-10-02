@@ -1,0 +1,13 @@
+﻿{
+  Value: second,
+  Stored: [
+    {
+      UserId: {
+        $oid: 6600000000000000000000a1
+      },
+      LoginProvider: authenticator,
+      Name: key,
+      Value: second
+    }
+  ]
+}

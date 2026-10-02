@@ -1,74 +1,22 @@
 using Microsoft.AspNetCore.Identity;
-using MongoFlow.Identity.Wrappers;
 
 namespace MongoFlow.Identity;
 
 public static class UserManagerExtensions
 {
-    public static UserManager<TUser> DisableAllQueryFilters<TUser>(this UserManager<TUser> userManager) where TUser : class
+    /// <summary>
+    /// A copy of the manager whose reads and writes are made with a vault feature switched off, such as
+    /// <c>userManager.Without(MultiTenancyFeature.Key)</c> to reach every tenant's users.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The manager isn't the one <c>AddMongoFlowStores</c> registers.</exception>
+    public static UserManager<TUser> Without<TUser>(this UserManager<TUser> userManager,
+        FeatureKey feature)
+        where TUser : class
     {
-        if (userManager is UserManagerWrapper<TUser> wrapper)
-        {
-            return wrapper.DisableAllQueryFilters();
-        }
+        ArgumentNullException.ThrowIfNull(userManager);
 
-        return userManager;
+        return userManager is UserManagerWrapper<TUser> wrapper
+            ? wrapper.Without(feature)
+            : throw new InvalidOperationException($"Without needs the UserManager that AddMongoFlowStores registers.");
     }
-    
-    public static UserManager<TUser> DisableQueryFilters<TUser>(this UserManager<TUser> userManager, params string[] names) where TUser : class
-    {
-        if (userManager is UserManagerWrapper<TUser> wrapper)
-        {
-            return wrapper.DisableQueryFilters(names);
-        }
-
-        return userManager;
-    }
-    
-    public static UserManager<TUser> DisableAllInterceptors<TUser>(this UserManager<TUser> userManager) where TUser : class
-    {
-        if (userManager is UserManagerWrapper<TUser> wrapper)
-        {
-            return wrapper.DisableAllInterceptors();
-        }
-
-        return userManager;
-    }
-    
-    public static UserManager<TUser> DisableInterceptors<TUser>(this UserManager<TUser> userManager, params string[] names) where TUser : class
-    {
-        if (userManager is UserManagerWrapper<TUser> wrapper)
-        {
-            return wrapper.DisableInterceptors(names);
-        }
-
-        return userManager;
-    }
-    
-    public static UserManager<TUser> DisableMultiTenancy<TUser>(this UserManager<TUser> userManager) where TUser : class
-    {
-        if (userManager is UserManagerWrapper<TUser> wrapper)
-        {
-            return wrapper
-                .DisableQueryFilters("multi-tenancy")
-                .DisableInterceptors("multi-tenancy");
-        }
-
-        return userManager;
-    }
-    
-    public static UserManager<TUser> DisableSoftDelete<TUser>(this UserManager<TUser> userManager) where TUser : class
-    {
-        if (userManager is UserManagerWrapper<TUser> wrapper)
-        {
-            return wrapper
-                .DisableQueryFilters("soft-delete")
-                .DisableInterceptors("soft-delete");
-        }
-
-        return userManager;
-    }
-    
-    
-    
 }

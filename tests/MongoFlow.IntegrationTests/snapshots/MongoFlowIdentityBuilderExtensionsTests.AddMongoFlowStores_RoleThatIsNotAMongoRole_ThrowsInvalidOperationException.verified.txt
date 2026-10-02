@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: AddMongoFlowStores needs roles derived from MongoRole<TKey>, but PlainRole isn't.
+}

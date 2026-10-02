@@ -1,0 +1,22 @@
+<Project>
+  <!-- What the packages in src share: MongoFlow and MongoFlow.Identity ship together, with one version. -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Authors>InsurUp</Authors>
+    <PackageProjectUrl>https://github.com/InsurUp/MongoFlow</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/InsurUp/MongoFlow</RepositoryUrl>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsPackable>true</IsPackable>
+    <!-- Local packs; a release takes its version from the tag. -->
+    <Version>1.0.0-beta.1</Version>
+    <PackageReleaseNotes>https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\icon.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+</Project>

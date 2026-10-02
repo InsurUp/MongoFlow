@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: UsersVault stores users of MongoUser and roles of MongoRole, but Identity is configured with OtherUser and MongoRole.
+}

@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Call AddRoles<TRole> before AddMongoFlowStores.
+}

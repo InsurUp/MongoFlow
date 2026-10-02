@@ -1,0 +1,32 @@
+﻿{
+  Found: ada,
+  Logins: [
+    github: ada-gh
+  ],
+  Stored: [
+    {
+      _id: {
+        $oid: 6600000000000000000000a1
+      },
+      UserName: ada,
+      NormalizedUserName: ADA,
+      Email: ada@example.com,
+      NormalizedEmail: ADA@EXAMPLE.COM,
+      EmailConfirmed: false,
+      PasswordHash: null,
+      PhoneNumber: null,
+      PhoneNumberConfirmed: false,
+      TwoFactorEnabled: false,
+      LockoutEnd: null,
+      LockoutEnabled: true,
+      AccessFailedCount: 0,
+      Logins: [
+        {
+          LoginProvider: github,
+          ProviderKey: ada-gh,
+          ProviderDisplayName: GitHub
+        }
+      ]
+    }
+  ]
+}

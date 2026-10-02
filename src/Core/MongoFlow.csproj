@@ -1,23 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <Title>MongoFlow</Title>
-    <Authors>InsurUp</Authors>
     <Description>MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver.</Description>
     <Summary>MongoFlow is a lightweight MongoDB toolkit for .NET Core, built on top of the official MongoDB.Driver.</Summary>
-    <PackageProjectUrl>https://github.com/InsurUp/MongoFlow</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/InsurUp/MongoFlow</RepositoryUrl>
     <PackageTags>interceptors;interceptor;query-filter;mongodb;mongo;nosql</PackageTags>
-    <PackageIcon>icon.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <IsPackable>true</IsPackable>
-    <!-- Local packs; a release takes its version from the tag. -->
-    <Version>1.0.0-beta.1</Version>
-    <PackageReleaseNotes>https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +22,6 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

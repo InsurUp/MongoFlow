@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Role ADMIN does not exist.
+}

@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core\MongoFlow.csproj" />
+    <ProjectReference Include="..\..\src\Identity\MongoFlow.Identity.csproj" />
   </ItemGroup>
 
 </Project>

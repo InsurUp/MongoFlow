@@ -8,9 +8,6 @@ on:
 permissions:
   contents: read
 
-env:
-  PROJECT_PATH: 'src/Core/MongoFlow.csproj'
-
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -40,13 +37,13 @@ jobs:
     - name: Run tests
       run: dotnet test --solution MongoFlow.sln --configuration Release --no-build
 
+    # MongoFlow and MongoFlow.Identity ship together, with the tag's version.
     - name: Pack
-      run: >
-        dotnet pack ${{ env.PROJECT_PATH }}
-        --configuration Release
-        --no-build
-        --output artifacts/packages
-        -p:Version=${{ steps.get_version.outputs.version }}
+      run: |
+        for project in src/Core/MongoFlow.csproj src/Identity/MongoFlow.Identity.csproj; do
+          dotnet pack "$project" --configuration Release --no-build --output artifacts/packages \
+            -p:Version=${{ steps.get_version.outputs.version }}
+        done
 
     - name: Push to NuGet
       run: dotnet nuget push "artifacts/packages/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

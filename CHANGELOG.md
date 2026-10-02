@@ -76,4 +76,25 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
 | `MigrateOnStartup()` | `await services.GetRequiredService<IVaultMigrator>().MigrateAllAsync()` at startup |
 | `IMongoVaultTransaction` | `IVaultTransactionManager.BeginAsync()` returning `IVaultTransaction` |
 
+### MongoFlow.Identity
+
+The ASP.NET Core Identity provider moved into this repository, and ships with MongoFlow at the same version. It was 0.2.8.
+
+- It's built on this version of MongoFlow: `IdentityMongoVault` has no constructor, and its `Users`, `Roles` and
+  `UserTokens` are vault collections, still named after their properties.
+- `userManager.Without(FeatureKey)` and `roleManager.Without(FeatureKey)` replace `DisableQueryFilters`,
+  `DisableInterceptors`, `DisableAllQueryFilters`, `DisableAllInterceptors`, `DisableMultiTenancy` and
+  `DisableSoftDelete`: only features switch off now, such as `Without(MultiTenancyFeature.Key)`.
+- Fixed:
+  - `FindByIdAsync` threw `NotSupportedException` for `ObjectId` keys, which have no type converter; an id that doesn't
+    parse now finds nobody;
+  - `FindByLoginAsync` found nobody: Identity looked the user up by the login's user id, which isn't stored;
+  - a role manager with filters or interceptors disabled still used the full store;
+  - a user changed through the user manager was written twice in one save;
+  - a role's id read before it was set threw `NullReferenceException` for reference-type keys.
+- `ReplaceClaimAsync` and `RemoveClaimsAsync` change every matching claim, as Entity Framework's store does, not only the
+  first.
+- `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
+- It targets .NET 10 and .NET 11, like MongoFlow.
+
 [1.0.0-beta.1]: https://github.com/InsurUp/MongoFlow/compare/v0.5.7...HEAD
