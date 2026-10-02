@@ -31,7 +31,9 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
     private bool _ended;
     private Exception? _doomedBy;
 
-    public bool IsCommitted { get; private set; }
+    // Saves running in it, those its saves' interceptors make included.
+    private int _running;
+
 
     public IClientSessionHandle Session
     {
@@ -70,6 +72,29 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
         return _session;
     }
 
+    /// <summary>
+    /// Marks a save as running in it. Saves run in it one at a time, apart from those a running save's interceptors make,
+    /// which join it.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Another save is running in it, and the current one isn't its interceptors'.</exception>
+    public void EnterSave()
+    {
+        if (SaveRun.Current?.Transaction == this)
+        {
+            Interlocked.Increment(ref _running);
+            return;
+        }
+
+        if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
+        {
+            throw new InvalidOperationException(
+                "Another save is running in this scope's transaction. A scope's saves run one after another; only the saves " +
+                "its interceptors make join one that's running.");
+        }
+    }
+
+    public void ExitSave() => Interlocked.Decrement(ref _running);
+
     public void Enlist(SaveCallbacks save) => _saves.Add(save);
 
     public void Unenlist(SaveCallbacks save) => _saves.Remove(save);
@@ -99,7 +124,6 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
             throw;
         }
 
-        IsCommitted = true;
         owner.Log.Committed(_logLevel, _saves.Count);
         Record("committed", null);
 

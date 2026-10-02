@@ -1,9 +1,28 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MongoFlow.Tests;
 
 public partial class VaultBuilderTests
 {
+    [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(2)]
+    public async Task UseSoftDelete_NullMember_ThrowsArgumentNullException(int overload)
+    {
+        // Arrange — one call per overload: a flag, a DateTime and a DateTimeOffset.
+        await using var host = new VaultHost<ShopVault>(vault => _ = overload switch
+        {
+            0 => vault.UseSoftDelete((Expression<Func<Order, bool>>)null!),
+            1 => vault.UseSoftDelete((Expression<Func<Order, DateTime?>>)null!),
+            _ => vault.UseSoftDelete((Expression<Func<Order, DateTimeOffset?>>)null!)
+        });
+
+        // Act & Assert
+        await Assert.That(() => host.Vault).ThrowsExactly<ArgumentNullException>();
+    }
+
     [Test]
     public async Task AddFeature_Type_IsCreatedFromTheRootProvider()
     {

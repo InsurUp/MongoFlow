@@ -41,7 +41,7 @@ transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05
   - `VaultOperation<T>.AddCondition` guards a write with a condition of your own;
   - one registered by type is created once per vault instance, and disposed with the scope.
 - Transactions across vaults: `IVaultTransactionManager.BeginAsync`. Every vault saved in the scope joins, and a save
-  that fails after writing rolls the whole transaction back.
+  that fails after writing rolls the whole transaction back. One still open when its scope ends is rolled back.
 - `SaveResult`, and an `OperationResult` on every operation.
 - Migrations: `vault.Migrations(m => ...)`, `IVaultMigration<TVault>` and `IVaultMigrator`.
   - Each migration runs in a DI scope of its own, in a transaction unless it opts out.
@@ -116,6 +116,9 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
   - a role's id read before it was set threw `NullReferenceException` for reference-type keys.
 - `ReplaceClaimAsync` and `RemoveClaimsAsync` change every matching claim, as Entity Framework's store does, not only the
   first.
+- Updates and deletes of users and roles check their `ConcurrencyStamp`, and updates renew it, as Entity Framework's store
+  does: one made after another request changed the document fails with `ConcurrencyFailure`, rather than overwriting it.
+- Deleting a user deletes its tokens, such as its authenticator key and recovery codes.
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 

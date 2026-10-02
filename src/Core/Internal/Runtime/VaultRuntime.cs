@@ -56,6 +56,14 @@ internal sealed class VaultRuntime : IDisposable
 
     public void Enqueue(VaultOperation operation)
     {
+        // Queued by one of this vault's interceptors as its save runs: it joins the save. A write another task queues
+        // meanwhile waits for the next save, so it goes through every interceptor.
+        if (SaveRun.Current is { IsSaving: true } run && ReferenceEquals(run.Runtime, this))
+        {
+            run.Add(operation);
+            return;
+        }
+
         lock (_queueLock)
         {
             // Adding the same document twice inserts it once.
@@ -87,28 +95,14 @@ internal sealed class VaultRuntime : IDisposable
     }
 
     /// <summary>
-    /// Moves the operations queued during a save, such as by its interceptors, into the save. Returns whether there were
-    /// any.
-    /// </summary>
-    public bool DrainInto(PooledList<VaultOperation> operations)
-    {
-        if (Drain() is not { } queue)
-        {
-            return false;
-        }
-
-        operations.AddRange(queue.Span);
-        queue.Dispose();
-
-        return true;
-    }
-
-    /// <summary>
     /// Puts an update before the queued <paramref name="operations"/> for each tracked document that changed, creating the
     /// list if nothing was queued. See <see cref="ChangeTracker.DetectChanges"/>.
     /// </summary>
     public TrackedChanges? DetectChanges(ref PooledList<VaultOperation>? operations) =>
         Volatile.Read(ref _tracker)?.DetectChanges(ref operations, Model);
+
+    /// <summary>Whether a tracked document changed since it was read or last saved.</summary>
+    public bool HasTrackedChanges() => Volatile.Read(ref _tracker)?.HasChanges() == true;
 
     /// <summary>The session reads run in: the scope's open transaction's, or none.</summary>
     public async ValueTask<IClientSessionHandle?> GetSessionAsync(CancellationToken cancellationToken) =>

@@ -23,7 +23,7 @@ public static class SoftDeleteFeature
         where TVault : MongoVault =>
         vault.AddFeature(new SoftDeleteFeature<TSoftDelete, bool>(
             isDeleted,
-            Negate(isDeleted),
+            Negate(NotNull(isDeleted, nameof(isDeleted))),
             _ => true,
             nameof(isDeleted)));
 
@@ -38,7 +38,7 @@ public static class SoftDeleteFeature
         where TVault : MongoVault =>
         vault.AddFeature(new SoftDeleteFeature<TSoftDelete, DateTime?>(
             deletedAt,
-            IsNull(deletedAt),
+            IsNull(NotNull(deletedAt, nameof(deletedAt))),
             services => Clock(services).GetUtcNow().UtcDateTime,
             nameof(deletedAt)));
 
@@ -48,7 +48,7 @@ public static class SoftDeleteFeature
         where TVault : MongoVault =>
         vault.AddFeature(new SoftDeleteFeature<TSoftDelete, DateTimeOffset?>(
             deletedAt,
-            IsNull(deletedAt),
+            IsNull(NotNull(deletedAt, nameof(deletedAt))),
             services => Clock(services).GetUtcNow(),
             nameof(deletedAt)));
 
@@ -62,4 +62,11 @@ public static class SoftDeleteFeature
 
     private static TimeProvider Clock(IServiceProvider services) =>
         services.GetService<TimeProvider>() ?? TimeProvider.System;
+
+    // The filter is built from the member before the feature checks it, so it's checked here first.
+    private static T NotNull<T>(T member, string parameterName) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(member, parameterName);
+        return member;
+    }
 }

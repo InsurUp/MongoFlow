@@ -12,6 +12,7 @@ public class BsonChangesTests
     [Arguments("Info", "Info.Number", true)]
     [Arguments("_idx", "_id", false)]
     [Arguments("Info.Numbers", "Info.Number", false)]
+    [Arguments("_ix.Number", "_id", false)]
     [Arguments("Customer", "_id", false)]
     public async Task Touches_ChangedPathAndKeyField_ReachesItOrNot(string path,
         string field,

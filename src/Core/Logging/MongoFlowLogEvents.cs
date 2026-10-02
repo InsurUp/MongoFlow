@@ -86,6 +86,9 @@ public static class MongoFlowLogEvents
         /// <c>Debug</c>: a save compared the vault's tracked documents with what they were, and found how many changed.
         /// </summary>
         public const int ChangesDetected = 27_003_010;
+
+        /// <summary><c>Error</c>: an interceptor's <c>CommittedAsync</c> threw; the save is committed, so it's swallowed.</summary>
+        public const int CommittedHookThrew = 27_003_011;
     }
 
     /// <summary>
@@ -140,5 +143,11 @@ public static class MongoFlowLogEvents
 
         /// <summary><c>Debug</c>: a vault is at the target version already.</summary>
         public const int UpToDate = 27_006_004;
+
+        /// <summary>
+        /// <c>Warning</c>: a vault's history records a version more than once, as instances migrating at once could under
+        /// earlier versions, so its unique index can't be built and doesn't guard against that.
+        /// </summary>
+        public const int HistoryHasDuplicates = 27_006_005;
     }
 }

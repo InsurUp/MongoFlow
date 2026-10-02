@@ -57,8 +57,9 @@ internal static class SavePipeline
         // Started first, so what the save sends, its own transaction's commit included, is traced under it.
         using var activity = VaultActivities.StartSave(vault, outer is not null);
         var transaction = outer ?? runtime.TransactionManager.Start(forSave: true);
-        var run = new SaveRun(runtime, operations, tracked);
+        var run = new SaveRun(runtime, operations, tracked) { Transaction = transaction };
         var callbacks = new SaveCallbacks(run.CommittedAsync, run.FailedAsync, run.Dispose);
+        var entered = false;
         var enlisted = false;
         var writing = false;
 
@@ -73,6 +74,9 @@ internal static class SavePipeline
 
         try
         {
+            transaction.EnterSave();
+            entered = true;
+
             await BulkWriteSupport.EnsureAsync(runtime.Model.Database, log, cancellationToken);
 
             run.Session = await transaction.GetSessionAsync(runtime.Model.Client, cancellationToken);
@@ -117,9 +121,10 @@ internal static class SavePipeline
                 // Its writes may be in the open transaction, and MongoDB can't undo part of one: the whole of it goes.
                 await outer.DoomAsync(exception);
             }
-            else
+            else if (enlisted)
             {
-                // Nothing was written, so the open transaction can go on without this save.
+                // Nothing was written, so the open transaction can go on without this save. Its interceptors have
+                // started, so they hear of the failure; a save that failed before them has nothing to tell.
                 transaction.Unenlist(callbacks);
                 enlisted = false;
                 await run.FailedAsync(exception, CancellationToken.None);
@@ -129,6 +134,11 @@ internal static class SavePipeline
         }
         finally
         {
+            if (entered)
+            {
+                transaction.ExitSave();
+            }
+
             // An enlisted save is released by its transaction when that ends, after its last hook.
             if (!enlisted)
             {

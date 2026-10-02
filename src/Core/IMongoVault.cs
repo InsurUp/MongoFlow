@@ -6,9 +6,11 @@ namespace MongoFlow;
 /// <remarks>
 /// <para>
 /// A vault instance belongs to its scope. Writes can be queued on it from parallel tasks, and its reads can run in
-/// parallel while no transaction is open in the scope. A save can't run alongside another save of the same instance.
-/// Inside a transaction, including the one a save opens while it runs, reads and saves share one session, and MongoDB
-/// runs a transaction's operations one at a time: run them one after another.
+/// parallel while no transaction is open in the scope. A write queued while a save runs waits for the next save, unless
+/// one of the save's interceptors queued it. The saves of a scope's vaults run one after another: one that starts while
+/// another is running fails, unless the running save's interceptors started it. Inside a transaction, including the one a
+/// save opens while it runs, reads and saves share one session, and MongoDB runs a transaction's operations one at a time:
+/// run them one after another.
 /// </para>
 /// <para>
 /// With change tracking (<see cref="IVaultBuilder{TVault}.UseChangeTracking"/>), a save reads the tracked documents to
@@ -24,8 +26,8 @@ public interface IMongoVault
     /// operations are discarded either way; tracked changes stay pending until a save that writes them commits.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// Called from one of this vault's own interceptors, while another save of this vault instance runs, or inside a
-    /// transaction on a different client; or a tracked document's key changed.
+    /// Called from one of this vault's own interceptors, while another save of this vault instance or of another vault of
+    /// the scope runs, or inside a transaction on a different client; or a tracked document's key changed.
     /// </exception>
     Task<SaveResult> SaveAsync(CancellationToken cancellationToken = default);
 

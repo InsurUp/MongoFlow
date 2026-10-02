@@ -178,6 +178,28 @@ public partial class SoftDeleteTests
         await Assert.That(await (await host.Vault.Attachments.QueryAsync()).AnyAsync()).IsFalse();
     }
 
+    [Test]
+    public async Task DeleteByKey_QueuedFromAnotherTaskWhileASaveRuns_WaitsForTheNextSave()
+    {
+        // Arrange — the save holds in an interceptor that runs after soft delete's, while another task queues a delete,
+        // which joining that save would skip soft delete and make real.
+        var gate = new SaveTests.Gate();
+        await using var host = await SeededAsync(vault => vault.AddInterceptor(gate));
+        host.Vault.Tags.Add(new Tag { Id = 1, Name = "news" });
+        var first = host.Vault.SaveAsync();
+        await gate.Entered.Task;
+        await Task.Run(() => host.Vault.Articles.DeleteByKey(1));
+        gate.Release.SetResult();
+        await first;
+        var afterFirst = await host.StoredAsync("Articles");
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { AfterFirst = afterFirst, AfterSecond = await host.StoredAsync("Articles") });
+    }
+
     private async Task<VaultHost<BlogVault>> SeededAsync(Action<IVaultBuilder<BlogVault>>? configure = null,
         Action<IServiceCollection>? services = null)
     {

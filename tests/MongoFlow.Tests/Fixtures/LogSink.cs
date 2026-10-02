@@ -12,6 +12,9 @@ public sealed partial class LogSink : ILoggerProvider
 {
     private readonly ConcurrentQueue<LogEntry> _entries = new();
 
+    // Signalled when an entry with the event ID is logged, for WaitForAsync.
+    private readonly ConcurrentDictionary<int, TaskCompletionSource> _logged = new();
+
     public IReadOnlyList<LogEntry> Entries => [.. _entries];
 
     /// <summary>
@@ -26,16 +29,20 @@ public sealed partial class LogSink : ILoggerProvider
     ];
 
     /// <summary>Waits until an entry with <paramref name="eventId"/> is logged, such as one a background task logs last.</summary>
-    public async Task WaitForAsync(int eventId)
+    public Task WaitForAsync(int eventId)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        while (!_entries.Any(entry => entry.EventId == eventId))
+        var logged = _logged.GetOrAdd(eventId, _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+
+        // Logged before the wait began, it wasn't signalled.
+        if (_entries.Any(entry => entry.EventId == eventId))
         {
-            await Task.Delay(10, timeout.Token);
+            logged.TrySetResult();
         }
+
+        return logged.Task.WaitAsync(TimeSpan.FromSeconds(30));
     }
 
-    public ILogger CreateLogger(string categoryName) => new Logger(categoryName, _entries);
+    public ILogger CreateLogger(string categoryName) => new Logger(categoryName, this);
 
     public void Dispose()
     {
@@ -50,7 +57,17 @@ public sealed partial class LogSink : ILoggerProvider
     [GeneratedRegex(@"\d+(\.\d+)? ms")]
     private static partial Regex Milliseconds();
 
-    private sealed class Logger(string category, ConcurrentQueue<LogEntry> entries) : ILogger
+    private void Add(LogEntry entry)
+    {
+        _entries.Enqueue(entry);
+
+        if (_logged.TryGetValue(entry.EventId, out var logged))
+        {
+            logged.TrySetResult();
+        }
+    }
+
+    private sealed class Logger(string category, LogSink sink) : ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
@@ -61,6 +78,6 @@ public sealed partial class LogSink : ILoggerProvider
             TState state,
             Exception? exception,
             Func<TState, Exception?, string> formatter) =>
-            entries.Enqueue(new LogEntry(category, logLevel, eventId.Id, eventId.Name, formatter(state, exception), exception?.GetType().Name));
+            sink.Add(new LogEntry(category, logLevel, eventId.Id, eventId.Name, formatter(state, exception), exception?.GetType().Name));
     }
 }

@@ -72,9 +72,8 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ArgumentNullException.ThrowIfNull(user);
 
         _users.Replace(user);
-        await _vault.SaveAsync(cancellationToken);
 
-        return IdentityResult.Success;
+        return await SaveAsync(cancellationToken);
     }
 
     public override async Task<IdentityResult> DeleteAsync(TUser user,
@@ -84,10 +83,12 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(user);
 
+        // The user's tokens, such as its authenticator key and recovery codes, go with it.
+        var userId = user.Id;
         _users.Delete(user);
-        await _vault.SaveAsync(cancellationToken);
+        _userTokens.DeleteMany(token => token.UserId.Equals(userId));
 
-        return IdentityResult.Success;
+        return await SaveAsync(cancellationToken);
     }
 
     public override TKey? ConvertIdFromString(string? id) => IdentityKeys.FromString<TKey>(id);
@@ -506,6 +507,20 @@ public class MongoUserStore<TVault, TUser, TRole, TKey> :
         if (await find.FirstOrDefaultAsync() is { } stored)
         {
             _userTokens.Delete(stored);
+        }
+    }
+
+    /// <summary>Saves the vault, reporting a user changed or deleted since it was read as Identity's concurrency failure.</summary>
+    private async Task<IdentityResult> SaveAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _vault.SaveAsync(cancellationToken);
+            return IdentityResult.Success;
+        }
+        catch (ConcurrencyStampConflictException)
+        {
+            return IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure());
         }
     }
 

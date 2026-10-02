@@ -7,7 +7,8 @@ namespace MongoFlow.IntegrationTests;
 /// <list type="number">
 /// <item><c>SavingAsync</c> runs in registration order, defaults first; the hooks after the write run in reverse;</item>
 /// <item>a failure at any step fails the save, writes nothing and runs every <c>FailedAsync</c>, whose own failures
-/// don't hide the first;</item>
+/// don't hide the first; a <c>CommittedAsync</c> that fails can't undo the commit, so the save succeeds and the other
+/// hooks run;</item>
 /// <item>during <c>SavingAsync</c> an interceptor can replace, remove or add writes, and the interceptors after it see
 /// the result; afterwards it can't;</item>
 /// <item>an interceptor sees only the operations of the collections it applies to, and not those queued with its
@@ -156,6 +157,23 @@ public partial class InterceptorTests
 
         // Assert
         await Assert.That(log.Entries).IsEquivalentTo(["scoped disposed"]);
+    }
+
+    [Test]
+    public async Task CommittedAsync_OneThrows_LeavesTheSaveSucceededAndRunsTheOthers()
+    {
+        // Arrange — the thrower's CommittedAsync runs first, since the hooks after the write run in reverse.
+        var log = new HookLog();
+        await using var host = Mongo.Host<ShopVault>(vault => vault
+            .AddInterceptor(new RecordingInterceptor("recorder", log))
+            .AddInterceptor(new ThrowingInterceptor(Hook.Committed)));
+        host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
+
+        // Act
+        var result = await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { result, log.Entries, Stored = await host.StoredAsync("Orders") });
     }
 
     [Test]

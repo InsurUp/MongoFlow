@@ -1,0 +1,22 @@
+﻿{
+  result: {
+    Inserted: 1,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Entries: [
+    recorder.Saving,
+    recorder.Saved,
+    recorder.Committed
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 10
+      }
+    }
+  ]
+}

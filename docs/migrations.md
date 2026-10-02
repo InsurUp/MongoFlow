@@ -33,7 +33,7 @@ public sealed class ExpireEndedPolicies(TimeProvider clock) : IVaultMigration<Po
 
 - A migration is created through DI, in a scope of its own, so it can take services.
 - `context.Vault` is the vault, from that scope: its saves join the migration's transaction. Writes it queues and doesn't
-  save would be lost, so a migration that leaves any fails.
+  save would be lost, as would changes to documents it tracks, so a migration that leaves either fails.
 - `context.Database` and `context.Session` are for the driver directly, such as a schema change on raw documents:
 
 ```csharp
@@ -115,8 +115,9 @@ of its migrations, which is checked when it's migrated. A target passed to `Migr
 
 ### What migrating does
 
-Migrating to a target applies the migrations up to it that haven't been applied, oldest first, including ones added
-below the current version, and reverts the applied migrations above it, newest first, with their `DownAsync`. A
+Migrating to a target reverts the applied migrations above it, newest first, with their `DownAsync`, then applies the
+migrations up to it that haven't been applied, oldest first, including ones added below the current version: reverting
+first brings the data back to the target's shape before those apply to it. A
 migration is recorded in its own transaction, so one that fails rolls back with its record and leaves the ones before it
 applied; outside a transaction, what it did before failing stays. Either way it throws `MigrationFailedException`, with
 the failure inside.
@@ -130,4 +131,6 @@ Migrations log under `MongoFlow.Migrations`, and are traced as `MongoFlow.Migrat
 ## From 0.5
 
 The history 0.5 recorded, in each vault's `migrations` collection, carries over: versions applied by 0.5 count as
-applied. A vault's `[MongoVersion]` still names the version it migrates to.
+applied. A vault's `[MongoVersion]` still names the version it migrates to. A history that records a version twice, as
+0.5 instances migrating at once could leave, still migrates, with a warning: its unique index can't be built until the
+duplicate records are removed.

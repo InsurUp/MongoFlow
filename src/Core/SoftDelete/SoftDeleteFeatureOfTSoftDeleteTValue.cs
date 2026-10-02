@@ -8,6 +8,7 @@ internal sealed class SoftDeleteFeature<TSoftDelete, TValue> : IVaultFeature, IV
     private readonly Expression<Func<TSoftDelete, TValue>> _member;
     private readonly Expression<Func<TSoftDelete, bool>> _notDeleted;
     private readonly Func<IServiceProvider, TValue> _deletedValue;
+    private readonly Func<TSoftDelete, TValue> _getMember;
     private readonly Action<TSoftDelete, TValue> _setMember;
 
     public SoftDeleteFeature(Expression<Func<TSoftDelete, TValue>> member,
@@ -20,6 +21,7 @@ internal sealed class SoftDeleteFeature<TSoftDelete, TValue> : IVaultFeature, IV
         _member = member;
         _notDeleted = notDeleted;
         _deletedValue = deletedValue;
+        _getMember = member.Compile();
         _setMember = member.CreateSetter(parameterName);
     }
 
@@ -34,7 +36,7 @@ internal sealed class SoftDeleteFeature<TSoftDelete, TValue> : IVaultFeature, IV
         if (typeof(TDocument).IsAssignableTo(typeof(TSoftDelete)))
         {
             collection.AddInterceptor(
-                new SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(_member, _setMember, _deletedValue));
+                new SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(_member, _getMember, _setMember, _deletedValue));
             ((CollectionModelBuilder<TDocument>)collection).ExpectIndex(_member);
         }
     }

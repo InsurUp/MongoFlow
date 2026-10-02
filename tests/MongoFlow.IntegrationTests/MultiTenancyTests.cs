@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 
@@ -10,7 +11,8 @@ namespace MongoFlow.IntegrationTests;
 /// <list type="number">
 /// <item>reads see only the current tenant's documents, or with no current tenant only those without one;</item>
 /// <item>inserts and replaces without a tenant get the current one, and those of another tenant fail the save, as do
-/// updates made with a document of another tenant, a tracked one's changes included;</item>
+/// updates made with a document of another tenant, a tracked one's changes included, and those whose update changes the
+/// tenant field;</item>
 /// <item>other updates and deletes are left to the query filters, and with no current tenant nothing is stamped or
 /// checked;</item>
 /// <item>for all tenants, and with the feature off, reads see every tenant and writes go unchecked.</item>
@@ -173,6 +175,76 @@ public partial class MultiTenancyTests
 
         // Assert
         await Verify(await host.StoredAsync("Invoices"));
+    }
+
+    [Test]
+    public async Task SaveAsync_TrackedDocumentWhoseTenantIsCleared_FailsTheSave()
+    {
+        // Arrange
+        await using var host = Host(new CurrentTenant { Id = "t-1" }, vault => vault.UseChangeTracking());
+        await host.SeedAsync("Invoices", new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" });
+        var invoice = (await host.Vault.Invoices.GetByKeyAsync(1))!;
+        invoice.TenantId = null;
+
+        // Act
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<InvalidOperationException>();
+
+        // Assert
+        await Verify(await host.StoredAsync("Invoices"));
+    }
+
+    [Test]
+    [Arguments("another tenant")]
+    [Arguments("no tenant")]
+    [Arguments("a field inside the tenant")]
+    public async Task Update_ADocumentWithAnUpdateMovingItOutOfTheTenant_FailsTheSave(string update)
+    {
+        // Arrange — the document carries the current tenant; its update moves it out.
+        await using var host = Host(new CurrentTenant { Id = "t-1" });
+        await host.SeedAsync("Invoices", new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" });
+        var invoice = new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" };
+        host.Vault.Invoices.Update(invoice, update switch
+        {
+            "another tenant" => Builders<Invoice>.Update.Set(x => x.TenantId, "t-2"),
+            "no tenant" => Builders<Invoice>.Update.Unset(x => x.TenantId),
+            _ => Builders<Invoice>.Update.Set("TenantId.code", "t-2")
+        });
+
+        // Act & Assert
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task Update_ADocumentWithAPipeline_IsWrittenUnread()
+    {
+        // Arrange — an aggregation pipeline isn't read for the tenant field.
+        await using var host = Host(new CurrentTenant { Id = "t-1" });
+        await host.SeedAsync("Invoices", new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" });
+        var invoice = new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" };
+        PipelineDefinition<Invoice, Invoice> pipeline = new[] { new BsonDocument("$set", new BsonDocument("Number", "I-1 revised")) };
+        host.Vault.Invoices.Update(invoice, new PipelineUpdateDefinition<Invoice>(pipeline));
+
+        // Act
+        var result = await host.Vault.SaveAsync();
+
+        // Assert
+        await Assert.That(result.Modified).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Update_ADocumentWithAnUpdateToTheCurrentTenant_IsWritten()
+    {
+        // Arrange
+        await using var host = Host(new CurrentTenant { Id = "t-1" });
+        await host.SeedAsync("Invoices", new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" });
+        var invoice = new Invoice { Id = 1, Number = "I-1", TenantId = "t-1" };
+        host.Vault.Invoices.Update(invoice, Builders<Invoice>.Update.Set(x => x.TenantId, "t-1").Set(x => x.Number, "I-1 revised"));
+
+        // Act
+        var result = await host.Vault.SaveAsync();
+
+        // Assert
+        await Assert.That(result.Modified).IsEqualTo(1);
     }
 
     [Test]

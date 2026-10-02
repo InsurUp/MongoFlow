@@ -27,7 +27,7 @@ public partial class SaveTests
 
         public override async ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
         {
-            Entered.SetResult();
+            Entered.TrySetResult();
             await Release.Task.WaitAsync(cancellationToken);
         }
     }

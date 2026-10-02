@@ -141,6 +141,37 @@ public partial class MigrationTests
         public Task DownAsync(MigrationContext<RegistryVault> context, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
+    /// <summary>Changes an entry its vault tracks, and returns without saving it.</summary>
+    public sealed class ForgetTrackedChange : IVaultMigration<RegistryVault>
+    {
+        public SemVersion Version { get; } = new(1, 1, 0);
+
+        public async Task UpAsync(MigrationContext<RegistryVault> context, CancellationToken cancellationToken)
+        {
+            var entry = await context.Vault.Entries.WithTracking().GetByKeyAsync(1, cancellationToken);
+            entry!.Name = "renamed";
+        }
+
+        public Task DownAsync(MigrationContext<RegistryVault> context, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    /// <summary>Reads two entries its vault tracks, deletes one and saves, leaving nothing unsaved.</summary>
+    public sealed class DeleteTrackedEntry : IVaultMigration<RegistryVault>
+    {
+        public SemVersion Version { get; } = new(1, 1, 0);
+
+        public async Task UpAsync(MigrationContext<RegistryVault> context, CancellationToken cancellationToken)
+        {
+            var entries = context.Vault.Entries.WithTracking();
+            var first = await entries.GetByKeyAsync(1, cancellationToken);
+            await entries.GetByKeyAsync(2, cancellationToken);
+            entries.Delete(first!);
+            await context.Vault.SaveAsync(cancellationToken);
+        }
+
+        public Task DownAsync(MigrationContext<RegistryVault> context, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
     /// <summary>Records what its context holds, in a transaction.</summary>
     public sealed class ProbeInTransaction(StepLog steps,
         IVaultTransactionManager transactions) : ProbeContext(steps, transactions)

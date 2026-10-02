@@ -32,7 +32,7 @@ internal sealed class BsonChanges
         {
             foreach (var field in fields)
             {
-                if (path == field || IsInside(path, field) || IsInside(field, path))
+                if (ElementPaths.Reaches(path, field))
                 {
                     return true;
                 }
@@ -76,10 +76,6 @@ internal sealed class BsonChanges
 
         return update;
     }
-
-    private static bool IsInside(string path,
-        string document) =>
-        path.Length > document.Length && path[document.Length] == '.' && path.StartsWith(document, StringComparison.Ordinal);
 
     // The paths' names hold no dots: a name with one is set with the document that holds it.
     private static BsonValue ValueAt(BsonDocument document,

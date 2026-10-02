@@ -87,6 +87,9 @@ The tenant id can be a struct, nullable on the document, or a reference type suc
 - Reads see only the current tenant's documents. With no current tenant, they see only documents without one.
 - Inserts and replaces without a tenant get the current one. A document of another tenant fails the save with
   `InvalidOperationException`, as does an update made with one, so a write can't move a document out of the tenant.
+- An update made with a document, a tracked document's changes included, also fails if it changes the tenant field to
+  anything but the current tenant: unsetting it, setting another, or setting a field inside it. An aggregation pipeline
+  update isn't read.
 - Other updates and deletes are limited by the query filter to the current tenant's documents.
 - With no current tenant, or when `allTenants` returns true, writes are neither stamped nor checked; for all tenants,
   reads see every tenant.
@@ -100,7 +103,8 @@ vault.UseConcurrencyToken((IVersioned x) => x.Version); // any number type
 | Write | Checked | Incremented |
 |---|---|---|
 | `Replace(document)`, `Update(document, update)`, a tracked document's changes | Yes | Yes |
-| `Delete(document)`, soft deletes included | Yes | No |
+| `Delete(document)` with soft delete, which turns it into an update | Yes | Yes |
+| `Delete(document)` | Yes | No |
 | `UpdateByKey`, `UpdateMany` | No: there's no value read to check | Yes |
 | `DeleteByKey`, `DeleteMany` | No | No |
 

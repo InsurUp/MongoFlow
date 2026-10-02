@@ -41,6 +41,32 @@ public partial class MigrationTests
     }
 
     [Test]
+    public async Task MigrateAsync_MigrationLeavesTrackedChangesUnsaved_ThrowsMigrationFailedExceptionWithoutRecordingIt()
+    {
+        // Arrange
+        await using var host = Host(m => m.Add<SeedEntries>().Add<ForgetTrackedChange>());
+
+        // Act
+        await Assert.That(() => Migrator(host).MigrateAsync<RegistryVault>()).ThrowsExactly<MigrationFailedException>();
+
+        // Assert
+        await Verify(new { Stored = await host.StoredAsync("Entries"), History = await HistoryAsync(host) });
+    }
+
+    [Test]
+    public async Task MigrateAsync_MigrationSavingWhatItTracked_IsAppliedAndRecorded()
+    {
+        // Arrange — one tracked entry deleted in the migration's transaction, the other unchanged: nothing is unsaved.
+        await using var host = Host(m => m.Add<SeedEntries>().Add<DeleteTrackedEntry>());
+
+        // Act
+        await Migrator(host).MigrateAsync<RegistryVault>();
+
+        // Assert
+        await Verify(new { Stored = await host.StoredAsync("Entries"), Versions = (await HistoryAsync(host)).Count });
+    }
+
+    [Test]
     public async Task MigrateAsync_RevertingFails_ThrowsMigrationFailedExceptionAndKeepsItRecorded()
     {
         // Arrange

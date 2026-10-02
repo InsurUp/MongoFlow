@@ -85,16 +85,18 @@ Each write's own result is on its operation, which [interceptors](interceptors.m
 - the driver's `ClientBulkWriteException` when the server rejects a write, such as a duplicate key;
 - `ConcurrencyException` when a write guarded by a [concurrency token](features.md#concurrency-token) finds the document
   changed or gone;
-- `InvalidOperationException` when it's called from one of the vault's own interceptors, while another save of the same
-  instance runs, or inside a transaction on another client.
+- `InvalidOperationException` when it's called from one of the vault's own interceptors, while another save of the scope
+  runs, or inside a transaction on another client.
 
 ## Parallel use
 
 A vault instance belongs to its scope, and can be shared by the scope's parallel tasks within these limits:
 
-- Writes can be queued from parallel tasks.
+- Writes can be queued from parallel tasks. One queued while a save runs waits for the next save, unless one of the
+  save's interceptors queued it.
 - Reads can run in parallel while no transaction is open in the scope.
-- A save can't run alongside another save of the same instance.
+- The saves of a scope's vaults run one after another: a save that starts while another runs fails with
+  `InvalidOperationException`, unless the running save's interceptors started it.
 - Inside a transaction, including the one a save opens while it runs, reads and saves share one session, and MongoDB runs
   a transaction's operations one at a time: run them one after another.
 - With change tracking, don't change tracked documents while a save runs: it reads them to compare.

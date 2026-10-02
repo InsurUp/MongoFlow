@@ -85,6 +85,11 @@
     Id: 27003010
   },
   {
+    Group: Save,
+    Event: CommittedHookThrew,
+    Id: 27003011
+  },
+  {
     Group: Transaction,
     Event: Began,
     Id: 27004001
@@ -138,5 +143,10 @@
     Group: Migrations,
     Event: UpToDate,
     Id: 27006004
+  },
+  {
+    Group: Migrations,
+    Event: HistoryHasDuplicates,
+    Id: 27006005
   }
 ]

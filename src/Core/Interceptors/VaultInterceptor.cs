@@ -34,14 +34,14 @@ public abstract class VaultInterceptor
 
     /// <summary>
     /// After the commit, including the commit of an outer transaction the save joined. For side effects outside the
-    /// database; a failure here can't undo the save.
+    /// database. A failure here can't undo the save: it's logged and ignored, and the other interceptors' hooks still run.
     /// </summary>
     public virtual ValueTask CommittedAsync(SaveContext context, CancellationToken cancellationToken) =>
         ValueTask.CompletedTask;
 
     /// <summary>
-    /// When the save fails at any step, or the transaction it joined fails or is rolled back. The transaction is already
-    /// aborted.
+    /// When the save fails once its interceptors have started, or the transaction it joined fails or is rolled back.
+    /// Nothing it wrote stays: its writes were rolled back, or it failed before writing.
     /// </summary>
     public virtual ValueTask FailedAsync(SaveContext context, Exception exception, CancellationToken cancellationToken) =>
         ValueTask.CompletedTask;

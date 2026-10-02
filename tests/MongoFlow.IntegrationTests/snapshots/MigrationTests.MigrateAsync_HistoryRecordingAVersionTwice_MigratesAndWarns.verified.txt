@@ -1,0 +1,8 @@
+﻿{
+  Entries: [
+    up 1.1.0
+  ],
+  Warnings: [
+    RegistryVault's history in migrations records a version more than once, so the unique index that keeps two instances from applying a migration twice can't be built. Migrations go on; remove the duplicate records for the index to be built.
+  ]
+}

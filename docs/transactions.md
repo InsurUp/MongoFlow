@@ -37,8 +37,11 @@ public sealed class ClaimService(IPolicyVault policies,
 - Its session starts with the first vault that joins, so every vault saved in it must use the same client; one on
   another client fails with `InvalidOperationException`.
 - `Current` is the open transaction, if there is one. One scope has one open transaction at a time.
+- A transaction still open when its scope ends, such as one begun without `await using`, is rolled back then, so it
+  doesn't hold its locks on the server until it times out.
 - MongoDB runs a transaction's operations one at a time: inside it, run reads and saves one after another, not from
-  parallel tasks.
+  parallel tasks. A save that starts while another runs in the transaction fails with `InvalidOperationException`,
+  unless the running save's interceptors started it.
 
 ### Rolling back on a rule
 
@@ -70,7 +73,8 @@ another.
 
 - `SavedAsync` runs right after each save's write, before the commit: its writes are in the transaction, but not
   committed. A transactional outbox writes there, with `context.Session`.
-- `CommittedAsync` runs once the transaction commits, for every save that joined it, in save order.
+- `CommittedAsync` runs once the transaction commits, for every save that joined it, in save order. One that throws is
+  logged and ignored: the writes are committed.
 - `FailedAsync` runs when the transaction rolls back, for every save that joined it, newest save first.
 
 See [interceptors](interceptors.md).

@@ -22,6 +22,25 @@ public partial class ChangeTrackingTests
     }
 
     [Test]
+    public async Task SaveAsync_SoftDeleteThatFailed_LeavesTheDocumentAsItWas()
+    {
+        // Arrange — the delete's save fails, so the document isn't deleted, nor marked as if it were.
+        await using var host = Host(vault => vault
+            .UseSoftDelete((ISoftDeletable x) => x.IsDeleted)
+            .AddInterceptor(new FailingOnce()));
+        await host.SeedAsync("Leads", new Lead { Id = 1, Name = "ada" });
+        var lead = (await host.Vault.Leads.GetByKeyAsync(1))!;
+        host.Vault.Leads.Delete(lead);
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<InvalidOperationException>();
+
+        // Act
+        var result = await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { result, lead.IsDeleted, Stored = await host.StoredAsync("Leads") });
+    }
+
+    [Test]
     public async Task RollbackAsync_SaveThatJoinedIt_LeavesTheChangesPending()
     {
         // Arrange

@@ -28,6 +28,9 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     public IMongoCollection<TDocument> MongoCollection { get; } = definition.Collection;
 
+    // Every vault instance fills the property, so its setter is compiled once rather than called through reflection.
+    private readonly Action<MongoVault, object> _fill = CompileSetter(definition.Property);
+
     public CollectionNamespace Namespace => MongoCollection.CollectionNamespace;
 
     public virtual IReadOnlyList<string>? KeyFields => null;
@@ -40,8 +43,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         new VaultCollection<TDocument>(runtime, this, disabled);
 
     // A keyed model's CreateCollection returns a keyed collection, which a keyed property accepts.
-    public void Attach(MongoVault vault, VaultRuntime runtime) =>
-        Property.SetValue(vault, CreateCollection(runtime, FeatureSet.Empty));
+    public void Attach(MongoVault vault, VaultRuntime runtime) => _fill(vault, CreateCollection(runtime, FeatureSet.Empty));
 
     /// <summary>
     /// The collection's query filters joined into one, minus those of <paramref name="disabled"/> features, or
@@ -102,6 +104,16 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         }
 
         return FilterExpressions.Combine(resolved);
+    }
+
+    private static Action<MongoVault, object> CompileSetter(PropertyInfo property)
+    {
+        var vault = Expression.Parameter(typeof(MongoVault), "vault");
+        var value = Expression.Parameter(typeof(object), "value");
+        var set = Expression.Call(Expression.Convert(vault, property.DeclaringType!), property.SetMethod!,
+            Expression.Convert(value, property.PropertyType));
+
+        return Expression.Lambda<Action<MongoVault, object>>(set, vault, value).Compile();
     }
 
     private static bool IsActive(QueryFilterEntry<TDocument> filter,

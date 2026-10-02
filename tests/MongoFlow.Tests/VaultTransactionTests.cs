@@ -9,7 +9,8 @@ namespace MongoFlow.Tests;
 /// <item>one transaction is open per scope at a time, and it stops being current when it ends, however it ends;</item>
 /// <item>its session starts with its first use, on the registered client, and commits, aborts and is disposed with
 /// it;</item>
-/// <item>once ended it can't be committed or used, and rolling it back again does nothing;</item>
+/// <item>once ended it can't be committed or used, and rolling it back again does nothing; one still open when its
+/// scope ends is rolled back;</item>
 /// <item>a vault on another client can't join it.</item>
 /// </list>
 /// </summary>
@@ -118,6 +119,20 @@ public class VaultTransactionTests : IAsyncDisposable
 
         // Assert
         await Assert.That(Transactions.Current).IsNull();
+    }
+
+    [Test]
+    public async Task Dispose_ScopeEndingWithATransactionOpen_RollsItBack()
+    {
+        // Arrange — a scope disposed synchronously, as a background job's is, with its transaction left open.
+        var scope = _host.Services.CreateScope();
+        var transaction = await scope.ServiceProvider.GetRequiredService<IVaultTransactionManager>().BeginAsync();
+
+        // Act
+        scope.Dispose();
+
+        // Assert — rolled back, it's ended, so it can't commit.
+        await Assert.That(() => transaction.CommitAsync()).ThrowsExactly<InvalidOperationException>();
     }
 
     [Test]

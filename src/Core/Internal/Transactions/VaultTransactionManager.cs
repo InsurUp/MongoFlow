@@ -4,16 +4,22 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-internal sealed class VaultTransactionManager(IServiceProvider services) : IVaultTransactionManager
+/// <summary>
+/// The scope's transactions. One still open when the scope ends is rolled back, so it doesn't hold its locks on the server
+/// until it times out.
+/// </summary>
+internal sealed class VaultTransactionManager(IServiceProvider services) : IVaultTransactionManager, IAsyncDisposable,
+    IDisposable
 {
     // Set and cleared atomically, so of tasks beginning one at once only one does; the rest get the error.
     private VaultTransaction? _active;
 
     public IVaultTransaction? Current => Active;
 
-    public ILogger Log => field ??= VaultLogs.Transactions(services);
+    // Resolved up front: a transaction rolled back as the scope ends can't resolve from it any more.
+    public ILogger Log { get; } = VaultLogs.Transactions(services);
 
-    public VaultMetrics Metrics => field ??= services.GetRequiredService<VaultMetrics>();
+    public VaultMetrics Metrics { get; } = services.GetRequiredService<VaultMetrics>();
 
     public VaultTransaction? Active => Volatile.Read(ref _active);
 
@@ -38,4 +44,16 @@ internal sealed class VaultTransactionManager(IServiceProvider services) : IVaul
     }
 
     public void End(VaultTransaction transaction) => Interlocked.CompareExchange(ref _active, null, transaction);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Active is { } open)
+        {
+            await open.DisposeAsync();
+        }
+    }
+
+    // A scope disposed synchronously, such as a background job's, still rolls back what it left open, by blocking: there's
+    // no other way to end it.
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 }

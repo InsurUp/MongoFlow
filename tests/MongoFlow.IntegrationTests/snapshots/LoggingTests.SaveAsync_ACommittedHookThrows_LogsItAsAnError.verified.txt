@@ -1,0 +1,10 @@
+﻿[
+  {
+    Category: MongoFlow.Save,
+    Level: Error,
+    EventId: 27003011,
+    Event: CommittedHookThrew,
+    Message: ThrowingInterceptor.CommittedAsync threw after a save of ShopVault committed. Its exception is ignored: the save's writes are committed, and the other interceptors' hooks still run.,
+    Exception: InterceptorException
+  }
+]

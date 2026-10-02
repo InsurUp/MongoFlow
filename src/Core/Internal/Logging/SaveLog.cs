@@ -52,6 +52,14 @@ internal static partial class SaveLog
         string vault,
         Exception exception);
 
+    [LoggerMessage(EventId = MongoFlowLogEvents.Save.CommittedHookThrew, Level = LogLevel.Error,
+        Message = "{Interceptor}.CommittedAsync threw after a save of {Vault} committed. Its exception is ignored: the save's " +
+                  "writes are committed, and the other interceptors' hooks still run.")]
+    public static partial void CommittedHookThrew(this ILogger logger,
+        string interceptor,
+        string vault,
+        Exception exception);
+
     [LoggerMessage(EventId = MongoFlowLogEvents.Save.ConcurrencyConflict, Level = LogLevel.Debug,
         Message = "A write to {Collection} by key {Key} matched no document with the token it was read with; still " +
                   "stored: {DocumentExists}. The save fails with a concurrency conflict.")]

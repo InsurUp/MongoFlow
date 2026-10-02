@@ -7,7 +7,7 @@ namespace MongoFlow;
 /// <remarks>Disposed synchronously, it fails like DI does for an interceptor that only implements <see cref="IAsyncDisposable"/>.</remarks>
 internal sealed class OwnedInterceptors : IAsyncDisposable, IDisposable
 {
-    // Vaults of one scope can save in parallel, each creating its interceptors.
+    // A scope's saves run one after another, but one can still be creating an interceptor as the scope is disposed.
     private readonly Lock _lock = new();
     private List<VaultInterceptor>? _created;
 

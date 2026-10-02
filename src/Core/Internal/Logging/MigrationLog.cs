@@ -34,6 +34,15 @@ internal static partial class MigrationLog
         double elapsedMs,
         Exception exception);
 
+    [LoggerMessage(EventId = MongoFlowLogEvents.Migrations.HistoryHasDuplicates, Level = LogLevel.Warning,
+        Message = "{Vault}'s history in {Collection} records a version more than once, so the unique index that keeps two " +
+                  "instances from applying a migration twice can't be built. Migrations go on; remove the duplicate records " +
+                  "for the index to be built.")]
+    public static partial void HistoryHasDuplicates(this ILogger logger,
+        string vault,
+        string collection,
+        Exception exception);
+
     [LoggerMessage(EventId = MongoFlowLogEvents.Migrations.UpToDate, Level = LogLevel.Debug,
         Message = "{Vault} is at {Version}, its target; there's nothing to migrate.")]
     public static partial void UpToDate(this ILogger logger,

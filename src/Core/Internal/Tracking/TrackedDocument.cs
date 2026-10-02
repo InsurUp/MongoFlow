@@ -24,6 +24,20 @@ internal abstract class TrackedDocument(object document,
     /// <summary>The document as it is now.</summary>
     public abstract BsonSnapshot Serialize();
 
+    /// <summary>Whether the document differs from <see cref="Snapshot"/>.</summary>
+    public bool HasChanged()
+    {
+        var current = Serialize();
+        try
+        {
+            return BsonDiff.Compare(Snapshot.Span, current.Span) is not null;
+        }
+        finally
+        {
+            current.Return();
+        }
+    }
+
     /// <summary>The write that brings the stored document up to date, or <see langword="null"/> when it hasn't changed.</summary>
     /// <exception cref="InvalidOperationException">Its key changed.</exception>
     public abstract VaultOperation? DetectChange();

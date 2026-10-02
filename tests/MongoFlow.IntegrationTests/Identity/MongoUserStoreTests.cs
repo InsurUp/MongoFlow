@@ -14,7 +14,10 @@ namespace MongoFlow.IntegrationTests;
 /// <item>users are found by id, name, email, claim, login, role and passkey, through the vault's query filters, also
 /// asynchronous ones for the synchronous <c>Users</c>;</item>
 /// <item>what the manager changes on a user is saved once, by its update;</item>
-/// <item>tokens are documents of their own, added, changed and removed with the user's save.</item>
+/// <item>tokens are documents of their own, added, changed and removed with the user's save, and deleted with the
+/// user;</item>
+/// <item>an update or delete applies only while the stored concurrency stamp is the one read, failing with Identity's
+/// concurrency failure otherwise, and an update renews it; see <c>MongoUserStoreTests.Concurrency.cs</c>.</item>
 /// </list>
 /// </summary>
 public partial class MongoUserStoreTests

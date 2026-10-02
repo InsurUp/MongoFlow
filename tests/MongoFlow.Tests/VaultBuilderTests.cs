@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 
 namespace MongoFlow.Tests;
 
@@ -58,6 +60,19 @@ public partial class VaultBuilderTests
 
         // Act & Assert
         await Throws(() => host.Vault).IgnoreStackTrace();
+    }
+
+    [Test]
+    public async Task Build_KeylessCollectionOfBsonDocuments_RegistersNoClassMapForThem()
+    {
+        // Arrange
+        await using var host = new VaultHost<RawVault>();
+
+        // Act
+        _ = host.Vault;
+
+        // Assert
+        await Assert.That(BsonClassMap.IsClassMapRegistered(typeof(BsonDocument))).IsFalse();
     }
 
     [Test]

@@ -17,6 +17,14 @@ internal sealed class SaveRun(VaultRuntime runtime,
     // The driver copies what it needs out of the options, so one instance serves every save.
     private static readonly ClientBulkWriteOptions WriteOptions = new() { IsOrdered = true, VerboseResult = true };
 
+    // The save whose interceptors are running in this flow, set while their hooks run. What they queue joins their save,
+    // and saves they make join its transaction; other tasks' writes wait for the next save, and their saves fail.
+    private static readonly AsyncLocal<SaveRun?> Running = new();
+
+    // Writes the save's own interceptors queued during SavingAsync, for the interceptors after them to see.
+    private readonly Lock _addedLock = new();
+    private PooledList<VaultOperation>? _added;
+
     private readonly Dictionary<(IVaultCollectionInfo, FeatureSet), BsonDocument?> _queryFilters = [];
     private bool _saving;
 
@@ -39,9 +47,34 @@ internal sealed class SaveRun(VaultRuntime runtime,
 
     public Dictionary<object, object?> Items { get; } = [];
 
+    /// <summary>The save whose interceptors are running in the current flow, if any.</summary>
+    public static SaveRun? Current => Running.Value;
+
+    /// <summary>The transaction the save runs in: its own, or the one it joined.</summary>
+    public VaultTransaction Transaction { get; init; } = null!;
+
+    /// <summary>Whether its interceptors' <see cref="VaultInterceptor.SavingAsync"/> are running, when they can add writes.</summary>
+    public bool IsSaving => _saving;
+
+    /// <summary>Queues a write one of the save's interceptors made, to join the save after that interceptor.</summary>
+    public void Add(VaultOperation operation)
+    {
+        lock (_addedLock)
+        {
+            (_added ??= new PooledList<VaultOperation>(clearOnReturn: true)).Add(operation);
+        }
+    }
+
     public async Task SavingAsync(CancellationToken cancellationToken)
     {
+        // Without interceptors there's no hook to run, nor flow to mark.
+        if (Runtime.Model.Interceptors.Count == 0)
+        {
+            return;
+        }
+
         _saving = true;
+        Running.Value = this;
         try
         {
             for (var i = 0; i < Runtime.Model.Interceptors.Count; i++)
@@ -49,7 +82,7 @@ internal sealed class SaveRun(VaultRuntime runtime,
                 await Runtime.GetInterceptor(i).SavingAsync(ContextFor(i), cancellationToken);
 
                 // Writes an interceptor queued on the vault join the save, for the interceptors after it to see.
-                if (Runtime.DrainInto(Operations))
+                if (TakeAdded())
                 {
                     _changes++;
                 }
@@ -58,6 +91,7 @@ internal sealed class SaveRun(VaultRuntime runtime,
         finally
         {
             _saving = false;
+            Running.Value = null;
         }
     }
 
@@ -101,9 +135,22 @@ internal sealed class SaveRun(VaultRuntime runtime,
     // token's, runs first after it.
     public async Task SavedAsync(CancellationToken cancellationToken)
     {
-        for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
+        if (Runtime.Model.Interceptors.Count == 0)
         {
-            await Runtime.GetInterceptor(i).SavedAsync(ContextFor(i), cancellationToken);
+            return;
+        }
+
+        Running.Value = this;
+        try
+        {
+            for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
+            {
+                await Runtime.GetInterceptor(i).SavedAsync(ContextFor(i), cancellationToken);
+            }
+        }
+        finally
+        {
+            Running.Value = null;
         }
     }
 
@@ -113,9 +160,31 @@ internal sealed class SaveRun(VaultRuntime runtime,
         Runtime.Model.Metrics.RecordCommitted(Runtime.Model.VaultType.Name, Operations.Span);
         tracked?.Commit();
 
-        for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
+        if (Runtime.Model.Interceptors.Count == 0)
         {
-            await Runtime.GetInterceptor(i).CommittedAsync(ContextFor(i), cancellationToken);
+            return;
+        }
+
+        Running.Value = this;
+        try
+        {
+            for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
+            {
+                var interceptor = Runtime.GetInterceptor(i);
+                try
+                {
+                    await interceptor.CommittedAsync(ContextFor(i), cancellationToken);
+                }
+                catch (Exception hookException)
+                {
+                    // The writes are committed, so the save succeeded: logged, since nothing else would show it.
+                    Runtime.Model.Logs.Save.CommittedHookThrew(interceptor.GetType().Name, Runtime.Model.VaultType.Name, hookException);
+                }
+            }
+        }
+        finally
+        {
+            Running.Value = null;
         }
     }
 
@@ -128,18 +197,31 @@ internal sealed class SaveRun(VaultRuntime runtime,
         // The changes it wrote to tracked documents are pending again.
         tracked?.Revert();
 
-        for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
+        if (Runtime.Model.Interceptors.Count == 0)
         {
-            var interceptor = Runtime.GetInterceptor(i);
-            try
+            return;
+        }
+
+        Running.Value = this;
+        try
+        {
+            for (var i = Runtime.Model.Interceptors.Count - 1; i >= 0; i--)
             {
-                await interceptor.FailedAsync(ContextFor(i), exception, cancellationToken);
+                var interceptor = Runtime.GetInterceptor(i);
+                try
+                {
+                    await interceptor.FailedAsync(ContextFor(i), exception, cancellationToken);
+                }
+                catch (Exception hookException)
+                {
+                    // Ignored, see above, but logged: nothing else would show it.
+                    Runtime.Model.Logs.Save.FailureHookThrew(interceptor.GetType().Name, Runtime.Model.VaultType.Name, hookException);
+                }
             }
-            catch (Exception hookException)
-            {
-                // Ignored, see above, but logged: nothing else would show it.
-                Runtime.Model.Logs.Save.FailureHookThrew(interceptor.GetType().Name, Runtime.Model.VaultType.Name, hookException);
-            }
+        }
+        finally
+        {
+            Running.Value = null;
         }
     }
 
@@ -218,10 +300,32 @@ internal sealed class SaveRun(VaultRuntime runtime,
         {
             _disposed = true;
             Operations.Dispose();
+            TakeAdded();
         }
     }
 
     private SaveContext ContextFor(int interceptor) => new(this, interceptor);
+
+    /// <summary>Moves the writes the save's interceptors queued into the save; returns whether there were any.</summary>
+    private bool TakeAdded()
+    {
+        lock (_addedLock)
+        {
+            if (_added is not { } added)
+            {
+                return false;
+            }
+
+            _added = null;
+            if (!_disposed)
+            {
+                Operations.AddRange(added.Span);
+            }
+
+            added.Dispose();
+            return true;
+        }
+    }
 
     private int IndexOf(VaultOperation operation)
     {

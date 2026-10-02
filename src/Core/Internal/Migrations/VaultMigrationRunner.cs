@@ -9,6 +9,8 @@ namespace MongoFlow;
 /// <summary>Applies and reverts <typeparamref name="TVault"/>'s migrations, each in a DI scope of its own.</summary>
 internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : IVaultMigrationRunner where TVault : MongoVault
 {
+    private const int DuplicateKey = 11000;
+
     private VaultModel Model => services.GetRequiredService<VaultModelProvider<TVault>>().Model;
 
     public Type VaultType => typeof(TVault);
@@ -49,11 +51,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
         var migrations = await PlanAsync();
         target ??= Pinned(migrations) ?? migrations[^1].Version;
 
-        // Two instances recording one version at once: the second fails, rolling back its migration if it has a transaction.
-        await history.Indexes.CreateOneAsync(
-            new CreateIndexModel<MigrationRecord>(Builders<MigrationRecord>.IndexKeys.Ascending(record => record.Version),
-                new CreateIndexOptions { Unique = true }),
-            cancellationToken: cancellationToken);
+        await EnsureUniqueVersionsAsync(history, cancellationToken);
 
         var applied = await AppliedAsync(history, cancellationToken);
 
@@ -77,14 +75,35 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
 
         log.Migrating(typeof(TVault).Name, current, target, applying.Count, reverting.Count);
 
+        // Reverted first, so the data is back at the target's shape before migrations below it, added since, apply to it.
+        foreach (var migration in reverting)
+        {
+            await RunAsync(history, migration, up: false, cancellationToken);
+        }
+
         foreach (var migration in applying)
         {
             await RunAsync(history, migration, up: true, cancellationToken);
         }
+    }
 
-        foreach (var migration in reverting)
+    /// <summary>
+    /// A unique index on the recorded versions: of two instances recording one version at once, the second fails, rolling
+    /// back its migration if it has a transaction. A history earlier versions wrote may record one twice already.
+    /// </summary>
+    private async Task EnsureUniqueVersionsAsync(IMongoCollection<MigrationRecord> history,
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            await RunAsync(history, migration, up: false, cancellationToken);
+            await history.Indexes.CreateOneAsync(
+                new CreateIndexModel<MigrationRecord>(Builders<MigrationRecord>.IndexKeys.Ascending(record => record.Version),
+                    new CreateIndexOptions { Unique = true }),
+                cancellationToken: cancellationToken);
+        }
+        catch (MongoCommandException exception) when (exception.Code == DuplicateKey)
+        {
+            Model.Logs.Migrations.HistoryHasDuplicates(typeof(TVault).Name, history.CollectionNamespace.CollectionName, exception);
         }
     }
 
@@ -195,16 +214,18 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
             }
         }
 
-        // The vault is the migration's alone, so writes still queued were meant to be saved and never will be.
+        // The vault is the migration's alone, so writes still queued, or changes to tracked documents, were meant to be
+        // saved and never will be.
         void ThrowIfUnsaved()
         {
-            if (vault.Runtime.Drain() is { } unsaved)
-            {
-                unsaved.Dispose();
+            var queued = vault.Runtime.Drain();
+            queued?.Dispose();
 
+            if (queued is not null || vault.Runtime.HasTrackedChanges())
+            {
                 throw new InvalidOperationException(
-                    $"{planned.Type.Name} queued writes on {typeof(TVault).Name} without saving them. Call SaveAsync before " +
-                    "the migration returns.");
+                    $"{planned.Type.Name} left writes on {typeof(TVault).Name} unsaved: queued, or changes to tracked documents. " +
+                    "Call SaveAsync before the migration returns.");
             }
         }
     }

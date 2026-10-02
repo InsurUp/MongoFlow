@@ -20,6 +20,7 @@ public partial class InterceptorTests
     {
         Saving,
         Saved,
+        Committed,
         Failed
     }
 
@@ -31,6 +32,8 @@ public partial class InterceptorTests
         public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken) => Throw(Hook.Saving);
 
         public override ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken) => Throw(Hook.Saved);
+
+        public override ValueTask CommittedAsync(SaveContext context, CancellationToken cancellationToken) => Throw(Hook.Committed);
 
         public override ValueTask FailedAsync(SaveContext context, Exception exception, CancellationToken cancellationToken) =>
             Throw(Hook.Failed);

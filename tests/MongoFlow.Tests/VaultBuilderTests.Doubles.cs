@@ -1,3 +1,5 @@
+using MongoDB.Bson;
+
 namespace MongoFlow.Tests;
 
 // Vaults, configurations and features of the shapes the builder accepts, and of those it rejects.
@@ -40,6 +42,12 @@ public partial class VaultBuilderTests
         public IVaultCollection<Order> Orders { get; init; } = null!;
 
         public IVaultCollection<IEvent> Events { get; init; } = null!;
+    }
+
+    /// <summary>A keyless collection of raw documents, whose serializer reads the _id like any element.</summary>
+    public sealed class RawVault : MongoVault
+    {
+        public IVaultCollection<BsonDocument> Events { get; init; } = null!;
     }
 
     /// <summary>Has members that look like collections but aren't declared ones, next to one that is.</summary>

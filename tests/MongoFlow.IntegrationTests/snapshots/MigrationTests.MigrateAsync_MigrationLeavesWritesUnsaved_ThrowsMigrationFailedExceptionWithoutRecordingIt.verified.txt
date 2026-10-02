@@ -1,5 +1,5 @@
 ﻿{
-  Cause: ForgetToSave queued writes on RegistryVault without saving them. Call SaveAsync before the migration returns.,
+  Cause: ForgetToSave left writes on RegistryVault unsaved: queued, or changes to tracked documents. Call SaveAsync before the migration returns.,
   Stored: [],
   History: []
 }

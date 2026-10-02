@@ -16,7 +16,8 @@ the write, so it sees writes as they'll be sent, such as a delete soft delete tu
 
 A save whose `SavingAsync` throws writes nothing. One whose `SavedAsync` throws is rolled back; see
 [transactions](transactions.md#when-a-save-fails). An exception from `FailedAsync` is logged and ignored, so the save's
-own failure surfaces.
+own failure surfaces, and so is one from `CommittedAsync`, since the writes are committed: the other interceptors' hooks
+still run. `FailedAsync` runs only for a save whose interceptors started.
 
 ## Registering
 
@@ -54,7 +55,7 @@ Each hook gets a `SaveContext`:
 | `Items` | State the interceptor keeps between hooks of one save, keyed by itself or anything it owns |
 
 To add a write during `SavingAsync`, queue it on the vault's collections as usual: it joins the save, and interceptors
-that run later see it.
+that run later see it. A write another task queues meanwhile waits for the next save, so every interceptor sees it.
 
 Each write is an `InsertOperation<T>`, `ReplaceOperation<T>`, `UpdateOperation<T>` or `DeleteOperation<T>`, with its
 `Kind`, `Collection`, `Document` when there's one, its key or filter, and after the write its own `Result`. An update's

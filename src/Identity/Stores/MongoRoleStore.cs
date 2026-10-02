@@ -66,9 +66,8 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         ArgumentNullException.ThrowIfNull(role);
 
         _roles.Replace(role);
-        await Vault.SaveAsync(cancellationToken);
 
-        return IdentityResult.Success;
+        return await SaveAsync(cancellationToken);
     }
 
     public virtual async Task<IdentityResult> DeleteAsync(TRole role,
@@ -79,9 +78,8 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         ArgumentNullException.ThrowIfNull(role);
 
         _roles.Delete(role);
-        await Vault.SaveAsync(cancellationToken);
 
-        return IdentityResult.Success;
+        return await SaveAsync(cancellationToken);
     }
 
     public virtual Task<string> GetRoleIdAsync(TRole role,
@@ -219,5 +217,19 @@ public class MongoRoleStore<TVault, TRole, TKey> : IQueryableRoleStore<TRole>,
         ArgumentNullException.ThrowIfNull(vault);
 
         return vault.Collection<TRole, TKey>();
+    }
+
+    /// <summary>Saves the vault, reporting a role changed or deleted since it was read as Identity's concurrency failure.</summary>
+    private async Task<IdentityResult> SaveAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Vault.SaveAsync(cancellationToken);
+            return IdentityResult.Success;
+        }
+        catch (ConcurrencyStampConflictException)
+        {
+            return IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure());
+        }
     }
 }

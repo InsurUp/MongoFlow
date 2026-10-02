@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 using Semver;
 
 namespace MongoFlow.IntegrationTests;
@@ -45,6 +46,27 @@ public partial class MigrationTests
         await ThrowsTask(() => migrator.MigrateAsync<MistypedVault>()).IgnoreStackTrace();
     }
 
-    private VaultHost<TVault> Pinned<TVault>(Action<IMigrationBuilder<TVault>> migrations) where TVault : MongoVault =>
-        new(Mongo.Client, Mongo.NewDatabase(), vault => vault.Migrations(migrations), services => Register(services));
+    [Test]
+    public async Task MigrateAllAsync_PendingBelowAndAppliedAboveTheVersion_RevertsBeforeApplying()
+    {
+        // Arrange — a release applied 1.0.0 and 2.0.0; the next one adds 1.1.0 and is pinned to it.
+        var database = Mongo.NewDatabase();
+        await using (var before = Pinned<PinnedVault>(m => m.Add<PinnedFirst>().Add<PinnedThird>(), database))
+        {
+            await before.Services.GetRequiredService<IVaultMigrator>().MigrateAsync<PinnedVault>(new SemVersion(2, 0, 0));
+        }
+
+        _steps.Entries.Clear();
+        await using var host = Pinned<PinnedVault>(m => m.Add<PinnedFirst>().Add<PinnedSecond>().Add<PinnedThird>(), database);
+
+        // Act
+        await host.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
+
+        // Assert
+        await Verify(_steps.Entries);
+    }
+
+    private VaultHost<TVault> Pinned<TVault>(Action<IMigrationBuilder<TVault>> migrations,
+        IMongoDatabase? database = null) where TVault : MongoVault =>
+        new(Mongo.Client, database ?? Mongo.NewDatabase(), vault => vault.Migrations(migrations), services => Register(services));
 }

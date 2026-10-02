@@ -12,7 +12,9 @@ namespace MongoFlow.IntegrationTests;
 /// <item>without one, a save runs in a transaction of its own, which its interceptors' saves join;</item>
 /// <item>a transaction runs <see cref="VaultInterceptor.CommittedAsync"/> after its commit and
 /// <see cref="VaultInterceptor.FailedAsync"/>, newest save first, when it's rolled back or its commit fails;</item>
-/// <item>a vault on another client can't join;</item>
+/// <item>a vault on another client can't join, and a save that fails to join runs no hooks;</item>
+/// <item>a scope's saves run one after another, and a transaction still open when its scope ends is rolled back; see
+/// <c>TransactionTests.Scope.cs</c>;</item>
 /// <item>a save that fails after writing rolls the open transaction back whole, which then fails whatever uses it until
 /// it's disposed; one that fails before writing leaves it usable. See <c>TransactionTests.FailedSaves.cs</c>.</item>
 /// </list>

@@ -5,9 +5,14 @@ using MongoDB.Driver;
 
 namespace MongoFlow;
 
-/// <summary>Turns each delete into an update that marks the document deleted, and marks the deleted document too.</summary>
+/// <summary>
+/// Turns each delete into an update that marks the document deleted, and marks the deleted document too, putting it back
+/// if the save fails, so a document that wasn't deleted doesn't look deleted, nor a tracked one carry the mark into the
+/// next save.
+/// </summary>
 internal sealed class SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(
     Expression<Func<TSoftDelete, TValue>> member,
+    Func<TSoftDelete, TValue> getMember,
     Action<TSoftDelete, TValue> setMember,
     Func<IServiceProvider, TValue> deletedValue) : VaultInterceptor
 {
@@ -21,6 +26,7 @@ internal sealed class SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(
         // Decided once per save that deletes, and serialized once, so the driver doesn't translate the member per delete.
         TValue value = default!;
         BsonValue? stored = null;
+        List<(TSoftDelete, TValue)> marked = null!;
 
         foreach (var operation in context.Operations)
         {
@@ -34,16 +40,36 @@ internal sealed class SoftDeleteInterceptor<TDocument, TSoftDelete, TValue>(
             {
                 value = deletedValue(context.Services);
                 stored = field.FieldSerializer.ToBsonValue(value);
+
+                // The interceptor is shared by every request, so what it marks is kept with the save.
+                marked = [];
+                context.Items[this] = marked;
             }
 
             if (delete.Document is TSoftDelete document)
             {
+                marked.Add((document, getMember(document)));
                 setMember(document, value);
             }
 
             // A document of its own for each update: combining updates merges later ones into the documents of earlier ones.
             var markDeleted = new BsonDocument("$set", new BsonDocument(field.FieldName, stored));
             context.Replace(delete, delete.ToUpdate(new BsonDocumentUpdateDefinition<TDocument>(markDeleted)));
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    /// <summary>Puts back what the deleted documents were marked with, newest first, since their deletes were rolled back.</summary>
+    public override ValueTask FailedAsync(SaveContext context, Exception exception, CancellationToken cancellationToken)
+    {
+        if (context.Items.Remove(this, out var items))
+        {
+            var marked = (List<(TSoftDelete Document, TValue Previous)>)items!;
+            for (var i = marked.Count - 1; i >= 0; i--)
+            {
+                setMember(marked[i].Document, marked[i].Previous);
+            }
         }
 
         return ValueTask.CompletedTask;

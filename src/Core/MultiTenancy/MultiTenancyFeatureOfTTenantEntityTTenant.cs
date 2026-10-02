@@ -44,7 +44,7 @@ internal sealed class MultiTenancyFeature<TTenantEntity, TTenant> : IVaultFeatur
         if (typeof(TDocument).IsAssignableTo(typeof(TTenantEntity)))
         {
             collection.AddInterceptor(new MultiTenancyInterceptor<TDocument, TTenantEntity, TTenant>(
-                _getTenantId, _setTenantId, _currentTenantId, _allTenants, _isUnset));
+                _tenantId, _getTenantId, _setTenantId, _currentTenantId, _allTenants, _isUnset));
             ((CollectionModelBuilder<TDocument>)collection).ExpectIndex(_tenantId);
         }
     }

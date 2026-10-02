@@ -75,6 +75,23 @@ internal sealed class ChangeTracker : IDisposable
         }
     }
 
+    /// <summary>Whether a tracked document changed since it was read or last saved.</summary>
+    public bool HasChanges()
+    {
+        lock (Lock)
+        {
+            foreach (var document in _documents.Values)
+            {
+                if (!document.Deleting && document.HasChanged())
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
     /// <summary>Forgets a document whose delete committed. Called holding <see cref="Lock"/>.</summary>
     public void Forget(TrackedDocument document)
     {

@@ -1,0 +1,17 @@
+﻿{
+  Errors: [
+    {
+      Code: ConcurrencyFailure,
+      Description: Optimistic concurrency failure, object has been modified.
+    }
+  ],
+  Stored: [
+    {
+      _id: {
+        $oid: 6600000000000000000000b1
+      },
+      Name: administrator,
+      NormalizedName: ADMINISTRATOR
+    }
+  ]
+}

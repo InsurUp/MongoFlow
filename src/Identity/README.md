@@ -63,6 +63,12 @@ var user = await allTenants.FindByEmailAsync(email);
 var deletedRoles = roleManager.Without(SoftDeleteFeature.Key);
 ```
 
+### Concurrency
+
+Updates and deletes of users and roles apply only while the stored `ConcurrencyStamp` is the one read, and an update
+renews it, as Identity's Entity Framework store does: one made after another request changed the user fails with
+`ConcurrencyFailure`, rather than overwriting the other's change. Deleting a user deletes its tokens with it.
+
 ## More
 
 - [MongoFlow's docs](https://github.com/InsurUp/MongoFlow#readme): the vault, its configuration, features and

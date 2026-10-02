@@ -9,10 +9,10 @@ ID; refer to them by constant, not by number.
 |---|---|
 | `MongoFlow.Model` | A vault's model built, at `Debug` |
 | `MongoFlow.Indexes` | Indexes a vault relies on and lacks, at `Warning`; the check itself at `Debug` |
-| `MongoFlow.Save` | Each save: starting, how many tracked documents changed, and how it ended, at `Debug`; each write at `Trace`; a concurrency conflict or a write to another tenant, at `Debug`; an interceptor's `FailedAsync` throwing, at `Error` |
+| `MongoFlow.Save` | Each save: starting, how many tracked documents changed, and how it ended, at `Debug`; each write at `Trace`; a concurrency conflict or a write to another tenant, at `Debug`; an interceptor's `FailedAsync` or `CommittedAsync` throwing, at `Error` |
 | `MongoFlow.Transaction` | Transactions begun with `BeginAsync`: begun, committed, rolled back or doomed, at `Debug`; one a save opens for itself at `Trace` |
 | `MongoFlow.Query` | Each read, with the query filters it runs with, at `Trace` |
-| `MongoFlow.Migrations` | Migrations applied and reverted, at `Information`; a failure at `Error` |
+| `MongoFlow.Migrations` | Migrations applied and reverted, at `Information`; a history recording a version twice, at `Warning`; a failure at `Error` |
 
 ```json
 {

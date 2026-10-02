@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -121,7 +122,9 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
 
     protected virtual CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)
     {
-        if (typeof(TDocument).IsClass)
+        // Only a class map can fail to read the _id; a BsonDocument, or a type with a serializer of its own, reads it as it
+        // reads anything else.
+        if (definition.Collection.DocumentSerializer is BsonClassMapSerializer<TDocument>)
         {
             var classMap = BsonClassMap.LookupClassMap(typeof(TDocument));
             if (classMap.IdMemberMap is null && !classMap.IgnoreExtraElements)

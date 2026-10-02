@@ -68,6 +68,29 @@ public class MongoRoleStoreTests
     }
 
     [Test]
+    public async Task UpdateAsync_RoleChangedSinceItWasRead_FailsWithConcurrencyFailure()
+    {
+        // Arrange — two requests read the role; the first renames it, which renews its stamp.
+        await using var host = Host();
+        await Roles(host).CreateAsync(Admin());
+        await using var first = host.CreateScope();
+        await using var second = host.CreateScope();
+        var firstRoles = first.ServiceProvider.GetRequiredService<RoleManager<MongoRole>>();
+        var secondRoles = second.ServiceProvider.GetRequiredService<RoleManager<MongoRole>>();
+        var firstAdmin = (await firstRoles.FindByIdAsync(AdminId.ToString()))!;
+        var secondAdmin = (await secondRoles.FindByIdAsync(AdminId.ToString()))!;
+        await firstRoles.SetRoleNameAsync(firstAdmin, "administrator");
+        await firstRoles.UpdateAsync(firstAdmin);
+        await secondRoles.SetRoleNameAsync(secondAdmin, "root");
+
+        // Act
+        var result = await secondRoles.UpdateAsync(secondAdmin);
+
+        // Assert
+        await Verify(new { result.Errors, Stored = IdentityDocuments.Stable(await host.StoredAsync("Roles")) });
+    }
+
+    [Test]
     public async Task DeleteAsync_StoredRole_RemovesIt()
     {
         // Arrange

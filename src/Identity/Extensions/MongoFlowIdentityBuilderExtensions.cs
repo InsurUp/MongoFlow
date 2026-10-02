@@ -63,13 +63,21 @@ public static class MongoFlowIdentityBuilderExtensions
         // The managers that can switch a feature off take the place of Identity's own.
         services.RemoveAll(userManager);
         services.RemoveAll(roleManager);
-        services.AddScoped(userManager, provider => ActivatorUtilities.CreateInstance(provider, userManagerWrapper));
-        services.AddScoped(roleManager, provider => ActivatorUtilities.CreateInstance(provider, roleManagerWrapper));
+        services.AddScoped(userManager, userManagerWrapper);
+        services.AddScoped(roleManager, roleManagerWrapper);
+
+        // Users and roles are written only while their stamp is the one read, as Identity's own stores do.
+        services.AddMongoVault<TVault>(vault => vault
+            .AddInterceptor(Guard(userType), interceptor => interceptor.For(collection => collection.DocumentType == userType))
+            .AddInterceptor(Guard(roleType), interceptor => interceptor.For(collection => collection.DocumentType == roleType)));
 
         MongoIdentityConfiguration.ConfigureByType(keyType);
 
         return builder;
     }
+
+    private static VaultInterceptor Guard(Type documentType) =>
+        (VaultInterceptor)Activator.CreateInstance(typeof(ConcurrencyStampGuard<>).MakeGenericType(documentType))!;
 
     private static Type? FindGenericBase(Type type,
         Type genericDefinition)

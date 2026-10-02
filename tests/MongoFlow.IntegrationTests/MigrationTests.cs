@@ -16,7 +16,7 @@ namespace MongoFlow.IntegrationTests;
 /// <item>without a target, a vault goes to the version its <see cref="MongoVersionAttribute"/> names, which must be one of
 /// its migrations'; see <c>MigrationTests.Versions.cs</c>;</item>
 /// <item>a migration added below the current version still runs, and the history earlier MongoFlow versions wrote
-/// counts;</item>
+/// counts, even recording a version twice;</item>
 /// <item>every registered vault is migrated, each recording in a collection of its own;</item>
 /// <item>a migration that fails, or leaves writes unsaved, rolls back what it did in its transaction and isn't recorded;
 /// see <c>MigrationTests.Failures.cs</c>.</item>
@@ -128,6 +128,28 @@ public partial class MigrationTests
     }
 
     [Test]
+    public async Task MigrateAsync_HistoryRecordingAVersionTwice_MigratesAndWarns()
+    {
+        // Arrange — two instances migrating at once under an earlier version recorded 1.0.0 twice.
+        await using var host = Host(m => m.Add<SeedEntries>().Add<ActivateEntries>());
+        await host.SeedAsync("migrations",
+            LegacyRecord(ObjectId.Parse("5f0c0ffee000000000001234")),
+            LegacyRecord(ObjectId.Parse("5f0c0ffee000000000001235")));
+
+        // Act
+        await Migrator(host).MigrateAsync<RegistryVault>();
+
+        // Assert
+        await Verify(new
+        {
+            _steps.Entries,
+            Warnings = _sink.Snapshot(MongoFlowLogEvents.Migrations.Category)
+                .Where(entry => entry.EventId == MongoFlowLogEvents.Migrations.HistoryHasDuplicates)
+                .Select(entry => entry.Message)
+        });
+    }
+
+    [Test]
     public async Task MigrateAsync_WithAndWithoutATransaction_GivesTheMigrationTheVaultsDatabaseAndASession()
     {
         // Arrange
@@ -223,6 +245,16 @@ public partial class MigrationTests
         // Assert
         await Verify(_sink.Snapshot(MongoFlowLogEvents.Migrations.Category));
     }
+
+    // A record of SeedEntries as earlier versions wrote it.
+    private static BsonDocument LegacyRecord(ObjectId id) => new()
+    {
+        ["_id"] = id,
+        ["Version"] = "1.0.0",
+        ["Name"] = "SeedEntries",
+        ["Description"] = BsonNull.Value,
+        ["Timestamp"] = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+    };
 
     private VaultHost<RegistryVault> Host(Action<IMigrationBuilder<RegistryVault>> migrations,
         IMongoDatabase? database = null) =>

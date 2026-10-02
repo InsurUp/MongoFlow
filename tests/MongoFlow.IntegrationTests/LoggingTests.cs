@@ -10,7 +10,7 @@ namespace MongoFlow.IntegrationTests;
 /// <list type="number">
 /// <item>a save starting, each operation it writes (at <see cref="LogLevel.Trace"/>) and how it ends;</item>
 /// <item>what fails a save: a write the server rejects, a concurrency conflict, a write to another tenant, a commit;</item>
-/// <item>an interceptor's failure hook throwing, which is swallowed and so logged as an error;</item>
+/// <item>an interceptor's failure or commit hook throwing, which is swallowed and so logged as an error;</item>
 /// <item>the key and query filters a lookup by key runs with, at <see cref="LogLevel.Trace"/>;</item>
 /// <item>how many of the vault's tracked documents a save found changed;</item>
 /// <item>collections missing the indexes their key or features rely on; see <c>LoggingTests.Indexes.cs</c>.</item>
@@ -71,6 +71,20 @@ public partial class LoggingTests
 
         // Assert
         await Verify(_sink.Snapshot("MongoFlow.Save").Where(entry => entry.EventId == MongoFlowLogEvents.Save.ChangesDetected));
+    }
+
+    [Test]
+    public async Task SaveAsync_ACommittedHookThrows_LogsItAsAnError()
+    {
+        // Arrange
+        await using var host = Host<ShopVault>(vault => vault.AddInterceptor(new InterceptorTests.ThrowingInterceptor(InterceptorTests.Hook.Committed)));
+        host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(_sink.Snapshot("MongoFlow.Save").Where(entry => entry.EventId == MongoFlowLogEvents.Save.CommittedHookThrew));
     }
 
     [Test]
