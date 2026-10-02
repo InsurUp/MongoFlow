@@ -3,7 +3,7 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
-## [1.0.0-beta.1] - Unreleased
+## [1.0.0-beta.1] - 2026-10-03
 
 A redesign. The vault is the one entry point, each setting has one place, and a save is one client bulk write in a
 transaction. Almost every public type changed; [Moving from 0.5](#moving-from-05) maps the old API to the new one.
@@ -137,4 +137,4 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
-[1.0.0-beta.1]: https://github.com/InsurUp/MongoFlow/compare/v0.5.7...HEAD
+[1.0.0-beta.1]: https://github.com/InsurUp/MongoFlow/compare/v0.5.7...v1.0.0-beta.1
