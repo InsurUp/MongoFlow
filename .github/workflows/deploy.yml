@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  packages: write   # MongoFlow.V1 goes to GitHub Packages
 
 jobs:
   build-and-publish:
@@ -45,5 +46,19 @@ jobs:
             -p:Version=${{ steps.get_version.outputs.version }}
         done
 
+    # Each 1.x release also ships as MongoFlow.V1: the same library and namespace under its own package id and assembly
+    # name, so an app can load it next to 0.5 while it moves module by module. Built apart from the regular build, and
+    # packed apart from the packages nuget.org gets: it's only for that move, so it goes to GitHub Packages.
+    - name: Pack MongoFlow.V1
+      if: startsWith(github.ref_name, 'v1.')
+      run: |
+        dotnet pack src/Core/MongoFlow.csproj --configuration Release --artifacts-path artifacts/v1 \
+          --output artifacts/v1-packages -p:Version=${{ steps.get_version.outputs.version }} \
+          -p:PackageId=MongoFlow.V1 -p:AssemblyName=MongoFlow.V1 -p:IncludeSymbols=false
+
     - name: Push to NuGet
       run: dotnet nuget push "artifacts/packages/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+    - name: Push MongoFlow.V1 to GitHub Packages
+      if: startsWith(github.ref_name, 'v1.')
+      run: dotnet nuget push "artifacts/v1-packages/*.nupkg" --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/InsurUp/index.json --skip-duplicate
