@@ -25,9 +25,6 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
     /// <inheritdoc/>
     public override bool IsSetBased => Filter is not null;
 
-    /// <summary>The key of the one document to update, or <see langword="null"/> when the operation is set-based.</summary>
-    public object? Key => Target?.Key;
-
     /// <summary>The documents to update, or <see langword="null"/> when the operation targets a key.</summary>
     public Expression<Func<TDocument, bool>>? Filter { get; }
 

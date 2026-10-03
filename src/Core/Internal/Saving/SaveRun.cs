@@ -111,7 +111,7 @@ internal sealed class SaveRun(VaultRuntime runtime,
         {
             if (tracing)
             {
-                log.Writing(operation.Kind, operation.Namespace.CollectionName, operation.TargetKey, operation.IsSetBased);
+                log.Writing(operation.Kind, operation.Namespace.CollectionName, operation.Key, operation.IsSetBased);
             }
 
             models.Add(await operation.CreateWriteModelAsync(this, cancellationToken));

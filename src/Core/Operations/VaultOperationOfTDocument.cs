@@ -24,7 +24,8 @@ public abstract class VaultOperation<TDocument> : VaultOperation
     /// <summary>The one document the operation targets by key, or <see langword="null"/> for inserts and set-based operations.</summary>
     internal KeyTarget<TDocument>? Target { get; }
 
-    internal override object? TargetKey => Target?.Key;
+    /// <inheritdoc/>
+    public override object? Key => Target?.Key;
 
     /// <summary>
     /// A filter the stored document must match as well, or <see langword="null"/>: such as <c>{ Version: 3 }</c>, which the

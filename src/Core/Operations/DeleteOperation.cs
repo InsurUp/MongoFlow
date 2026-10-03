@@ -23,9 +23,6 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
     /// <inheritdoc/>
     public override bool IsSetBased => Filter is not null;
 
-    /// <summary>The key of the one document to delete, or <see langword="null"/> when the operation is set-based.</summary>
-    public object? Key => Target?.Key;
-
     /// <summary>The documents to delete, or <see langword="null"/> when the operation targets a key.</summary>
     public Expression<Func<TDocument, bool>>? Filter { get; }
 

@@ -94,7 +94,9 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
 
             var exists = await operation.TargetExistsAsync(context.Run, condition: null, cancellationToken);
 
-            context.Run.Runtime.Model.Logs.Save.ConcurrencyConflict(operation.Namespace.CollectionName, operation.TargetKey, exists);
+            context.Run.Runtime.Model.Logs.Save.ConcurrencyConflict(operation.Namespace.CollectionName,
+                operation.Key,
+                exists);
             throw new ConcurrencyException(operation, exists);
         }
     }

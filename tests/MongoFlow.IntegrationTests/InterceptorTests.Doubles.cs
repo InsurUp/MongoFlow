@@ -230,6 +230,20 @@ public partial class InterceptorTests
         }
     }
 
+    /// <summary>Records the key of each write, as an interceptor that doesn't know document types reads it.</summary>
+    public sealed class KeyRecorder : VaultInterceptor
+    {
+        public List<object> Keys { get; } = [];
+
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            Keys.AddRange(context.Operations.Select(operation =>
+                new { operation.Kind, operation.Collection.PropertyName, Key = operation.Key ?? "none" }));
+
+            return ValueTask.CompletedTask;
+        }
+    }
+
     /// <summary>Adds a condition to every update of an order.</summary>
     public sealed class OrderCondition(FilterDefinition<Order> condition) : VaultInterceptor
     {

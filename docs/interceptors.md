@@ -58,7 +58,9 @@ To add a write during `SavingAsync`, queue it on the vault's collections as usua
 that run later see it. A write another task queues meanwhile waits for the next save, so every interceptor sees it.
 
 Each write is an `InsertOperation<T>`, `ReplaceOperation<T>`, `UpdateOperation<T>` or `DeleteOperation<T>`, with its
-`Kind`, `Collection`, `Document` when there's one, its key or filter, and after the write its own `Result`. An update's
+`Kind`, `Collection`, `Document` when there's one, the `Key` of the document it targets or its filter, and after the
+write its own `Result`. `Key` is on every operation, so an interceptor for every collection reads it without knowing
+the document type; it's `null` for an insert, whose key is on its document, and for a set-based write. An update's
 `WithUpdate(update)` and a delete's `ToUpdate(update)` give a copy with another update definition, to put in its place.
 
 A write that brings a [tracked](change-tracking.md) document up to date also has its `Original`: the document as it was

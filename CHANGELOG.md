@@ -3,6 +3,15 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `Key` is on `VaultOperation`, so an interceptor for every collection reads the key a write targets without knowing
+  the document type: `null` for an insert, whose key is on its document, and for a set-based write.
+  `UpdateOperation<T>.Key` and `DeleteOperation<T>.Key` are now that property; `ReplaceOperation<T>.Key` stays
+  non-nullable.
+
 ## [1.0.0-beta.2] - 2026-10-03
 
 ### Added
@@ -150,5 +159,6 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[Unreleased]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.2...HEAD
 [1.0.0-beta.2]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [1.0.0-beta.1]: https://github.com/InsurUp/MongoFlow/compare/v0.5.7...v1.0.0-beta.1

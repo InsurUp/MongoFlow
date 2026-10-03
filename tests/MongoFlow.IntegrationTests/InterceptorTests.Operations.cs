@@ -26,6 +26,29 @@ public partial class InterceptorTests
     }
 
     [Test]
+    public async Task Key_EachKindOfWrite_IsTheKeyItTargets()
+    {
+        // Arrange — policies are keyed by their number, tokens by user and provider together.
+        var keys = new KeyRecorder();
+        await using var host = Mongo.Host<InsuranceVault>(vault => vault.AddInterceptor(keys));
+        var policy = new Policy { Number = "P-1", Holder = "ada" };
+        var token = new LoginToken { Id = 1, UserId = "u-1", Provider = "github", Value = "first" };
+        host.Vault.Policies.Add(policy);
+        host.Vault.Policies.Replace(policy);
+        host.Vault.Policies.UpdateByKey("P-2", Builders<Policy>.Update.Set(x => x.Holder, "bob"));
+        host.Vault.Policies.UpdateMany(x => x.Holder == "cy", Builders<Policy>.Update.Set(x => x.Holder, "dee"));
+        host.Vault.Tokens.Delete(token);
+        host.Vault.Tokens.DeleteByKey(new TokenKey("u-2", "google"));
+        host.Vault.Tokens.DeleteMany(x => x.Provider == "gitlab");
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(keys.Keys);
+    }
+
+    [Test]
     public async Task SavingAsync_ReplacingAnOperation_WritesTheReplacement()
     {
         // Arrange
