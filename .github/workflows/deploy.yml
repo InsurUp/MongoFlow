@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write   # nuget.org trusted publishing
   packages: write   # MongoFlow.V1 goes to GitHub Packages
 
 jobs:
@@ -26,7 +27,7 @@ jobs:
 
     - name: Get version from tag
       id: get_version
-      run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
     - name: Restore dependencies
       run: dotnet restore MongoFlow.sln
@@ -56,8 +57,17 @@ jobs:
           --output artifacts/v1-packages -p:Version=${{ steps.get_version.outputs.version }} \
           -p:PackageId=MongoFlow.V1 -p:AssemblyName=MongoFlow.V1 -p:IncludeSymbols=false
 
+    # Trusted publishing: nuget.org trades the workflow's OIDC token for an API key that lasts an hour, so no key is
+    # stored. Its policy, owned by the InsurUp organization on nuget.org, names this repository and deploy.yml;
+    # NUGET_USER is the nuget.org user who created it.
+    - name: NuGet login
+      id: nuget
+      uses: NuGet/login@v1
+      with:
+        user: ${{ secrets.NUGET_USER }}
+
     - name: Push to NuGet
-      run: dotnet nuget push "artifacts/packages/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push "artifacts/packages/*.nupkg" --api-key ${{ steps.nuget.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
     - name: Push MongoFlow.V1 to GitHub Packages
       if: startsWith(github.ref_name, 'v1.')
