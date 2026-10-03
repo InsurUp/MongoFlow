@@ -29,6 +29,28 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
     IVaultCollectionBuilder<TDocument> QueryFilter(
         Func<IServiceProvider, CancellationToken, ValueTask<Expression<Func<TDocument, bool>>>> filter);
 
+    /// <summary>
+    /// Adds a query filter whose parameter type is only known at run time, such as one built for every collection: a
+    /// lambda of one parameter that a <typeparamref name="TDocument"/> can be passed as, such as
+    /// <typeparamref name="TDocument"/> itself, an interface it implements or <see cref="object"/>, returning
+    /// <see cref="bool"/>. It's rewritten over <typeparamref name="TDocument"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="filter"/> can't filter <typeparamref name="TDocument"/>.
+    /// </exception>
+    IVaultCollectionBuilder<TDocument> QueryFilter(LambdaExpression filter);
+
+    /// <summary>
+    /// Adds a query filter decided per query from the request's services, as a lambda whose parameter type is only
+    /// known at run time; see <see cref="QueryFilter(LambdaExpression)"/>. One that can't filter
+    /// <typeparamref name="TDocument"/> fails the query with <see cref="InvalidOperationException"/>.
+    /// </summary>
+    IVaultCollectionBuilder<TDocument> QueryFilter(Func<IServiceProvider, LambdaExpression> filter);
+
+    /// <inheritdoc cref="QueryFilter(Func{IServiceProvider, LambdaExpression})"/>
+    IVaultCollectionBuilder<TDocument> QueryFilter(
+        Func<IServiceProvider, CancellationToken, ValueTask<LambdaExpression>> filter);
+
     /// <summary>Opts this collection out of a feature added to the vault.</summary>
     IVaultCollectionBuilder<TDocument> Without(FeatureKey feature);
 

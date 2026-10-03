@@ -3,6 +3,15 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- A collection's `QueryFilter` takes a `LambdaExpression`, static, per query or asynchronous, for a filter whose
+  parameter type is only known at run time, such as one built for every collection: its parameter can be the document
+  type, a type it derives from or implements, or `object`, and it's rewritten over the document type. One that can't
+  filter the documents fails with `ArgumentException` when added, or fails its query with `InvalidOperationException`.
+
 ## [1.0.0-beta.4] - 2026-10-03
 
 ### Added
@@ -168,6 +177,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[Unreleased]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.4...HEAD
 [1.0.0-beta.4]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.3...v1.0.0-beta.4
 [1.0.0-beta.3]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.2...v1.0.0-beta.3
 [1.0.0-beta.2]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.1...v1.0.0-beta.2

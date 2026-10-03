@@ -80,6 +80,12 @@ public partial class VaultBuilderTests
             audit => audit.QueryFilter((Func<IServiceProvider, Expression<Func<AuditEntry, bool>>>)null!)));
         yield return () => ("Collection.QueryFilter(async)", vault => vault.Collection(x => x.Audit, audit =>
             audit.QueryFilter((Func<IServiceProvider, CancellationToken, ValueTask<Expression<Func<AuditEntry, bool>>>>)null!)));
+        yield return () => ("Collection.QueryFilter(lambda)",
+            vault => vault.Collection(x => x.Audit, audit => audit.QueryFilter((LambdaExpression)null!)));
+        yield return () => ("Collection.QueryFilter(lambda per query)", vault => vault.Collection(x => x.Audit,
+            audit => audit.QueryFilter((Func<IServiceProvider, LambdaExpression>)null!)));
+        yield return () => ("Collection.QueryFilter(lambda async)", vault => vault.Collection(x => x.Audit, audit =>
+            audit.QueryFilter((Func<IServiceProvider, CancellationToken, ValueTask<LambdaExpression>>)null!)));
         yield return () => ("Collection.AddInterceptor", vault => vault.Collection(x => x.Audit, audit => audit.AddInterceptor(null!)));
         yield return () => ("KeyedCollection.Key", vault => vault.Collection(x => x.Orders, orders => orders.Key(null!)));
         yield return () => ("KeyedCollection.Name", vault => vault.Collection(x => x.Orders, orders => orders.Name(null!)));
@@ -89,6 +95,12 @@ public partial class VaultBuilderTests
             orders => orders.QueryFilter((Func<IServiceProvider, Expression<Func<Order, bool>>>)null!)));
         yield return () => ("KeyedCollection.QueryFilter(async)", vault => vault.Collection(x => x.Orders, orders =>
             orders.QueryFilter((Func<IServiceProvider, CancellationToken, ValueTask<Expression<Func<Order, bool>>>>)null!)));
+        yield return () => ("KeyedCollection.QueryFilter(lambda)",
+            vault => vault.Collection(x => x.Orders, orders => orders.QueryFilter((LambdaExpression)null!)));
+        yield return () => ("KeyedCollection.QueryFilter(lambda per query)", vault => vault.Collection(x => x.Orders,
+            orders => orders.QueryFilter((Func<IServiceProvider, LambdaExpression>)null!)));
+        yield return () => ("KeyedCollection.QueryFilter(lambda async)", vault => vault.Collection(x => x.Orders,
+            orders => orders.QueryFilter((Func<IServiceProvider, CancellationToken, ValueTask<LambdaExpression>>)null!)));
         yield return () => ("KeyedCollection.AddInterceptor", vault => vault.Collection(x => x.Orders, orders => orders.AddInterceptor(null!)));
     }
 

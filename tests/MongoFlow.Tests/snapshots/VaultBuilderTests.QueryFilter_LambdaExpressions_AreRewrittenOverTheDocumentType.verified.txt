@@ -1,0 +1,4 @@
+﻿{
+  Orders: unit.Orders.Aggregate([{ "$match" : { "TenantId" : "t-1", "Total" : { "$gt" : { "$numberDecimal" : "10" } } } }]),
+  Audit: unit.Audit.Aggregate([{ "$match" : { "TenantId" : "t-1", "Message" : { "$ne" : "" } } }])
+}
