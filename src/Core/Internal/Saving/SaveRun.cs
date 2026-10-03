@@ -185,6 +185,9 @@ internal sealed class SaveRun(VaultRuntime runtime,
         finally
         {
             Running.Value = null;
+
+            // Its last hooks have run; without interceptors, nothing can read the originals, and its disposal ends it.
+            tracked?.End();
         }
     }
 
@@ -222,6 +225,7 @@ internal sealed class SaveRun(VaultRuntime runtime,
         finally
         {
             Running.Value = null;
+            tracked?.End();
         }
     }
 
@@ -299,6 +303,7 @@ internal sealed class SaveRun(VaultRuntime runtime,
         if (!_disposed)
         {
             _disposed = true;
+            tracked?.End();
             Operations.Dispose();
             TakeAdded();
         }

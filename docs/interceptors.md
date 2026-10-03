@@ -61,6 +61,10 @@ Each write is an `InsertOperation<T>`, `ReplaceOperation<T>`, `UpdateOperation<T
 `Kind`, `Collection`, `Document` when there's one, its key or filter, and after the write its own `Result`. An update's
 `WithUpdate(update)` and a delete's `ToUpdate(update)` give a copy with another update definition, to put in its place.
 
+A write that brings a [tracked](change-tracking.md) document up to date also has its `Original`: the document as it was
+before the save, as a `RawBsonDocument`; see
+[the document before the save](change-tracking.md#the-document-before-the-save).
+
 ## Examples
 
 ### Timestamps, in the update itself
@@ -165,7 +169,8 @@ public sealed class AuditTrailInterceptor(IAuditVault audit, ICurrentUser user) 
 ```
 
 A vault can't save itself from its own interceptors; the audit vault skips the defaults that add this interceptor, so it
-doesn't audit its own writes.
+doesn't audit its own writes. With change tracking, an entry can hold the document before the change too, from the
+operation's `Original`, without reading it back.
 
 ### A transactional outbox
 

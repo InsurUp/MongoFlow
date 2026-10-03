@@ -1,0 +1,66 @@
+﻿[
+  {
+    Hook: Saving,
+    Kind: Update,
+    Original: {
+      _id: 1,
+      Name: Ada,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: first,
+      Tags: [
+        early
+      ]
+    }
+  },
+  {
+    Hook: Saving,
+    Kind: Update,
+    Original: {
+      _id: 1,
+      Name: Ada Lovelace,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: first,
+      Tags: [
+        early
+      ]
+    }
+  },
+  {
+    Hook: Committed,
+    Kind: Update,
+    Original: {
+      _id: 1,
+      Name: Ada,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: first,
+      Tags: [
+        early
+      ]
+    }
+  },
+  {
+    Hook: Committed,
+    Kind: Update,
+    Original: {
+      _id: 1,
+      Name: Ada Lovelace,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: first,
+      Tags: [
+        early
+      ]
+    }
+  }
+]

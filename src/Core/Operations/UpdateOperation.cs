@@ -38,11 +38,16 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
     public UpdateDefinition<TDocument> Update { get; internal set; }
 
     /// <summary>
-    /// The same target, document and condition with a different definition, keeping the features switched off. Replace the operation
-    /// with it to add changes of your own, such as <c>Builders&lt;T&gt;.Update.Combine(operation.Update, stamp)</c>.
+    /// The same target, document, condition and original with a different definition, keeping the features switched
+    /// off. Replace the operation with it to add changes of your own, such as
+    /// <c>Builders&lt;T&gt;.Update.Combine(operation.Update, stamp)</c>.
     /// </summary>
     public UpdateOperation<TDocument> WithUpdate(UpdateDefinition<TDocument> update) =>
-        new(TypedModel, DisabledFeatures, Target, Filter, update, Document) { Condition = Condition };
+        new(TypedModel, DisabledFeatures, Target, Filter, update, Document)
+        {
+            Condition = Condition,
+            TrackedOriginal = TrackedOriginal
+        };
 
     internal override async ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken)

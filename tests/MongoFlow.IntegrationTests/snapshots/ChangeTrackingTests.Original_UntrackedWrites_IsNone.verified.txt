@@ -1,0 +1,17 @@
+﻿[
+  {
+    Hook: Saving,
+    Kind: Replace,
+    Original: none
+  },
+  {
+    Hook: Saving,
+    Kind: Update,
+    Original: none
+  },
+  {
+    Hook: Saving,
+    Kind: Insert,
+    Original: none
+  }
+]

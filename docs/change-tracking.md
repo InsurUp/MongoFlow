@@ -67,6 +67,33 @@ checks and increments it like any update made with a document.
 Tracked updates go before the queued writes, so a document changed and then deleted with `DeleteByKey` in the same save
 is updated first.
 
+### The document before the save
+
+A save already holds each tracked document as it was before the save, to compare it with: as it was read, or as the last
+save wrote it. Interceptors get it as the operation's `Original`, a `RawBsonDocument`, on the writes that bring a
+tracked document up to date: its update, and a queued `Replace` or `Delete` of it, including the update soft delete
+makes of a delete. It's `null` on every other write, such as an `UpdateByKey`, or a `Replace` of a document read without
+tracking.
+
+```csharp
+public override ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken)
+{
+    foreach (var operation in context.Operations)
+    {
+        if (operation is UpdateOperation<Policy> { Original: { } before } update)
+        {
+            audit.Log(before, update.Document, update.Update);
+        }
+    }
+
+    return ValueTask.CompletedTask;
+}
+```
+
+It's serialized with the collection's serializer, so fields the class doesn't map aren't in it. It's copied the first
+time it's read, so saves no interceptor reads it in pay nothing. Read it in the save's hooks, `CommittedAsync` and
+`FailedAsync` included: once they've run, an original nobody read can't be read any more, while one that was read stays.
+
 ## Rules
 
 - A key can't change: a save that finds a tracked document's key changed fails with `InvalidOperationException` before

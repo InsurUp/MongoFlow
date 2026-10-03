@@ -1,0 +1,39 @@
+﻿[
+  {
+    Hook: Saved,
+    Kind: Replace,
+    Original: {
+      _id: 1,
+      Name: Ada,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: first,
+      Tags: [
+        early
+      ]
+    }
+  },
+  {
+    Hook: Saved,
+    Kind: Delete,
+    Original: {
+      _id: 2,
+      Name: Bob,
+      Address: {
+        City: ,
+        Zip: 
+      }
+    }
+  },
+  {
+    Hook: Saved,
+    Kind: Update,
+    Original: {
+      _id: 3,
+      Name: cy,
+      IsDeleted: false
+    }
+  }
+]

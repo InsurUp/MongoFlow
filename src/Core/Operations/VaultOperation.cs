@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -35,6 +36,21 @@ public abstract class VaultOperation
     public object? Document => GetDocument();
 
     /// <summary>
+    /// For a write that brings a tracked document up to date, the document as it was before the save: as it was read,
+    /// or as the last save wrote it, serialized with the collection's serializer. These are the update change tracking
+    /// writes and a queued <c>Replace</c> or <c>Delete</c> of a tracked document, including the update soft delete
+    /// makes of it. <see langword="null"/> for any other write.
+    /// </summary>
+    /// <remarks>
+    /// The save already holds it, to compare the document with, and copies it the first time it's read, so saves no
+    /// interceptor reads it in pay nothing. Read it during the save's interceptor hooks; what was read stays readable.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Read for the first time after the save's hooks ran, or after the vault was disposed.
+    /// </exception>
+    public RawBsonDocument? Original => TrackedOriginal?.Read();
+
+    /// <summary>
     /// <see langword="true"/> for operations that target a filter rather than a key, which can change many documents.
     /// </summary>
     public abstract bool IsSetBased { get; }
@@ -44,6 +60,9 @@ public abstract class VaultOperation
 
     /// <summary>The features switched off on the collection view the operation was queued through.</summary>
     internal FeatureSet DisabledFeatures { get; }
+
+    /// <summary>Where <see cref="Original"/> is, for a write of a tracked document.</summary>
+    internal TrackedOriginal? TrackedOriginal { get; set; }
 
     /// <summary>The key of the one document the operation targets, or <see langword="null"/> for inserts and set-based operations.</summary>
     internal abstract object? TargetKey { get; }
