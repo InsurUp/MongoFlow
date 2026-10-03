@@ -1,0 +1,43 @@
+﻿[
+  {
+    Kind: Insert,
+    PropertyName: Policies,
+    Key: none
+  },
+  {
+    Kind: Replace,
+    PropertyName: Policies,
+    Key: P-1
+  },
+  {
+    Kind: Update,
+    PropertyName: Policies,
+    Key: P-2
+  },
+  {
+    Kind: Update,
+    PropertyName: Policies,
+    Key: none
+  },
+  {
+    Kind: Delete,
+    PropertyName: Tokens,
+    Key: {
+      UserId: u-1,
+      Provider: github
+    }
+  },
+  {
+    Kind: Delete,
+    PropertyName: Tokens,
+    Key: {
+      UserId: u-2,
+      Provider: google
+    }
+  },
+  {
+    Kind: Delete,
+    PropertyName: Tokens,
+    Key: none
+  }
+]

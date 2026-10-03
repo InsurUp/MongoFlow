@@ -36,6 +36,13 @@ public abstract class VaultOperation
     public object? Document => GetDocument();
 
     /// <summary>
+    /// The key of the one document the operation targets, of the collection's key type, such as a composite key's
+    /// record: read from the document for a write made with one, or the key a write by key was given.
+    /// <see langword="null"/> for an insert, whose key is on its <see cref="Document"/>, and for a set-based write.
+    /// </summary>
+    public abstract object? Key { get; }
+
+    /// <summary>
     /// For a write that brings a tracked document up to date, the document as it was before the save: as it was read,
     /// or as the last save wrote it, serialized with the collection's serializer. These are the update change tracking
     /// writes and a queued <c>Replace</c> or <c>Delete</c> of a tracked document, including the update soft delete
@@ -63,9 +70,6 @@ public abstract class VaultOperation
 
     /// <summary>Where <see cref="Original"/> is, for a write of a tracked document.</summary>
     internal TrackedOriginal? TrackedOriginal { get; set; }
-
-    /// <summary>The key of the one document the operation targets, or <see langword="null"/> for inserts and set-based operations.</summary>
-    internal abstract object? TargetKey { get; }
 
     /// <summary>The model this operation adds to the save's bulk write.</summary>
     internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
