@@ -1,0 +1,57 @@
+﻿[
+  {
+    Kind: Insert,
+    Filter: none,
+    Update: none
+  },
+  {
+    Kind: Replace,
+    Filter: none,
+    Update: none
+  },
+  {
+    Kind: Update,
+    Filter: none,
+    Update: {
+      $set: {
+        Holder: bob
+      }
+    }
+  },
+  {
+    Kind: Update,
+    Filter: {
+      number: P-3
+    },
+    Update: {
+      $set: {
+        Holder: cy
+      }
+    }
+  },
+  {
+    Kind: Update,
+    Filter: {
+      Holder: eve
+    },
+    Update: [
+      {
+        $set: {
+          Holder: dee
+        }
+      }
+    ]
+  },
+  {
+    Kind: Delete,
+    Filter: none,
+    Update: none
+  },
+  {
+    Kind: Delete,
+    Filter: {
+      Holder: eve
+    },
+    Update: none
+  }
+]

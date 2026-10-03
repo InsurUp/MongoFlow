@@ -3,6 +3,15 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `VaultOperation.RenderFilter()` and `RenderUpdate()`: a set-based write's filter and an update's definition,
+  rendered with the collection's serializers as the write is sent, so an interceptor for every collection can log an
+  `UpdateMany` or a `DeleteMany` without knowing the document type. The filter is the caller's own, without the query
+  filters added when the write is sent; an update renders to an array for a pipeline.
+
 ## [1.0.0-beta.3] - 2026-10-03
 
 ### Changed
@@ -159,6 +168,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[Unreleased]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.3...HEAD
 [1.0.0-beta.3]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.2...v1.0.0-beta.3
 [1.0.0-beta.2]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [1.0.0-beta.1]: https://github.com/InsurUp/MongoFlow/compare/v0.5.7...v1.0.0-beta.1

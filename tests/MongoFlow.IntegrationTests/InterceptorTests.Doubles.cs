@@ -244,6 +244,27 @@ public partial class InterceptorTests
         }
     }
 
+    /// <summary>
+    /// Records each write's filter and update as rendered, as an interceptor that doesn't know document types reads
+    /// them.
+    /// </summary>
+    public sealed class RenderRecorder : VaultInterceptor
+    {
+        public List<object> Rendered { get; } = [];
+
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            Rendered.AddRange(context.Operations.Select(operation => new
+            {
+                operation.Kind,
+                Filter = (object?)operation.RenderFilter() ?? "none",
+                Update = (object?)operation.RenderUpdate() ?? "none"
+            }));
+
+            return ValueTask.CompletedTask;
+        }
+    }
+
     /// <summary>Adds a condition to every update of an order.</summary>
     public sealed class OrderCondition(FilterDefinition<Order> condition) : VaultInterceptor
     {

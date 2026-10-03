@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -36,6 +37,9 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
             Condition = Condition,
             TrackedOriginal = TrackedOriginal
         };
+
+    /// <inheritdoc/>
+    public override BsonDocument? RenderFilter() => Filter is null ? null : TypedModel.Render(Filter);
 
     internal override async ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken)
