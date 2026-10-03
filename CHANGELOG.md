@@ -12,6 +12,9 @@ follow [Semantic Versioning](https://semver.org/).
   id and assembly name, so an app moving from 0.5 module by module can load both in one process. A project that
   references both names 1.x through an alias (`<PackageReference Include="MongoFlow.V1" Aliases="V1" />` and
   `extern alias V1;`); module code keeps `using MongoFlow;`. MongoFlow.Identity has no second identity.
+- `VaultOperation.Original`: on the writes that bring a tracked document up to date, its update and a queued `Replace`
+  or `Delete` of it, the document as it was before the save, as a `RawBsonDocument`. An audit interceptor can log a
+  document before and after a change without reading it back; it's copied only when it's read.
 
 ## [1.0.0-beta.1] - 2026-10-03
 

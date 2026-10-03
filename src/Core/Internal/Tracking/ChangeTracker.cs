@@ -25,7 +25,8 @@ internal sealed class ChangeTracker : IDisposable
     /// <summary>
     /// Puts an update for each tracked document that changed before <paramref name="operations"/>, the writes queued on
     /// the vault, so a document changed and then deleted by a queued write is updated first. A queued replace or delete of
-    /// a tracked document takes the place of its changes.
+    /// a tracked document takes the place of its changes. Each of these writes carries the document as it was before
+    /// the save.
     /// </summary>
     /// <returns>What the save does to tracked documents, or <see langword="null"/> when it does nothing to them.</returns>
     /// <exception cref="InvalidOperationException">A tracked document's key changed.</exception>
@@ -51,8 +52,8 @@ internal sealed class ChangeTracker : IDisposable
                     continue;
                 }
 
+                update.TrackedOriginal = new TrackedOriginal(changes, changes.Refresh(document));
                 (updates ??= []).Add(update);
-                changes.Refresh(document);
             }
 
             model.Logs.Save.ChangesDetected(model.VaultType.Name, updates?.Count ?? 0, _documents.Count);
@@ -92,12 +93,11 @@ internal sealed class ChangeTracker : IDisposable
         }
     }
 
-    /// <summary>Forgets a document whose delete committed. Called holding <see cref="Lock"/>.</summary>
-    public void Forget(TrackedDocument document)
-    {
-        _documents.Remove(document.Document);
-        document.Release();
-    }
+    /// <summary>
+    /// Forgets a document whose delete committed; the save that deleted it gives its snapshot back. Called holding
+    /// <see cref="Lock"/>.
+    /// </summary>
+    public void Forget(TrackedDocument document) => _documents.Remove(document.Document);
 
     /// <summary>Gives every snapshot back. The tracker starts again empty.</summary>
     public void Dispose()
@@ -115,9 +115,9 @@ internal sealed class ChangeTracker : IDisposable
 
     /// <summary>
     /// The tracked documents a queued write replaces or deletes, recorded in <paramref name="changes"/>: deleted if any
-    /// write deletes them.
+    /// write deletes them. Each of those writes carries the document as it was before the save.
     /// </summary>
-    private Dictionary<TrackedDocument, bool>? ReplacedOrDeleted(PooledList<VaultOperation>? operations,
+    private Dictionary<TrackedDocument, int>? ReplacedOrDeleted(PooledList<VaultOperation>? operations,
         TrackedChanges changes)
     {
         if (operations is null)
@@ -125,34 +125,38 @@ internal sealed class ChangeTracker : IDisposable
             return null;
         }
 
-        Dictionary<TrackedDocument, bool>? found = null;
+        List<(VaultOperation Operation, TrackedDocument Document)>? writes = null;
         foreach (var operation in operations)
         {
             if (operation is { Kind: OperationKind.Replace or OperationKind.Delete, Document: { } document } &&
                 _documents.TryGetValue(document, out var tracked))
             {
-                found ??= [];
-                found[tracked] = found.GetValueOrDefault(tracked) | operation.Kind == OperationKind.Delete;
+                (writes ??= []).Add((operation, tracked));
             }
         }
 
-        if (found is null)
+        if (writes is null)
         {
             return null;
         }
 
-        foreach (var (document, deleted) in found)
+        Dictionary<TrackedDocument, bool> deleted = [];
+        foreach (var (operation, document) in writes)
         {
-            if (deleted)
-            {
-                changes.Delete(document);
-            }
-            else
-            {
-                changes.Refresh(document);
-            }
+            deleted[document] = deleted.GetValueOrDefault(document) | operation.Kind == OperationKind.Delete;
         }
 
-        return found;
+        var indexes = new Dictionary<TrackedDocument, int>(deleted.Count);
+        foreach (var (document, delete) in deleted)
+        {
+            indexes[document] = delete ? changes.Delete(document) : changes.Refresh(document);
+        }
+
+        foreach (var (operation, document) in writes)
+        {
+            operation.TrackedOriginal = new TrackedOriginal(changes, indexes[document]);
+        }
+
+        return indexes;
     }
 }

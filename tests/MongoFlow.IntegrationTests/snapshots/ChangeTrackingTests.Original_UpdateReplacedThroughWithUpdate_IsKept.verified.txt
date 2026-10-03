@@ -1,0 +1,35 @@
+﻿{
+  Seen: [
+    {
+      Hook: Saving,
+      Kind: Update,
+      Original: {
+        _id: 1,
+        Name: Ada,
+        Address: {
+          City: Izmir,
+          Zip: 35000
+        },
+        Note: first,
+        Tags: [
+          early
+        ]
+      }
+    }
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada Lovelace,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: audited,
+      Tags: [
+        early
+      ],
+      Legacy: kept
+    }
+  ]
+}

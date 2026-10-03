@@ -1,0 +1,12 @@
+﻿[
+  {
+    Hook: Saved,
+    Kind: Update,
+    Original: A document's original is read while its save's interceptors run, before the vault is disposed. Read it there, or keep what it returned.
+  },
+  {
+    Hook: Failed,
+    Kind: Update,
+    Original: A document's original is read while its save's interceptors run, before the vault is disposed. Read it there, or keep what it returned.
+  }
+]
