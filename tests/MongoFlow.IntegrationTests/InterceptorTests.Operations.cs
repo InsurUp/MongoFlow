@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow.IntegrationTests;
@@ -46,6 +47,34 @@ public partial class InterceptorTests
 
         // Assert
         await Verify(keys.Keys);
+    }
+
+    [Test]
+    public async Task RenderFilterAndRenderUpdate_EachKindOfWrite_RenderWhatTheCallerWrote()
+    {
+        // Arrange — the number is stored as "number", and captured values render as values. The query filter is added
+        // when the writes are sent, so it isn't part of what they render.
+        var rendered = new RenderRecorder();
+        await using var host = Mongo.Host<InsuranceVault>(vault => vault
+            .Collection(x => x.Policies, policies => policies.QueryFilter(x => x.Holder != "hidden"))
+            .AddInterceptor(rendered));
+        var policy = new Policy { Number = "P-1", Holder = "ada" };
+        var number = "P-3";
+        var holder = "eve";
+        host.Vault.Policies.Add(policy);
+        host.Vault.Policies.Replace(policy);
+        host.Vault.Policies.UpdateByKey("P-2", Builders<Policy>.Update.Set(x => x.Holder, "bob"));
+        host.Vault.Policies.UpdateMany(x => x.Number == number, Builders<Policy>.Update.Set(x => x.Holder, "cy"));
+        host.Vault.Policies.UpdateMany(x => x.Holder == holder,
+            Builders<Policy>.Update.Pipeline(new[] { new BsonDocument("$set", new BsonDocument("Holder", "dee")) }));
+        host.Vault.Policies.DeleteByKey("P-4");
+        host.Vault.Policies.DeleteMany(x => x.Holder == holder);
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(rendered.Rendered);
     }
 
     [Test]

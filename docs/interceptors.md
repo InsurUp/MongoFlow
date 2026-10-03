@@ -58,14 +58,19 @@ To add a write during `SavingAsync`, queue it on the vault's collections as usua
 that run later see it. A write another task queues meanwhile waits for the next save, so every interceptor sees it.
 
 Each write is an `InsertOperation<T>`, `ReplaceOperation<T>`, `UpdateOperation<T>` or `DeleteOperation<T>`, with its
-`Kind`, `Collection`, `Document` when there's one, the `Key` of the document it targets or its filter, and after the
-write its own `Result`. `Key` is on every operation, so an interceptor for every collection reads it without knowing
-the document type; it's `null` for an insert, whose key is on its document, and for a set-based write. An update's
+`Kind`, `Collection`, `Document` when there's one, its key or filter, and after the write its own `Result`. An update's
 `WithUpdate(update)` and a delete's `ToUpdate(update)` give a copy with another update definition, to put in its place.
 
-A write that brings a [tracked](change-tracking.md) document up to date also has its `Original`: the document as it was
-before the save, as a `RawBsonDocument`; see
-[the document before the save](change-tracking.md#the-document-before-the-save).
+An interceptor for every collection, such as an audit, reads what it needs from `VaultOperation`, without knowing the
+document type:
+
+- `Key`: the key of the document the write targets; `null` for an insert, whose key is on its document, and for a
+  set-based write.
+- `RenderFilter()` and `RenderUpdate()`: a set-based write's filter and an update's definition, rendered with the
+  collection's serializers as the write is sent, so an `UpdateMany` or a `DeleteMany` can be logged by what it matches
+  and changes. The filter is the caller's own, without the query filters the write gets when it's sent.
+- `Original`, on a write that brings a [tracked](change-tracking.md) document up to date: the document as it was before
+  the save, as a `RawBsonDocument`; see [the document before the save](change-tracking.md#the-document-before-the-save).
 
 ## Examples
 

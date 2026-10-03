@@ -62,6 +62,24 @@ public abstract class VaultOperation
     /// </summary>
     public abstract bool IsSetBased { get; }
 
+    /// <summary>
+    /// The filter a set-based write matches, rendered with the collection's serializers as the driver renders the
+    /// write, so captured values show as values. <see langword="null"/> for any other write: one that targets a
+    /// document has its <see cref="Key"/>. The query filters and conditions added to it when it's sent aren't part of
+    /// it.
+    /// </summary>
+    /// <remarks>Rendered each time it's called.</remarks>
+    public virtual BsonDocument? RenderFilter() => null;
+
+    /// <summary>
+    /// An update's definition, rendered the same way: a document of update operators, or an array for a pipeline. It's
+    /// rendered as it stands when called; built-in features add to it during
+    /// <see cref="VaultInterceptor.SavingAsync"/>, such as the concurrency token's increment.
+    /// <see langword="null"/> for an insert, a replace and a delete.
+    /// </summary>
+    /// <remarks>Rendered each time it's called.</remarks>
+    public virtual BsonValue? RenderUpdate() => null;
+
     /// <summary>What the operation changed. Available after the bulk write.</summary>
     public OperationResult? Result { get; internal set; }
 
