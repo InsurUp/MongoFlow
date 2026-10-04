@@ -37,4 +37,23 @@ internal static class FilterExpressions
 
         return body is null ? first : Expression.Lambda<Func<T, bool>>(body, first!.Parameters[0]);
     }
+
+    /// <summary>
+    /// <paramref name="filter"/> as a filter of <typeparamref name="TDocument"/>, when it takes one parameter a
+    /// <typeparamref name="TDocument"/> can be passed as, such as an interface it implements or <see cref="object"/>,
+    /// and returns <see cref="bool"/>; otherwise <see langword="null"/>.
+    /// </summary>
+    public static Expression<Func<TDocument, bool>>? ForDocument<TDocument>(LambdaExpression filter) =>
+        filter is { Parameters: [var parameter] } && filter.ReturnType == typeof(bool) &&
+        typeof(TDocument).IsAssignableTo(parameter.Type)
+            ? MemberExpressions.Rebind<TDocument, bool>(filter)
+            : null;
+
+    /// <summary>
+    /// Why <paramref name="filter"/>, which <see cref="ForDocument"/> refused, can't filter
+    /// <typeparamref name="TDocument"/>.
+    /// </summary>
+    public static string Unusable<TDocument>(LambdaExpression filter) =>
+        $"{filter} can't filter {typeof(TDocument).Name}: a query filter takes one parameter of type " +
+        $"{typeof(TDocument).Name}, a type it derives from or implements, or object, and returns bool.";
 }

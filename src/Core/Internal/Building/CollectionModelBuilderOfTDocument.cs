@@ -56,6 +56,29 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         return this;
     }
 
+    public IVaultCollectionBuilder<TDocument> QueryFilter(LambdaExpression filter)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        return QueryFilter(FilterExpressions.ForDocument<TDocument>(filter) ??
+                           throw new ArgumentException(FilterExpressions.Unusable<TDocument>(filter), nameof(filter)));
+    }
+
+    public IVaultCollectionBuilder<TDocument> QueryFilter(Func<IServiceProvider, LambdaExpression> filter)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        return QueryFilter(services => Usable(filter(services)));
+    }
+
+    public IVaultCollectionBuilder<TDocument> QueryFilter(
+        Func<IServiceProvider, CancellationToken, ValueTask<LambdaExpression>> filter)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        return QueryFilter(async (services, cancellationToken) => Usable(await filter(services, cancellationToken)));
+    }
+
     public IVaultCollectionBuilder<TDocument> Without(FeatureKey feature)
     {
         FeatureKeys.ThrowIfDefault(feature, nameof(feature));
@@ -124,6 +147,12 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         new(definition);
 
     private bool IsOn(FeatureKey? owner) => owner is not { } feature || !_without.Contains(feature);
+
+    /// <summary>A filter resolved per query, as a filter of the collection's documents.</summary>
+    /// <exception cref="InvalidOperationException">It can't filter them.</exception>
+    private static Expression<Func<TDocument, bool>> Usable(LambdaExpression filter) =>
+        FilterExpressions.ForDocument<TDocument>(filter) ??
+        throw new InvalidOperationException(FilterExpressions.Unusable<TDocument>(filter));
 
     /// <summary>
     /// Fails when the documents have no member for the <c>_id</c>, and don't ignore extra elements: the server adds one

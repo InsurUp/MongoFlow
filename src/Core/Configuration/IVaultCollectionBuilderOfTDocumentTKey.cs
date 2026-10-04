@@ -32,6 +32,16 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
         Func<IServiceProvider, CancellationToken, ValueTask<Expression<Func<TDocument, bool>>>> filter);
 
     /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> QueryFilter(LambdaExpression filter);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> QueryFilter(Func<IServiceProvider, LambdaExpression> filter);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> QueryFilter(
+        Func<IServiceProvider, CancellationToken, ValueTask<LambdaExpression>> filter);
+
+    /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> Without(FeatureKey feature);
 
     /// <inheritdoc/>

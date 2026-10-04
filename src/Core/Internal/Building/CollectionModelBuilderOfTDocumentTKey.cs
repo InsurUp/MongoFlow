@@ -43,6 +43,27 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
         return this;
     }
 
+    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.QueryFilter(
+        LambdaExpression filter)
+    {
+        QueryFilter(filter);
+        return this;
+    }
+
+    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.QueryFilter(
+        Func<IServiceProvider, LambdaExpression> filter)
+    {
+        QueryFilter(filter);
+        return this;
+    }
+
+    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.QueryFilter(
+        Func<IServiceProvider, CancellationToken, ValueTask<LambdaExpression>> filter)
+    {
+        QueryFilter(filter);
+        return this;
+    }
+
     IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.Without(FeatureKey feature)
     {
         Without(feature);

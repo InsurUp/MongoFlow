@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: x => x.Total can't filter Order: a query filter takes one parameter of type Order, a type it derives from or implements, or object, and returns bool.
+}

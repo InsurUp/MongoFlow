@@ -7,15 +7,24 @@ internal static class MemberExpressions
 {
     /// <summary>Rewrites <c>(TSource x) =&gt; body</c> as <c>(TTarget x) =&gt; body</c>, with <c>(TSource)x</c> in place of x.</summary>
     /// <remarks>Not an extension: called as one, it would still need all three type arguments.</remarks>
-    public static Expression<Func<TTarget, TValue>> Rebind<TSource, TTarget, TValue>(Expression<Func<TSource, TValue>> expression)
+    public static Expression<Func<TTarget, TValue>> Rebind<TSource, TTarget, TValue>(
+        Expression<Func<TSource, TValue>> expression) =>
+        Rebind<TTarget, TValue>(expression);
+
+    /// <summary>
+    /// Rewrites a lambda of one parameter, of any type a <typeparamref name="TTarget"/> converts to, as
+    /// <c>(TTarget x) =&gt; body</c>, with x converted to the parameter's type in place of it.
+    /// </summary>
+    public static Expression<Func<TTarget, TValue>> Rebind<TTarget, TValue>(LambdaExpression expression)
     {
         if (expression is Expression<Func<TTarget, TValue>> same)
         {
             return same;
         }
 
-        var parameter = Expression.Parameter(typeof(TTarget), expression.Parameters[0].Name);
-        var body = ParameterReplacer.Inline(expression, Expression.Convert(parameter, typeof(TSource)));
+        var source = expression.Parameters[0];
+        var parameter = Expression.Parameter(typeof(TTarget), source.Name);
+        var body = ParameterReplacer.Inline(expression, Expression.Convert(parameter, source.Type));
 
         return Expression.Lambda<Func<TTarget, TValue>>(body, parameter);
     }

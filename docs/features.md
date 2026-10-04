@@ -40,6 +40,23 @@ vault.QueryFilter<IRestricted>(async (services, cancellationToken) =>
 A filter that returns `_ => true` leaves the read unfiltered, and `_ => false` matches nothing; both are recognized and
 folded away. A collection's filters are joined into one; the static ones once, at startup.
 
+A collection's filter can also be a `LambdaExpression`, in each of the three forms, for one whose parameter type is only
+known at run time, such as a filter an `IVaultCollectionConfiguration` builds for every collection. Its one parameter
+can be the document type, a type it derives from or implements, or `object`, and it returns `bool`; it's rewritten over
+the document type, and `_ => true` or `_ => false` over `object` fold away as above:
+
+```csharp
+public sealed class ReadAuthorization : IVaultCollectionConfiguration
+{
+    public void Configure<TDocument>(IVaultCollectionBuilder<TDocument> collection) =>
+        collection.QueryFilter(async (services, cancellationToken) =>
+            await services.GetRequiredService<IReadPolicy>().FilterAsync(typeof(TDocument), cancellationToken));
+}
+```
+
+The compiler can't check such a lambda, so a static one that can't filter the documents fails with `ArgumentException`
+when it's added, and a per-query or asynchronous one fails its query with `InvalidOperationException`.
+
 ## Features
 
 A feature is configuration with a name: the query filters and interceptors it adds belong to it, and switch off with it.
