@@ -21,6 +21,12 @@ public sealed class InsertOperation<TDocument> : VaultOperation<TDocument>
     /// <inheritdoc/>
     public override bool IsSetBased => false;
 
+    /// <summary>
+    /// The key of the document, read from it each time, so a key the write fills in, such as an empty
+    /// <c>ObjectId</c>, shows once the document is written. <see langword="null"/> for a keyless collection.
+    /// </summary>
+    public override object? Key => TypedModel.KeyOf(Document!);
+
     internal override ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken) =>
         ValueTask.FromResult<BulkWriteModel>(new BulkWriteInsertOneModel<TDocument>(Namespace, Document!));

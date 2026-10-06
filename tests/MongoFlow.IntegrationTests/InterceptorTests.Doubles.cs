@@ -244,6 +244,37 @@ public partial class InterceptorTests
         }
     }
 
+    /// <summary>Reads each write's key before the write and again after it.</summary>
+    public sealed class KeyReader : VaultInterceptor
+    {
+        public List<object?> Keys { get; } = [];
+
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            Keys.AddRange(context.Operations.Select(operation => operation.Key));
+            return ValueTask.CompletedTask;
+        }
+
+        public override ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            Keys.AddRange(context.Operations.Select(operation => operation.Key));
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>Keyed by an <c>ObjectId</c> the write fills in when it's left empty.</summary>
+    public sealed class Ticket
+    {
+        public ObjectId Id { get; set; }
+
+        public string Subject { get; set; } = "";
+    }
+
+    public sealed class TicketVault : MongoVault
+    {
+        public IVaultCollection<Ticket, ObjectId> Tickets { get; init; } = null!;
+    }
+
     /// <summary>
     /// Records each write's filter and update as rendered, as an interceptor that doesn't know document types reads
     /// them.

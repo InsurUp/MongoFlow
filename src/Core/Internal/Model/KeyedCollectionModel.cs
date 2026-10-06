@@ -13,6 +13,8 @@ internal sealed class KeyedCollectionModel<TDocument, TKey> : CollectionModel<TD
 
     public override IReadOnlyList<string> KeyFields => Key.FieldNames;
 
+    public override object? KeyOf(TDocument document) => Key.Get(document);
+
     public KeyTarget<TDocument> Target(TKey key) => new KeyTarget<TDocument, TKey>(Key, key);
 
     public override IVaultCollection<TDocument> CreateCollection(VaultRuntime runtime,

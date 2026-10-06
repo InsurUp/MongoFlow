@@ -2,7 +2,7 @@
   {
     Kind: Insert,
     PropertyName: Policies,
-    Key: none
+    Key: P-1
   },
   {
     Kind: Replace,
@@ -18,6 +18,14 @@
     Kind: Update,
     PropertyName: Policies,
     Key: none
+  },
+  {
+    Kind: Insert,
+    PropertyName: Tokens,
+    Key: {
+      UserId: u-1,
+      Provider: github
+    }
   },
   {
     Kind: Delete,

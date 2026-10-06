@@ -3,6 +3,16 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `InsertOperation<T>.Key` is the inserted document's key, read with the collection's key, such as `PolicyNumber` for
+  a collection keyed by `Key(x => x.PolicyNumber)`, rather than `null`, so an interceptor for every collection reads an
+  insert's key as it reads any other write's. It's read from the document each time, so an `ObjectId` the write fills
+  in shows after the write; a keyless collection's inserts still give `null`. The trace log of each write now shows an
+  insert's key too.
+
 ## [1.0.0-beta.5] - 2026-10-04
 
 ### Added

@@ -64,8 +64,9 @@ Each write is an `InsertOperation<T>`, `ReplaceOperation<T>`, `UpdateOperation<T
 An interceptor for every collection, such as an audit, reads what it needs from `VaultOperation`, without knowing the
 document type:
 
-- `Key`: the key of the document the write targets; `null` for an insert, whose key is on its document, and for a
-  set-based write.
+- `Key`: the key of the document the write targets or inserts, read with the collection's key, so it's `PolicyNumber`
+  on a collection keyed by `Key(x => x.PolicyNumber)`; `null` for a set-based write and on a keyless collection. An
+  insert reads it from its document each time, so an `ObjectId` the write fills in shows after the write.
 - `RenderFilter()` and `RenderUpdate()`: a set-based write's filter and an update's definition, rendered with the
   collection's serializers as the write is sent, so an `UpdateMany` or a `DeleteMany` can be logged by what it matches
   and changes. The filter is the caller's own, without the query filters the write gets when it's sent.
