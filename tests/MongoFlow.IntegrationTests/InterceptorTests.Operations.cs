@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
+using TUnit.Assertions.Enums;
 
 namespace MongoFlow.IntegrationTests;
 
@@ -38,6 +39,7 @@ public partial class InterceptorTests
         host.Vault.Policies.Replace(policy);
         host.Vault.Policies.UpdateByKey("P-2", Builders<Policy>.Update.Set(x => x.Holder, "bob"));
         host.Vault.Policies.UpdateMany(x => x.Holder == "cy", Builders<Policy>.Update.Set(x => x.Holder, "dee"));
+        host.Vault.Tokens.Add(token);
         host.Vault.Tokens.Delete(token);
         host.Vault.Tokens.DeleteByKey(new TokenKey("u-2", "google"));
         host.Vault.Tokens.DeleteMany(x => x.Provider == "gitlab");
@@ -47,6 +49,37 @@ public partial class InterceptorTests
 
         // Assert
         await Verify(keys.Keys);
+    }
+
+    [Test]
+    public async Task Key_InsertOnAKeylessCollection_IsNull()
+    {
+        // Arrange
+        var keys = new KeyReader();
+        await using var host = Mongo.Host<ShopVault>(vault => vault.AddInterceptor(keys));
+        host.Vault.Audit.Add(new AuditEntry { Message = "created" });
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Assert.That(keys.Keys).IsEquivalentTo(new object?[] { null, null });
+    }
+
+    [Test]
+    public async Task Key_InsertWhoseIdTheWriteFillsIn_IsTheIdItsWrittenWith()
+    {
+        // Arrange — the ticket's id is left empty, for the write to fill in.
+        var keys = new KeyReader();
+        await using var host = Mongo.Host<TicketVault>(vault => vault.AddInterceptor(keys));
+        host.Vault.Tickets.Add(new Ticket { Subject = "refund" });
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        var id = (await host.StoredAsync("Tickets")).Single()["_id"].AsObjectId;
+        await Assert.That(keys.Keys).IsEquivalentTo(new object?[] { ObjectId.Empty, id }, CollectionOrdering.Matching);
     }
 
     [Test]

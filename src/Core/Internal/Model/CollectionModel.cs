@@ -42,6 +42,9 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     public virtual IReadOnlyList<string>? KeyFields => null;
 
+    /// <summary>The key of <paramref name="document"/>, or <see langword="null"/> for a keyless collection.</summary>
+    public virtual object? KeyOf(TDocument document) => null;
+
     /// <summary>Renders the collection's filters and fields the way the driver renders its writes.</summary>
     public RenderArgs<TDocument> RenderArgs { get; } = FilterDocuments.RenderArgs(definition.Collection);
 

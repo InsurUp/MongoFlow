@@ -11,7 +11,7 @@
     Level: Trace,
     EventId: 27003003,
     Event: Writing,
-    Message: Writing Insert to Orders: key (null), set-based False.
+    Message: Writing Insert to Orders: key 1, set-based False.
   },
   {
     Category: MongoFlow.Save,

@@ -36,9 +36,9 @@ public abstract class VaultOperation
     public object? Document => GetDocument();
 
     /// <summary>
-    /// The key of the one document the operation targets, of the collection's key type, such as a composite key's
-    /// record: read from the document for a write made with one, or the key a write by key was given.
-    /// <see langword="null"/> for an insert, whose key is on its <see cref="Document"/>, and for a set-based write.
+    /// The key of the one document the operation targets or inserts, of the collection's key type, such as a composite
+    /// key's record: read from the document for a write made with one, or the key a write by key was given.
+    /// <see langword="null"/> for a set-based write and on a keyless collection.
     /// </summary>
     public abstract object? Key { get; }
 
