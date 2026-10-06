@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -10,7 +9,7 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
     internal DeleteOperation(CollectionModel<TDocument> model,
         FeatureSet disabledFeatures,
         KeyTarget<TDocument>? target,
-        Expression<Func<TDocument, bool>>? filter,
+        FilterDefinition<TDocument>? filter,
         TDocument? document)
         : base(model, disabledFeatures, target)
     {
@@ -24,8 +23,12 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
     /// <inheritdoc/>
     public override bool IsSetBased => Filter is not null;
 
-    /// <summary>The documents to delete, or <see langword="null"/> when the operation targets a key.</summary>
-    public Expression<Func<TDocument, bool>>? Filter { get; }
+    /// <summary>
+    /// The documents to delete, or <see langword="null"/> when the operation targets a key: the filter it was queued with,
+    /// the expression a typed collection was given or the BSON an untyped one was. <see cref="RenderFilter"/> renders
+    /// either.
+    /// </summary>
+    public FilterDefinition<TDocument>? Filter { get; }
 
     /// <summary>
     /// The same target, document, condition and original as an update, keeping the features switched off. This is how
@@ -39,7 +42,7 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
         };
 
     /// <inheritdoc/>
-    public override BsonDocument? RenderFilter() => Filter is null ? null : TypedModel.Render(Filter);
+    public override BsonDocument? RenderFilter() => Filter?.Render(TypedModel.RenderArgs);
 
     internal override async ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken)

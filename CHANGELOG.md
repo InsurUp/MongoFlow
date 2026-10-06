@@ -3,6 +3,23 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `IMongoVault.Collection(Type)` and `KeyedCollection(Type)`: a vault's collections without their type arguments, as
+  `IVaultCollection` and `IKeyedVaultCollection`, for code that has a document type only as a `Type`, such as an
+  interceptor for every collection. They take the same writes, and the keyed one reads by key, with documents and keys
+  as `object`s and filters and updates as BSON, as an operation's `RenderFilter()` and `RenderUpdate()` give them. Each
+  call queues what the typed call queues. A document, key or update of the wrong kind fails with `ArgumentException`
+  when it's queued, and `KeyedCollection` fails for a keyless collection.
+
+### Changed
+
+- `UpdateOperation<T>.Filter` and `DeleteOperation<T>.Filter` are `FilterDefinition<T>?` rather than
+  `Expression<Func<T, bool>>?`, since an untyped write's filter is BSON. A typed write's is the driver's
+  `ExpressionFilterDefinition<T>`, whose `Expression` is the lambda; `RenderFilter()` renders either.
+
 ## [1.0.0-beta.6] - 2026-10-06
 
 ### Changed
@@ -187,6 +204,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[Unreleased]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.6...HEAD
 [1.0.0-beta.6]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.5...v1.0.0-beta.6
 [1.0.0-beta.5]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.4...v1.0.0-beta.5
 [1.0.0-beta.4]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.3...v1.0.0-beta.4

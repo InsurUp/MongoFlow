@@ -1,0 +1,5 @@
+﻿{
+  DocumentType: Order,
+  KeyType: int,
+  PropertyName: Orders
+}

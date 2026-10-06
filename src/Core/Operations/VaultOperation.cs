@@ -68,7 +68,10 @@ public abstract class VaultOperation
     /// document has its <see cref="Key"/>. The query filters and conditions added to it when it's sent aren't part of
     /// it.
     /// </summary>
-    /// <remarks>Rendered each time it's called.</remarks>
+    /// <remarks>
+    /// Rendered each time it's called. A filter given as BSON, such as to an <see cref="IVaultCollection"/>, renders as
+    /// that document: copy it before changing it.
+    /// </remarks>
     public virtual BsonDocument? RenderFilter() => null;
 
     /// <summary>
@@ -77,7 +80,10 @@ public abstract class VaultOperation
     /// <see cref="VaultInterceptor.SavingAsync"/>, such as the concurrency token's increment.
     /// <see langword="null"/> for an insert, a replace and a delete.
     /// </summary>
-    /// <remarks>Rendered each time it's called.</remarks>
+    /// <remarks>
+    /// Rendered each time it's called. An update given as BSON, such as to an <see cref="IVaultCollection"/>, renders as
+    /// that document or array: copy it before changing it.
+    /// </remarks>
     public virtual BsonValue? RenderUpdate() => null;
 
     /// <summary>What the operation changed. Available after the bulk write.</summary>

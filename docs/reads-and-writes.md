@@ -68,7 +68,8 @@ A collection returns views of itself, for one read or write:
 A view of a keyed collection is keyed too, and views chain: `vault.Orders.Without(MultiTenancyFeature.Key).WithNoTracking()`.
 
 Code that only knows the document type reaches a collection with `vault.Collection<Order>()`, or
-`vault.Collection<Order, int>()` for a keyed one.
+`vault.Collection<Order, int>()` for a keyed one. Code that has the type only as a `Type` uses the collection
+[without type arguments](#without-type-arguments).
 
 ## Writes
 
@@ -90,6 +91,32 @@ collection's query filters, so it can't reach a document a read couldn't see: an
 another tenant's document.
 
 With [change tracking](change-tracking.md), documents read and then changed are written without any of these.
+
+## Without type arguments
+
+Code that has a document type only as a `Type`, such as an [interceptor](interceptors.md) for every collection, reaches
+its collection with `vault.Collection(type)`, or `vault.KeyedCollection(type)` for a keyed one, which fails for a keyless
+collection. They take the same writes, and the keyed one reads by key, with documents and keys as `object`s and filters
+and updates as BSON:
+
+```csharp
+var collection = vault.KeyedCollection(operation.Collection.DocumentType);
+var stored = await collection.WithNoTracking().GetByKeyAsync(operation.Key!, cancellationToken);
+
+vault.Collection(typeof(Order)).UpdateMany(
+    new BsonDocument("Customer", "ada"),
+    new BsonDocument("$set", new BsonDocument("Total", 20)));
+```
+
+- Each call queues what the typed call queues, so interceptors and features see the same operation.
+- What the compiler checks for a typed call is checked when the write is queued. A document that isn't of the
+  collection's type or one derived from it, a key that isn't of its key type, or an update that isn't update operators
+  or pipeline stages, fails with `ArgumentException`.
+- Filters and updates are taken as rendered, with element names, as an operation's `RenderFilter()` and
+  `RenderUpdate()` give them, so an operation's can be queued again unchanged. A filter is joined with the query
+  filters. They're used as they are, not copied.
+- Views work as they do on typed collections: `Without`, `WithTracking` and `WithNoTracking`.
+- Reads by filter are left to the typed collection, whose results are typed.
 
 ## Saving
 

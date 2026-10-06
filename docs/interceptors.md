@@ -73,6 +73,10 @@ document type:
 - `Original`, on a write that brings a [tracked](change-tracking.md) document up to date: the document as it was before
   the save, as a `RawBsonDocument`; see [the document before the save](change-tracking.md#the-document-before-the-save).
 
+To read or write through the vault, it takes the operation's collection, or any other, from `context.Vault` by
+`operation.Collection.DocumentType`, [without type arguments](reads-and-writes.md#without-type-arguments): such as
+`context.Vault.KeyedCollection(type).WithNoTracking().GetByKeyAsync(operation.Key!)` for the document a write targets.
+
 ## Examples
 
 ### Timestamps, in the update itself

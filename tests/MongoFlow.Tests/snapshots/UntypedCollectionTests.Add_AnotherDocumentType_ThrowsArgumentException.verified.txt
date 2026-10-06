@@ -1,0 +1,5 @@
+﻿{
+  Type: ArgumentException,
+  Message: Orders holds Order documents, so it can't take one of type AuditEntry.,
+  ParamName: document
+}

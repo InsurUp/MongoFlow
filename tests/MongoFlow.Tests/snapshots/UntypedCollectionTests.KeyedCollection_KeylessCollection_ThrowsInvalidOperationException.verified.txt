@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: ShopVault.Audit isn't keyed.
+}

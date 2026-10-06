@@ -23,7 +23,13 @@
   },
   {
     Kind: Update,
-    Filter: x => (x.Total > 5),
+    Filter: {
+      Total: {
+        $gt: {
+          $numberDecimal: 5
+        }
+      }
+    },
     Update: {
       $set: {
         Customer: many
@@ -37,6 +43,12 @@
   },
   {
     Kind: Delete,
-    Filter: x => (x.Total > 5)
+    Filter: {
+      Total: {
+        $gt: {
+          $numberDecimal: 5
+        }
+      }
+    }
   }
 ]

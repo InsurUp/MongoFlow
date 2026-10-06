@@ -48,9 +48,11 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     /// <summary>Renders the collection's filters and fields the way the driver renders its writes.</summary>
     public RenderArgs<TDocument> RenderArgs { get; } = FilterDocuments.RenderArgs(definition.Collection);
 
-    public virtual IVaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
+    public virtual VaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
         FeatureSet disabled) =>
-        new VaultCollection<TDocument>(runtime, this, disabled);
+        new(runtime, this, disabled);
+
+    public IVaultCollection CreateCollection(VaultRuntime runtime) => CreateCollection(runtime, FeatureSet.Empty);
 
     // A keyed model's CreateCollection returns a keyed collection, which a keyed property accepts.
     public void Attach(MongoVault vault, VaultRuntime runtime) => _fill(vault, CreateCollection(runtime, FeatureSet.Empty));

@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -10,7 +9,7 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
     internal UpdateOperation(CollectionModel<TDocument> model,
         FeatureSet disabledFeatures,
         KeyTarget<TDocument>? target,
-        Expression<Func<TDocument, bool>>? filter,
+        FilterDefinition<TDocument>? filter,
         UpdateDefinition<TDocument> update,
         TDocument? document)
         : base(model, disabledFeatures, target)
@@ -26,8 +25,12 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
     /// <inheritdoc/>
     public override bool IsSetBased => Filter is not null;
 
-    /// <summary>The documents to update, or <see langword="null"/> when the operation targets a key.</summary>
-    public Expression<Func<TDocument, bool>>? Filter { get; }
+    /// <summary>
+    /// The documents to update, or <see langword="null"/> when the operation targets a key: the filter it was queued with,
+    /// the expression a typed collection was given or the BSON an untyped one was. <see cref="RenderFilter"/> renders
+    /// either.
+    /// </summary>
+    public FilterDefinition<TDocument>? Filter { get; }
 
     /// <summary>
     /// The changes to make. Built-in features may add to it during <see cref="VaultInterceptor.SavingAsync"/>: the
@@ -48,7 +51,7 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
         };
 
     /// <inheritdoc/>
-    public override BsonDocument? RenderFilter() => Filter is null ? null : TypedModel.Render(Filter);
+    public override BsonDocument? RenderFilter() => Filter?.Render(TypedModel.RenderArgs);
 
     /// <inheritdoc/>
     public override BsonValue RenderUpdate() => Update.Render(TypedModel.RenderArgs);

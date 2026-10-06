@@ -217,11 +217,11 @@ public partial class InterceptorTests
                     {
                         update.Kind,
                         update.Key,
-                        Filter = update.Filter?.ToString(),
+                        Filter = update.Filter?.Render(Render),
                         Document = update.Document?.Id,
                         Update = update.Update.Render(Render)
                     },
-                    DeleteOperation<Order> delete => new { delete.Kind, delete.Key, Filter = delete.Filter?.ToString(), Document = delete.Document?.Id },
+                    DeleteOperation<Order> delete => new { delete.Kind, delete.Key, Filter = delete.Filter?.Render(Render), Document = delete.Document?.Id },
                     _ => new { operation.Kind, operation.Namespace.CollectionName, Document = ((Order?)operation.Document)?.Id }
                 });
             }

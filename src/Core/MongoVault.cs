@@ -22,6 +22,22 @@ public abstract class MongoVault : IMongoVault, IDisposable
     /// <inheritdoc/>
     public IVaultCollection<TDocument, TKey> Collection<TDocument, TKey>() => Runtime.GetCollection<TDocument, TKey>();
 
+    /// <inheritdoc/>
+    public IVaultCollection Collection(Type documentType)
+    {
+        ArgumentNullException.ThrowIfNull(documentType);
+
+        return Runtime.GetCollection(documentType);
+    }
+
+    /// <inheritdoc/>
+    public IKeyedVaultCollection KeyedCollection(Type documentType)
+    {
+        ArgumentNullException.ThrowIfNull(documentType);
+
+        return Runtime.GetKeyedCollection(documentType);
+    }
+
     /// <summary>
     /// Gives back the pooled memory the vault holds: its tracked documents' snapshots, and writes queued but never saved,
     /// which are dropped. Its scope disposes it; afterwards it starts again with nothing tracked or queued.
