@@ -12,7 +12,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IsPackable>true</IsPackable>
     <!-- Local packs; a release takes its version from the tag. -->
-    <Version>1.0.0-beta.6</Version>
+    <Version>1.0.0-beta.7</Version>
     <PackageReleaseNotes>https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <!-- The API docs for IntelliSense, and a symbols package Source Link points at the commit with. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
