@@ -38,4 +38,15 @@ public interface IMongoVault
     /// <summary>The vault's keyed collection of <typeparamref name="TDocument"/>, for code that only knows the types.</summary>
     /// <exception cref="InvalidOperationException">The vault doesn't declare one, or its key isn't a <typeparamref name="TKey"/>.</exception>
     IVaultCollection<TDocument, TKey> Collection<TDocument, TKey>();
+
+    /// <summary>
+    /// The vault's collection of <paramref name="documentType"/> without its type arguments, keyed or not, for code that
+    /// has the type only as a <see cref="Type"/>, such as an interceptor reading <see cref="VaultOperation.Collection"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The vault doesn't declare one.</exception>
+    IVaultCollection Collection(Type documentType);
+
+    /// <summary>The vault's keyed collection of <paramref name="documentType"/> without its type arguments.</summary>
+    /// <exception cref="InvalidOperationException">The vault doesn't declare one, or declares it without a key.</exception>
+    IKeyedVaultCollection KeyedCollection(Type documentType);
 }

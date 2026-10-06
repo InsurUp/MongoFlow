@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: ShopVault declares no collection of Uri.
+}

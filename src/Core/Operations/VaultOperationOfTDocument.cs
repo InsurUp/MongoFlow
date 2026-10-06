@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -75,7 +74,7 @@ public abstract class VaultOperation<TDocument> : VaultOperation
 
     /// <summary>What the write matches: its key, or <paramref name="filter"/>, with its query filters and condition.</summary>
     private protected ValueTask<FilterDefinition<TDocument>> WriteFilterAsync(SaveRun run,
-        Expression<Func<TDocument, bool>>? filter,
+        FilterDefinition<TDocument>? filter,
         CancellationToken cancellationToken) =>
         MatchAsync(run, filter, Condition, cancellationToken);
 
@@ -87,12 +86,12 @@ public abstract class VaultOperation<TDocument> : VaultOperation
     /// by key needs no LINQ translation.
     /// </summary>
     private async ValueTask<FilterDefinition<TDocument>> MatchAsync(SaveRun run,
-        Expression<Func<TDocument, bool>>? filter,
+        FilterDefinition<TDocument>? filter,
         BsonDocument? condition,
         CancellationToken cancellationToken)
     {
         // An operation targets a key, or is set-based and has a filter.
-        var target = Target?.Match() ?? TypedModel.Render(filter!);
+        var target = Target?.Match() ?? filter!.Render(TypedModel.RenderArgs);
         var queryFilter = await run.QueryFilterAsync(TypedModel, DisabledFeatures, cancellationToken);
 
         return new BsonDocumentFilterDefinition<TDocument>(FilterDocuments.And(target, queryFilter, condition)!);

@@ -126,6 +126,17 @@ internal sealed class VaultRuntime : IDisposable
                 $"{Model.VaultType.Name}.{collection.PropertyName} isn't keyed by {typeof(TKey).Name}.");
     }
 
+    public IVaultCollection GetCollection(Type documentType) => Find(documentType).CreateCollection(this);
+
+    public IKeyedVaultCollection GetKeyedCollection(Type documentType)
+    {
+        var collection = Find(documentType);
+
+        return collection.CreateCollection(this) is IKeyedVaultCollection keyed
+            ? keyed
+            : throw new InvalidOperationException($"{Model.VaultType.Name}.{collection.PropertyName} isn't keyed.");
+    }
+
     /// <summary>Gives back what the instance rented: its tracked documents' snapshots, and writes queued but never saved.</summary>
     public void Dispose()
     {

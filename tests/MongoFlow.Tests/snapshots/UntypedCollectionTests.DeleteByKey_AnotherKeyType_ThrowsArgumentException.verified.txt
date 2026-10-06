@@ -1,0 +1,5 @@
+﻿{
+  Type: ArgumentException,
+  Message: Orders is keyed by Int32, so it can't take a key of type Int64.,
+  ParamName: key
+}

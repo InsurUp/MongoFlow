@@ -1,0 +1,45 @@
+﻿{
+  result: {
+    Inserted: 2,
+    Matched: 4,
+    Modified: 4,
+    Deleted: 3
+  },
+  Stored: [
+    {
+      _id: 1,
+      number: P-1,
+      Holder: ada, replaced
+    },
+    {
+      _id: 2,
+      number: P-2,
+      Holder: bob, updated
+    },
+    {
+      _id: 3,
+      number: P-3,
+      Holder: cy, updated by key
+    },
+    {
+      _id: 4,
+      number: P-4,
+      Holder: dee, updated in a pipeline
+    },
+    {
+      _id: 5,
+      number: P-5,
+      Holder: hidden
+    },
+    {
+      _id: 9,
+      number: P-9,
+      Holder: ivy
+    },
+    {
+      _id: 10,
+      number: P-10,
+      Holder: jo
+    }
+  ]
+}

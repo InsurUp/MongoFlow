@@ -1,0 +1,5 @@
+﻿{
+  Type: ArgumentException,
+  Message: An update is a document of update operators, such as { $set: { Total: 20 } }, or an array of pipeline stages, such as [{ $set: { Total: 20 } }], but it is { "Total" : 20 }.,
+  ParamName: update
+}

@@ -26,4 +26,10 @@ internal interface ICollectionModel : IVaultCollectionInfo
 
     /// <summary>Fills <see cref="Property"/> on <paramref name="vault"/> with a collection bound to <paramref name="runtime"/>.</summary>
     void Attach(MongoVault vault, VaultRuntime runtime);
+
+    /// <summary>
+    /// The collection bound to <paramref name="runtime"/>, without its type arguments: an
+    /// <see cref="IKeyedVaultCollection"/> if it's keyed.
+    /// </summary>
+    IVaultCollection CreateCollection(VaultRuntime runtime);
 }
