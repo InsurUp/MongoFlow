@@ -3,9 +3,9 @@
     Name: MongoFlow.Save,
     Parent: test,
     Status: Error,
-    StatusDescription: An error occurred during ordered bulkWrite operation. See WriteErrors for more details.,
+    StatusDescription: The insert in Orders was refused: a unique index already holds the value it writes.,
     Tags: {
-      error.type: MongoDB.Driver.ClientBulkWriteException,
+      error.type: MongoFlow.DuplicateKeyException,
       mongoflow.save.operation_count: 1,
       mongoflow.save.transaction: own,
       mongoflow.vault: ShopVault

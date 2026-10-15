@@ -42,7 +42,7 @@ public partial class SaveTests
         await using var host = Mongo.Host<ShopVault>();
         await host.SeedAsync("Orders", new Order { Id = 1, Customer = "ada", Total = 10 });
         host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
-        await Assert.That(() => host.Vault.SaveAsync()).Throws<MongoException>();
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
 
         // Act
         var result = await host.Vault.SaveAsync();

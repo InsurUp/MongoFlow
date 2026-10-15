@@ -117,7 +117,16 @@ internal sealed class SaveRun(VaultRuntime runtime,
             models.Add(await operation.CreateWriteModelAsync(this, cancellationToken));
         }
 
-        var written = await Runtime.Model.Client.BulkWriteAsync(Session, models, WriteOptions, cancellationToken);
+        ClientBulkWriteResult written;
+        try
+        {
+            written = await Runtime.Model.Client.BulkWriteAsync(Session, models, WriteOptions, cancellationToken);
+        }
+        catch (ClientBulkWriteException exception) when (IsDuplicateKey(exception, out var index))
+        {
+            // The models were made one per operation, in order, so the error's index is the operation's.
+            throw new DuplicateKeyException(Operations[index], exception);
+        }
 
         for (var i = 0; i < Operations.Count; i++)
         {
@@ -356,6 +365,24 @@ internal sealed class SaveRun(VaultRuntime runtime,
             throw new InvalidOperationException(
                 $"{method} can only be called during {nameof(VaultInterceptor.SavingAsync)}.");
         }
+    }
+
+    /// <summary>Whether a unique index refused a write, and the index of that write.</summary>
+    /// <remarks>The bulk write is ordered, so it stops at its first failed write: that's the one error it reports.</remarks>
+    private static bool IsDuplicateKey(ClientBulkWriteException exception,
+        out int index)
+    {
+        foreach (var (operation, error) in exception.WriteErrors)
+        {
+            if (error.Category == ServerErrorCategory.DuplicateKey)
+            {
+                index = operation;
+                return true;
+            }
+        }
+
+        index = -1;
+        return false;
     }
 
     // A verbose bulk write reports every operation it ran; replaces are reported with the updates.

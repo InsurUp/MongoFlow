@@ -1,0 +1,17 @@
+﻿{
+  Message: The insert in Orders was refused: a unique index already holds the value it writes.,
+  Kind: Insert,
+  PropertyName: Orders,
+  Key: 2,
+  InnerException: ClientBulkWriteException,
+  Orders: [
+    {
+      _id: 2,
+      Customer: bob,
+      Total: {
+        $numberDecimal: 20
+      }
+    }
+  ],
+  Audit: []
+}

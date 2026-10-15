@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow.IntegrationTests;
@@ -15,10 +16,75 @@ public partial class SaveTests
         host.Vault.Orders.Add(new Order { Id = 2, Customer = "bob", Total = 20 });
 
         // Act
-        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ClientBulkWriteException>();
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
 
         // Assert
         await Verify(await host.StoredAsync("Orders"));
+    }
+
+    [Test]
+    public async Task SaveAsync_InsertRepeatsAStoredKey_ThrowsDuplicateKeyExceptionNamingTheInsert()
+    {
+        // Arrange — the refused insert is the third write, after one to another collection.
+        await using var host = Mongo.Host<ShopVault>();
+        await host.SeedAsync("Orders", new Order { Id = 2, Customer = "bob", Total = 20 });
+        host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
+        host.Vault.Audit.Add(new AuditEntry { Message = "created" });
+        host.Vault.Orders.Add(new Order { Id = 2, Customer = "bob", Total = 20 });
+
+        // Act
+        var exception = await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
+
+        // Assert
+        await Verify(new
+        {
+            exception!.Message,
+            exception.Operation.Kind,
+            exception.Operation.Collection.PropertyName,
+            exception.Operation.Key,
+            InnerException = exception.InnerException?.GetType().Name,
+            Orders = await host.StoredAsync("Orders"),
+            Audit = await host.StoredAsync("Audit")
+        }).DontIgnoreEmptyCollections();
+    }
+
+    [Test]
+    public async Task SaveAsync_UpdateRepeatsAValueAUniqueIndexHolds_ThrowsDuplicateKeyExceptionNamingTheUpdate()
+    {
+        // Arrange — each customer has one order.
+        await using var host = Mongo.Host<ShopVault>();
+        await host.Database.GetCollection<Order>("Orders").Indexes.CreateOneAsync(new CreateIndexModel<Order>(
+            Builders<Order>.IndexKeys.Ascending(x => x.Customer),
+            new CreateIndexOptions { Unique = true }));
+        await host.SeedAsync("Orders", new Order { Id = 1, Customer = "ada", Total = 10 }, new Order { Id = 2, Customer = "bob", Total = 20 });
+        host.Vault.Orders.UpdateByKey(2, Builders<Order>.Update.Set(x => x.Customer, "ada"));
+
+        // Act
+        var exception = await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
+
+        // Assert
+        await Verify(new
+        {
+            exception!.Message,
+            exception.Operation.Kind,
+            exception.Operation.Key,
+            Stored = await host.StoredAsync("Orders")
+        });
+    }
+
+    [Test]
+    public async Task SaveAsync_WriteRefusedForAnotherReason_ThrowsTheDriversException()
+    {
+        // Arrange — the stored customer is a string, which can't be incremented.
+        await using var host = Mongo.Host<ShopVault>();
+        await host.SeedAsync("Orders", new Order { Id = 1, Customer = "ada", Total = 10 });
+        host.Vault.Orders.UpdateByKey(1, new BsonDocumentUpdateDefinition<Order>(new BsonDocument("$inc", new BsonDocument("Customer", 1))));
+
+        // Act
+        var exception = await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ClientBulkWriteException>();
+
+        // Assert
+        await Assert.That(exception!.WriteErrors.Values.Single().Category).IsEqualTo(ServerErrorCategory.Uncategorized);
     }
 
     [Test]

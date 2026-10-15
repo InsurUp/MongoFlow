@@ -1,0 +1,6 @@
+﻿{
+  ToList: 1,
+  Any: true,
+  Count: 3,
+  SeenOutside: false
+}

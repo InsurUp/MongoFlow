@@ -24,6 +24,20 @@ var totals = await aggregate.Group(x => x.Customer, g => new { Customer = g.Key,
 var order = await vault.Orders.GetByKeyAsync(42, cancellationToken);
 ```
 
+A read that only filters, then calls one of the driver's operators, takes the filter directly and is one call:
+
+```csharp
+var adas = await vault.Orders.ToListAsync(x => x.Customer == "ada", cancellationToken);
+var shipped = await vault.Orders.FirstOrDefaultAsync(x => x.Status == OrderStatus.Shipped, cancellationToken);
+var rush = await vault.Orders.AnyAsync(Builders<Order>.Filter.AnyEq(x => x.Tags, "rush"), cancellationToken);
+```
+
+`ToListAsync`, `FirstOrDefaultAsync`, `FirstAsync`, `SingleOrDefaultAsync`, `SingleAsync`, `AnyAsync` and `CountAsync`
+take an expression or a filter built with the driver. Each is `FindAsync(filter)` followed by the driver's operator of the
+same name, so query filters, the transaction, views and change tracking apply as they do to `FindAsync`. `AnyAsync`
+reads only `_id`, and `CountAsync` is `CountDocumentsAsync`. Nothing is sorted, so which document is first is the
+server's choice: sorting, limits and projections stay on `FindAsync` and `QueryAsync`.
+
 Inside an open transaction, reads run in its session, so they see its writes.
 
 A `QueryAsync` query goes through MongoFlow's LINQ provider, which hands everything to the driver's, so the driver's
@@ -136,13 +150,32 @@ A save with nothing queued returns `SaveResult.Empty` without starting a transac
 
 Each write's own result is on its operation, which [interceptors](interceptors.md) see. A save fails with:
 
-- the driver's `ClientBulkWriteException` when the server rejects a write, such as a duplicate key. When another
-  transaction is changing one of the documents, MongoDB fails the write at once rather than waiting: the exception has
-  the `TransientTransactionError` label, and the save can be tried again. MongoFlow doesn't retry it;
+- `DuplicateKeyException` when a unique index refuses a write, such as an insert repeating a stored key. A save stops at
+  its first refused write, and the exception's `Operation` is that write, so a save writing to two collections with
+  unique indexes tells which one it was. The driver's `ClientBulkWriteException` is its `InnerException`, with the
+  server's error, which names the index;
+- the driver's `ClientBulkWriteException` when the server rejects a write for another reason. When another transaction
+  is changing one of the documents, MongoDB fails the write at once rather than waiting: the exception has the
+  `TransientTransactionError` label, and the save can be tried again. MongoFlow doesn't retry it;
 - `ConcurrencyException` when a write guarded by a [concurrency token](features.md#concurrency-token) finds the document
   changed or gone;
 - `InvalidOperationException` when it's called from one of the vault's own interceptors, while another save of the scope
   runs, or inside a transaction on another client.
+
+```csharp
+// Both collections have unique indexes: reservations on Code, partners on Email.
+vault.CodeReservations.Add(new CodeReservation { Code = partner.Code, PartnerId = partner.Id });
+vault.Partners.Add(partner);
+
+try
+{
+    await vault.SaveAsync(cancellationToken);
+}
+catch (DuplicateKeyException exception) when (exception.Operation.Collection.DocumentType == typeof(CodeReservation))
+{
+    throw new CodeTakenException(partner.Code, exception);
+}
+```
 
 ## Parallel use
 

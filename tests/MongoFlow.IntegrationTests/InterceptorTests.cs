@@ -110,7 +110,7 @@ public partial class InterceptorTests
         host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
 
         // Act
-        var exception = await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ClientBulkWriteException>();
+        var exception = await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
 
         // Assert
         await Assert.That(recorder.Exceptions).HasSingleItem();

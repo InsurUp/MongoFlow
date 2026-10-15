@@ -65,7 +65,7 @@ public partial class TelemetryTests
         host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
 
         // Act
-        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ClientBulkWriteException>();
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
 
         // Assert
         await Verify(spans.Snapshot());
@@ -129,7 +129,7 @@ public partial class TelemetryTests
 
         // Act
         await host.Services.GetRequiredService<IVaultMigrator>().MigrateAsync<ShopVault>();
-        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ClientBulkWriteException>();
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
 
         // Assert
         await Verify(spans.Snapshot());

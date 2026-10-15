@@ -96,7 +96,7 @@ public partial class LoggingTests
         host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
 
         // Act
-        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ClientBulkWriteException>();
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
 
         // Assert
         await Verify(_sink.Snapshot("MongoFlow.Save").Where(entry => entry.EventId == MongoFlowLogEvents.Save.SaveFailed));

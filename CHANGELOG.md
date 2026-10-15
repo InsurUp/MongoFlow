@@ -3,6 +3,27 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Reads by filter in one call on every collection: `ToListAsync`, `FirstOrDefaultAsync`, `FirstAsync`,
+  `SingleOrDefaultAsync`, `SingleAsync`, `AnyAsync` and `CountAsync`, each taking an expression or a
+  `FilterDefinition<T>`. Each is `FindAsync(filter)` followed by the driver's operator of the same name, so query
+  filters, the transaction, views and change tracking apply as they do to `FindAsync`; `CountAsync` is
+  `CountDocumentsAsync`. They're extension methods (`VaultCollectionReadExtensions`), so `IVaultCollection<T>` and fakes
+  of it don't change.
+- `DuplicateKeyException`, which a save throws when a unique index refuses a write. Its `Operation` is the refused write,
+  so a save writing to two collections with unique indexes tells which one it was.
+
+### Changed
+
+- A save whose write a unique index refuses throws `DuplicateKeyException` rather than the driver's
+  `ClientBulkWriteException`, which is now its `InnerException`, with the server's error and its labels. Code that
+  catches `ClientBulkWriteException` for duplicate keys catches `DuplicateKeyException` instead; other refused writes
+  still throw `ClientBulkWriteException`. Like `ConcurrencyException`, it derives from `Exception`, so a
+  `catch (MongoException)` no longer catches a duplicate key.
+
 ## [1.0.0-beta.7] - 2026-10-07
 
 ### Added
