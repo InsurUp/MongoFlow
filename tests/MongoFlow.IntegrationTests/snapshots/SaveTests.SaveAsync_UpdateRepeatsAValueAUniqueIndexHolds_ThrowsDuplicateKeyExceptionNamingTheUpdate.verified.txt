@@ -1,0 +1,21 @@
+﻿{
+  Message: The update in Orders was refused: a unique index already holds the value it writes.,
+  Kind: Update,
+  Key: 2,
+  Stored: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 10
+      }
+    },
+    {
+      _id: 2,
+      Customer: bob,
+      Total: {
+        $numberDecimal: 20
+      }
+    }
+  ]
+}

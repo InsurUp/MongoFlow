@@ -31,13 +31,13 @@ public partial class TransactionTests
         host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
         await host.Vault.SaveAsync();
         host.Vault.Orders.Add(new Order { Id = 1, Customer = "ada", Total = 10 });
-        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ClientBulkWriteException>();
+        await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<DuplicateKeyException>();
 
         // Act
         var exception = await Assert.That(() => transaction.CommitAsync()).ThrowsExactly<InvalidOperationException>();
 
         // Assert
-        await Assert.That(exception!.InnerException).IsTypeOf<ClientBulkWriteException>();
+        await Assert.That(exception!.InnerException).IsTypeOf<DuplicateKeyException>();
         await Assert.That(await host.StoredAsync("Orders")).IsEmpty();
     }
 

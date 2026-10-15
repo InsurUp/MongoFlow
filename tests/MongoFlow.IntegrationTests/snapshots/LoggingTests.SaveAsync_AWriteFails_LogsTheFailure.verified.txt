@@ -5,6 +5,6 @@
     EventId: 27003005,
     Event: SaveFailed,
     Message: Saving ShopVault failed after {elapsed} ms.,
-    Exception: ClientBulkWriteException
+    Exception: DuplicateKeyException
   }
 ]

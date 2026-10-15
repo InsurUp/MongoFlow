@@ -73,7 +73,7 @@ public partial class MongoUserStoreTests
         await users.SetPhoneNumberAsync(ada, "+90 555 000 00 01");
 
         // Act & Assert — only a write conflict is a concurrency failure.
-        await Assert.That(Task () => users.SetPhoneNumberAsync(bob, "+90 555 000 00 01")).ThrowsExactly<ClientBulkWriteException>();
+        await Assert.That(Task () => users.SetPhoneNumberAsync(bob, "+90 555 000 00 01")).ThrowsExactly<DuplicateKeyException>();
     }
 
     [Test]

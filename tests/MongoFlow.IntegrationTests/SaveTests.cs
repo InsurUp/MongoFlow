@@ -10,7 +10,8 @@ namespace MongoFlow.IntegrationTests;
 /// <item>the queue empties with every save, whether it succeeds or fails, and a document added twice is inserted
 /// once;</item>
 /// <item>a failing write fails the save, and nothing of it is written, as when another transaction is changing a
-/// document;</item>
+/// document; a write a unique index refuses fails it with <see cref="DuplicateKeyException"/>, naming the write, and any
+/// other with the driver's exception;</item>
 /// <item>writes by key or filter stay within what the query filters show, resolved once per save.</item>
 /// </list>
 /// </summary>

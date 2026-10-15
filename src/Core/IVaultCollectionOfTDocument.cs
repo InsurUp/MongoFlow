@@ -12,7 +12,8 @@ namespace MongoFlow;
 /// <para>
 /// Reads apply the collection's query filters, and inside a transaction they use its session. Query filters can be
 /// asynchronous, so every read starts with one await that resolves them; what it returns is the driver's own type with
-/// the filters already applied.
+/// the filters already applied. A read that only filters, then calls one of the driver's operators, is one call with
+/// <see cref="VaultCollectionReadExtensions"/>, such as <c>ToListAsync(filter)</c>.
 /// </para>
 /// <para>
 /// Writes are queued as <see cref="VaultOperation"/>s and sent when the vault is saved. They can be queued from parallel
