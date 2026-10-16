@@ -23,6 +23,11 @@ public abstract class VaultOperation<TDocument> : VaultOperation
     /// <summary>The one document the operation targets by key, or <see langword="null"/> for inserts and set-based operations.</summary>
     internal KeyTarget<TDocument>? Target { get; }
 
+    /// <summary>The view's tracker, for an insert or a replace queued through a view that tracks changes.</summary>
+    internal IDocumentTracker<TDocument>? Tracker { get; init; }
+
+    internal override bool TracksWritten => Tracker is not null;
+
     /// <inheritdoc/>
     public override object? Key => Target?.Key;
 
@@ -77,6 +82,8 @@ public abstract class VaultOperation<TDocument> : VaultOperation
         FilterDefinition<TDocument>? filter,
         CancellationToken cancellationToken) =>
         MatchAsync(run, filter, Condition, cancellationToken);
+
+    internal override TrackedDocument? TrackWritten() => Tracker!.Snapshot(Document!);
 
     private protected override object? GetDocument() => Document;
 

@@ -114,8 +114,9 @@ result, how it fails, and what may run in parallel.
 
 ### Change tracking
 
-With `vault.UseChangeTracking()`, the documents reads return are tracked, and `SaveAsync` writes what changed in them:
-one update by key, setting the changed fields and nothing else.
+With `vault.UseChangeTracking()`, the documents reads return are tracked, and so are the documents a save inserts or
+replaces, once written. `SaveAsync` writes what changed in them: one update by key, setting the changed fields and
+nothing else.
 
 ```csharp
 var policy = await vault.Policies.GetByKeyAsync("P-1001");

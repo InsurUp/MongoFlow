@@ -9,7 +9,8 @@ public interface IVaultCollection<TDocument, TKey> : IVaultCollection<TDocument>
     new IVaultCollection<TDocument, TKey> Without(FeatureKey feature);
 
     /// <summary>
-    /// A view of this collection whose reads track the documents they return, whether or not the vault tracks changes.
+    /// A view of this collection whose reads track the documents they return, and whose inserts and replaces track their
+    /// documents once a save writes them, whether or not the vault tracks changes.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -21,8 +22,11 @@ public interface IVaultCollection<TDocument, TKey> : IVaultCollection<TDocument>
     /// </para>
     /// <para>
     /// <see cref="GetByKeyAsync"/>, <c>FindAsync</c> and <see cref="IVaultCollection{TDocument}.QueryAsync"/> track what
-    /// they return, unless it's a projection. Aggregations aren't tracked. Queuing <see cref="Replace"/> or
-    /// <see cref="Delete"/> of a tracked document takes the place of its changes; a delete stops tracking it.
+    /// they return, unless it's a projection. Aggregations aren't tracked. A document queued with
+    /// <see cref="IVaultCollection{TDocument}.Add"/> or <see cref="Replace"/> is tracked once a save writes it, as it is
+    /// after the save's interceptors, unless another write of the save updates or deletes it. Queuing
+    /// <see cref="Replace"/> or <see cref="Delete"/> of a tracked document takes the place of its changes; a delete stops
+    /// tracking it.
     /// </para>
     /// <para>
     /// Each tracked document is kept, with a copy of its BSON, until the vault's scope ends: read what won't change through
@@ -31,7 +35,10 @@ public interface IVaultCollection<TDocument, TKey> : IVaultCollection<TDocument>
     /// </remarks>
     IVaultCollection<TDocument, TKey> WithTracking();
 
-    /// <summary>A view of this collection whose reads don't track the documents they return, even if the vault tracks changes.</summary>
+    /// <summary>
+    /// A view of this collection whose reads don't track the documents they return, nor its inserts and replaces their
+    /// documents, even if the vault tracks changes.
+    /// </summary>
     IVaultCollection<TDocument, TKey> WithNoTracking();
 
     /// <summary>The document with <paramref name="key"/>, if the query filters let the caller see it.</summary>

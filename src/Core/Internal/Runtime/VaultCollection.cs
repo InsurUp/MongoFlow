@@ -86,7 +86,7 @@ internal class VaultCollection<TDocument>(
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        Runtime.Enqueue(new InsertOperation<TDocument>(model, Disabled, document));
+        Runtime.Enqueue(new InsertOperation<TDocument>(model, Disabled, document) { Tracker = Tracker });
     }
 
     void IVaultCollection.Add(object document) => Add(DocumentOf(document));
@@ -140,7 +140,10 @@ internal class VaultCollection<TDocument>(
         QueueDeleteMany(new BsonDocumentFilterDefinition<TDocument>(filter));
     }
 
-    /// <summary>Tracks what the reads return, when this is a keyed view that tracks changes; otherwise <see langword="null"/>.</summary>
+    /// <summary>
+    /// Tracks what the reads return, and what the saves insert or replace, when this is a keyed view that tracks changes;
+    /// otherwise <see langword="null"/>.
+    /// </summary>
     protected virtual IDocumentTracker<TDocument>? Tracker => null;
 
     /// <summary>A view of the collection with <paramref name="disabled"/> switched off, keyed if this one is.</summary>

@@ -1,0 +1,28 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Writes: [
+    {
+      Kind: Insert
+    }
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: first,
+      Tags: [
+        early
+      ],
+      Legacy: kept
+    }
+  ]
+}

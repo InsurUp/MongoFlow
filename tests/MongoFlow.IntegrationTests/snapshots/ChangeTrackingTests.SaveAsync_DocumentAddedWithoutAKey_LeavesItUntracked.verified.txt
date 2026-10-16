@@ -1,0 +1,22 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Writes: [
+    {
+      Kind: Insert
+    }
+  ],
+  Stored: [
+    {
+      _id: {
+        $oid: 665f1c2e9b1e8a3d4c5b6a71
+      },
+      Code: null,
+      Percent: 10
+    }
+  ]
+}

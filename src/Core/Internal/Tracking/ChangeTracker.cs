@@ -114,8 +114,28 @@ internal sealed class ChangeTracker : IDisposable
     }
 
     /// <summary>
-    /// Forgets a document whose delete committed; the save that deleted it gives its snapshot back. Called holding
-    /// <see cref="Lock"/>.
+    /// Tracks the documents <paramref name="operations"/> wrote whole, as they are now, unless one is tracked already or
+    /// has no key; returns those it tracked. Called holding <see cref="Lock"/>.
+    /// </summary>
+    public List<TrackedDocument>? TrackWritten(List<VaultOperation> operations)
+    {
+        List<TrackedDocument>? started = null;
+
+        foreach (var operation in operations)
+        {
+            if (!_documents.ContainsKey(operation.Document!) && operation.TrackWritten() is { } document)
+            {
+                _documents[document.Document] = document;
+                (started ??= []).Add(document);
+            }
+        }
+
+        return started;
+    }
+
+    /// <summary>
+    /// Forgets a document whose delete committed, or whose insert rolled back; the save gives its snapshot back. Called
+    /// holding <see cref="Lock"/>.
     /// </summary>
     public void Forget(TrackedDocument document) => _documents.Remove(document.Document);
 

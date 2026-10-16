@@ -19,6 +19,7 @@ internal sealed class VaultRuntime : IDisposable
     private ComparerSwissHashSet<object>? _inserted;
     private ChangeTracker? _tracker;
     private int _saving;
+    private int _disposals;
 
     public VaultRuntime(VaultModel model,
         IServiceProvider services,
@@ -42,6 +43,12 @@ internal sealed class VaultRuntime : IDisposable
     public MongoVault Vault { get; }
 
     public VaultTransactionManager TransactionManager => field ??= Services.GetRequiredService<VaultTransactionManager>();
+
+    /// <summary>
+    /// How many times the instance was disposed, for a save to tell whether it was disposed while the save ran: a vault
+    /// starts again with nothing tracked.
+    /// </summary>
+    public int Disposals => Volatile.Read(ref _disposals);
 
     /// <summary>The documents the instance's reads tracked, created by the first read that tracks one.</summary>
     public ChangeTracker Tracker => LazyInitializer.EnsureInitialized(ref _tracker, static () => new ChangeTracker());
@@ -140,6 +147,7 @@ internal sealed class VaultRuntime : IDisposable
     /// <summary>Gives back what the instance rented: its tracked documents' snapshots, and writes queued but never saved.</summary>
     public void Dispose()
     {
+        Interlocked.Increment(ref _disposals);
         Volatile.Read(ref _tracker)?.Dispose();
         Drain()?.Dispose();
     }

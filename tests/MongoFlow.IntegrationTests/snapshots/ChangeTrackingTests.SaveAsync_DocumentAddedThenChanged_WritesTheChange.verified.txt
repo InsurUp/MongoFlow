@@ -1,0 +1,39 @@
+﻿{
+  Writes: [
+    {
+      Kind: Insert
+    },
+    {
+      Kind: Update,
+      Key: 2,
+      Update: {
+        $set: {
+          Address.City: Ankara
+        }
+      }
+    }
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: first,
+      Tags: [
+        early
+      ],
+      Legacy: kept
+    },
+    {
+      _id: 2,
+      Name: Bob,
+      Address: {
+        City: Ankara,
+        Zip: 
+      }
+    }
+  ]
+}

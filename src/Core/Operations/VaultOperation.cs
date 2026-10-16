@@ -95,6 +95,15 @@ public abstract class VaultOperation
     /// <summary>Where <see cref="Original"/> is, for a write of a tracked document.</summary>
     internal TrackedOriginal? TrackedOriginal { get; set; }
 
+    /// <summary>
+    /// Whether it's an insert or a replace queued through a view that tracks changes, whose document the save tracks once
+    /// it's written.
+    /// </summary>
+    internal abstract bool TracksWritten { get; }
+
+    /// <summary>Its document, ready to be tracked as written; see <see cref="IDocumentTracker{TDocument}.Snapshot"/>.</summary>
+    internal abstract TrackedDocument? TrackWritten();
+
     /// <summary>The model this operation adds to the save's bulk write.</summary>
     internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken);

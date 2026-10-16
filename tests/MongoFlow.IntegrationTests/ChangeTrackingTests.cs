@@ -14,6 +14,9 @@ namespace MongoFlow.IntegrationTests;
 /// <item>once written, a change isn't written again; a key can't change;</item>
 /// <item>a queued replace or delete of a tracked document takes the place of its changes, and a delete stops tracking
 /// it; a queued update doesn't, and goes after them;</item>
+/// <item>a document a save inserts or replaces whole, through a view that tracks, is tracked once written, as it is then,
+/// unless it has no key, another write of the save changes it past what it holds, or the save is rolled back; see
+/// <c>ChangeTrackingTests.AddAndReplace.cs</c>;</item>
 /// <item>the writes that bring a tracked document up to date carry it as it was before the save, readable while the
 /// save's hooks run, whatever the pool does meanwhile; see <c>ChangeTrackingTests.Originals.cs</c>;</item>
 /// <item>which reads track; see <c>ChangeTrackingTests.Reads.cs</c>. Transactions, failures, the concurrency token and

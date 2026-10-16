@@ -8,7 +8,8 @@ namespace MongoFlow;
 /// deletes them. Once its writes are in, later saves compare against what it wrote; rolled back, against what was there
 /// before. It keeps each document's snapshot from before the save, the original its operations expose, alive until its
 /// interceptors' hooks have run, and gives back what it holds once, when it ends. It also holds the documents tracked
-/// when the save began, for its interceptors to read.
+/// when the save began, for its interceptors to read, and the documents it inserted or replaced whole and started
+/// tracking, which are forgotten again if it's rolled back.
 /// </summary>
 internal sealed class TrackedChanges(ChangeTracker tracker)
 {
@@ -19,6 +20,7 @@ internal sealed class TrackedChanges(ChangeTracker tracker)
         BsonSnapshot Original,
         bool Held,
         RawBsonDocument? Copy)> _changes = [];
+    private List<TrackedDocument>? _started;
     private bool _applied;
     private bool _ended;
 
@@ -68,6 +70,12 @@ internal sealed class TrackedChanges(ChangeTracker tracker)
         }
     }
 
+    /// <summary>
+    /// Tracks the documents <paramref name="operations"/> wrote whole, as they are now; see
+    /// <see cref="ChangeTracker.TrackWritten"/>. Called holding the tracker's lock, before <see cref="Apply"/>.
+    /// </summary>
+    public void Track(List<VaultOperation> operations) => _started = tracker.TrackWritten(operations);
+
     /// <summary>Forgets the documents deleted, holding their snapshots until the save ends.</summary>
     public void Commit()
     {
@@ -84,7 +92,10 @@ internal sealed class TrackedChanges(ChangeTracker tracker)
         }
     }
 
-    /// <summary>Puts back the snapshots swapped out, so the changes are pending again.</summary>
+    /// <summary>
+    /// Puts back the snapshots swapped out, so the changes are pending again, and forgets the documents it started
+    /// tracking, so later saves don't compare against a write that didn't happen.
+    /// </summary>
     public void Revert()
     {
         if (!_applied)
@@ -108,7 +119,18 @@ internal sealed class TrackedChanges(ChangeTracker tracker)
                 }
             }
 
+            foreach (var document in _started ?? [])
+            {
+                // The vault was disposed since, which gave it back.
+                if (!document.Released)
+                {
+                    tracker.Forget(document);
+                    document.Release();
+                }
+            }
+
             // So another rollback of the save finds nothing to undo.
+            _started = null;
             _applied = false;
         }
     }

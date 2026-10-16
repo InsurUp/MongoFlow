@@ -56,7 +56,7 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        Runtime.Enqueue(new ReplaceOperation<TDocument>(model, Disabled, TargetOf(document), document));
+        Runtime.Enqueue(new ReplaceOperation<TDocument>(model, Disabled, TargetOf(document), document) { Tracker = Tracker });
     }
 
     void IKeyedVaultCollection.Replace(object document) => Replace(DocumentOf(document));
@@ -99,20 +99,20 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
 
     void IKeyedVaultCollection.Update(object document, BsonValue update) => Update(DocumentOf(document), UpdateOf(update));
 
-    /// <summary>
-    /// Keeps <paramref name="document"/>, with its BSON as read, for the vault's save to compare. One without a key can't
-    /// be updated by key, so it isn't tracked.
-    /// </summary>
+    /// <summary>Keeps <paramref name="document"/>, with its BSON as read, for the vault's save to compare.</summary>
     public void Track(TDocument document)
     {
-        if (model.Key.Get(document) is not { } key)
+        if (Snapshot(document) is { } tracked)
         {
-            return;
+            Runtime.Tracker.Track(tracked);
         }
-
-        var snapshot = BsonSnapshot.Of(model.MongoCollection.DocumentSerializer, document);
-        Runtime.Tracker.Track(new TrackedDocument<TDocument, TKey>(model, Disabled, document, key, snapshot));
     }
+
+    public TrackedDocument? Snapshot(TDocument document) =>
+        model.Key.Get(document) is { } key
+            ? new TrackedDocument<TDocument, TKey>(model, Disabled, document, key,
+                BsonSnapshot.Of(model.MongoCollection.DocumentSerializer, document))
+            : null;
 
     protected override IDocumentTracker<TDocument>? Tracker => tracking ? this : null;
 
