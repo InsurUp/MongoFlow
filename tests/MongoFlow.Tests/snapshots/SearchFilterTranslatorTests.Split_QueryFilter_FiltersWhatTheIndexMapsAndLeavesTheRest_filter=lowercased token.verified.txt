@@ -1,0 +1,9 @@
+﻿{
+  Residual: {
+    Email: Ada@Example.com
+  },
+  PostFiltered: [
+    Email
+  ],
+  HasClauses: false
+}

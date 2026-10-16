@@ -6,8 +6,10 @@ namespace MongoFlow;
 /// A vault's encryption, set by MongoFlow.Encryption while the vault is configured: the database the vault reads and
 /// writes through, how each collection with encrypted members encrypts, and what the migrator sets up before migrating.
 /// </summary>
-internal abstract class VaultEncryption
+internal abstract class VaultEncryption : IVaultSetup
 {
+    bool IVaultSetup.BeforeMigrations => true;
+
     /// <summary>
     /// The database the vault reads and writes through, in place of <paramref name="source"/>, the one it was configured
     /// with: the same database, through a client that encrypts. Called once, when the model is built; does no I/O.
@@ -24,4 +26,8 @@ internal abstract class VaultEncryption
     /// </summary>
     public abstract Task PrepareAsync(VaultModel model,
         CancellationToken cancellationToken);
+
+    Task IVaultSetup.RunAsync(VaultModel model,
+        CancellationToken cancellationToken) =>
+        PrepareAsync(model, cancellationToken);
 }

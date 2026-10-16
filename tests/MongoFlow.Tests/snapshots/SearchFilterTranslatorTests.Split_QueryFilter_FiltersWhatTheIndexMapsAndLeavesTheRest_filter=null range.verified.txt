@@ -1,0 +1,11 @@
+﻿{
+  Residual: {
+    Total: {
+      $gte: null
+    }
+  },
+  PostFiltered: [
+    Total
+  ],
+  HasClauses: false
+}

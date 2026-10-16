@@ -1,0 +1,13 @@
+﻿{
+  Filter: [
+    {
+      range: {
+        path: PlacedAt,
+        gt: {
+          $date: DateTimeOffset_1
+        }
+      }
+    }
+  ],
+  HasClauses: true
+}

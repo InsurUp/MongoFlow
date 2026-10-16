@@ -1,0 +1,40 @@
+﻿[
+  {
+    Name: vectors,
+    TypeName: vectorSearch,
+    Definition: {
+      fields: [
+        {
+          type: vector,
+          path: Embedding,
+          numDimensions: 1536,
+          similarity: dotProduct,
+          quantization: scalar
+        },
+        {
+          type: vector,
+          path: Supplier,
+          numDimensions: 3,
+          similarity: euclidean,
+          quantization: binary
+        },
+        {
+          type: filter,
+          path: Price
+        },
+        {
+          type: filter,
+          path: Supplier.city
+        },
+        {
+          type: filter,
+          path: TenantId
+        },
+        {
+          type: filter,
+          path: DeletedAt
+        }
+      ]
+    }
+  }
+]

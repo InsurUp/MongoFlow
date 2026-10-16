@@ -1,0 +1,11 @@
+﻿{
+  MustNot: [
+    {
+      range: {
+        path: Total,
+        gt: 5
+      }
+    }
+  ],
+  HasClauses: true
+}

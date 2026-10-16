@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Products has no search index named default, so a search of it would find nothing. Declare it on the collection with SearchIndex or VectorSearchIndex, which IVaultMigrator creates, or create it.
+}

@@ -1,0 +1,13 @@
+﻿{
+  TenantEquals: true,
+  Calls: 1,
+  Log: [
+    {
+      Category: MongoFlow.Search,
+      Level: Debug,
+      EventId: 27008008,
+      Event: IndexListed,
+      Message: Listed the search index default of Products, which the vault doesn't declare, to learn what it maps.
+    }
+  ]
+}

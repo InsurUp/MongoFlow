@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: The search index default failed to build: Field 'Name' can't be mapped as both string and token.
+}

@@ -28,6 +28,9 @@ internal sealed class VaultLogs(ILoggerFactory factory)
     /// <summary>Encrypted collections set up by the migrator, logged by MongoFlow.Encryption.</summary>
     public ILogger Encryption { get; } = factory.CreateLogger(MongoFlowLogEvents.Encryption.Category);
 
+    /// <summary>Search indexes set up by the migrator, and query filters searches match after the search.</summary>
+    public ILogger Search { get; } = factory.CreateLogger(MongoFlowLogEvents.Search.Category);
+
     public static VaultLogs From(IServiceProvider services) =>
         new(services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance);
 

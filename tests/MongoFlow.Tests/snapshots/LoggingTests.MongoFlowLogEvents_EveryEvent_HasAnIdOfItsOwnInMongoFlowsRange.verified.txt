@@ -130,6 +130,11 @@
     Id: 27005002
   },
   {
+    Group: Query,
+    Event: Searching,
+    Id: 27005003
+  },
+  {
     Group: Migrations,
     Event: Migrating,
     Id: 27006001
@@ -188,5 +193,50 @@
     Group: Encryption,
     Event: UnencryptedCopyRemains,
     Id: 27007007
+  },
+  {
+    Group: Encryption,
+    Event: SearchIndexesFollowCopy,
+    Id: 27007008
+  },
+  {
+    Group: Search,
+    Event: IndexCreated,
+    Id: 27008001
+  },
+  {
+    Group: Search,
+    Event: IndexUpdated,
+    Id: 27008002
+  },
+  {
+    Group: Search,
+    Event: IndexUpToDate,
+    Id: 27008003
+  },
+  {
+    Group: Search,
+    Event: IndexBuilding,
+    Id: 27008004
+  },
+  {
+    Group: Search,
+    Event: IndexQueryable,
+    Id: 27008005
+  },
+  {
+    Group: Search,
+    Event: IndexFailed,
+    Id: 27008006
+  },
+  {
+    Group: Search,
+    Event: FilterFieldNotPreFiltered,
+    Id: 27008007
+  },
+  {
+    Group: Search,
+    Event: IndexListed,
+    Id: 27008008
   }
 ]

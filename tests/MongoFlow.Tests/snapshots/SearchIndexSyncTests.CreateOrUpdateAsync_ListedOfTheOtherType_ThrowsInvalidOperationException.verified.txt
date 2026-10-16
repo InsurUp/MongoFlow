@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: The search index default is a vectorSearch index, but is declared a search index, and an index's type can't be changed. Drop it, or name the declared one otherwise.
+}

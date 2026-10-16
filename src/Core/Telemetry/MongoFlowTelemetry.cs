@@ -6,7 +6,7 @@ namespace MongoFlow;
 /// <c>.AddSource(MongoFlowTelemetry.ActivitySourceName)</c> and <c>.AddMeter(MongoFlowTelemetry.MeterName)</c>.
 /// </summary>
 /// <remarks>
-/// MongoFlow traces its own units of work: saves and migrations. The driver traces every command they send, under
+/// MongoFlow traces its own units of work: saves, migrations and the search indexes the migrator sets up. The driver traces every command they send, under
 /// <c>MongoTelemetry.ActivitySourceName</c>; add that source too to see them nested. Reads have no span of their own:
 /// <c>QueryAsync</c>, <c>FindAsync</c> and <c>AggregateAsync</c> return queries that run after they return, and the
 /// driver traces them when they do. The meter comes from the <c>IMeterFactory</c> in DI, if there is one.
@@ -41,6 +41,14 @@ public static class MongoFlowTelemetry
         /// <see cref="Tags.MigrationVersion"/>, <see cref="Tags.MigrationName"/> and <see cref="Tags.MigrationDirection"/>.
         /// </summary>
         public const string Migration = "MongoFlow.Migration";
+
+        /// <summary>
+        /// One search index a vault declares, created, updated or found as declared by <c>IVaultMigrator</c> after the
+        /// vault's migrations, and waited for until it's queryable, tagged with <see cref="Tags.Vault"/>,
+        /// <see cref="Tags.SearchIndexCollection"/>, <see cref="Tags.SearchIndexName"/>, <see cref="Tags.SearchIndexType"/>
+        /// and <see cref="Tags.SearchIndexChange"/>.
+        /// </summary>
+        public const string SearchIndex = "MongoFlow.SearchIndex";
     }
 
     /// <summary>The instruments of MongoFlow's meter.</summary>
@@ -117,6 +125,18 @@ public static class MongoFlowTelemetry
 
         /// <summary>Whether a migration is applied, <c>up</c>, or reverted, <c>down</c>.</summary>
         public const string MigrationDirection = "mongoflow.migration.direction";
+
+        /// <summary>The collection a search index is of.</summary>
+        public const string SearchIndexCollection = "mongoflow.search_index.collection";
+
+        /// <summary>A search index's name.</summary>
+        public const string SearchIndexName = "mongoflow.search_index.name";
+
+        /// <summary>A search index's type: <c>search</c> or <c>vectorSearch</c>.</summary>
+        public const string SearchIndexType = "mongoflow.search_index.type";
+
+        /// <summary>What was done to a search index: <c>created</c>, <c>updated</c> or <c>unchanged</c>.</summary>
+        public const string SearchIndexChange = "mongoflow.search_index.change";
 
         /// <summary>OpenTelemetry's <c>error.type</c>: the full type name of the exception that failed the work.</summary>
         public const string ErrorType = "error.type";

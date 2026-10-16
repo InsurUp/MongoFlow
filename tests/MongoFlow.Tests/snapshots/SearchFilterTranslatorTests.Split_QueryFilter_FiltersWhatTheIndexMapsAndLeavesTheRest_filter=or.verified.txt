@@ -1,0 +1,36 @@
+﻿{
+  Filter: [
+    {
+      compound: {
+        should: [
+          {
+            equals: {
+              path: TenantId,
+              value: t-1
+            }
+          },
+          {
+            compound: {
+              filter: [
+                {
+                  equals: {
+                    path: IsDeleted,
+                    value: true
+                  }
+                },
+                {
+                  equals: {
+                    path: Total,
+                    value: 3
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        minimumShouldMatch: 1
+      }
+    }
+  ],
+  HasClauses: true
+}

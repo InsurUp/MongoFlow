@@ -1,0 +1,8 @@
+﻿{
+  Count: {
+    LowerBound: 0
+  },
+  Facet: {
+    customers: {}
+  }
+}

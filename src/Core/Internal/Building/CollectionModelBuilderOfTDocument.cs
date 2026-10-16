@@ -15,6 +15,8 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     private readonly List<(Func<TDocument, bool> Pending, FeatureKey? Owner)> _runSaveWhen = [];
     private readonly List<LambdaExpression> _reserved = [];
     private readonly List<(LambdaExpression Member, object Options)> _encrypted = [];
+    private readonly Dictionary<string, SearchIndexBuilder<TDocument>> _searchIndexes = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, VectorSearchIndexBuilder<TDocument>> _vectorSearchIndexes = new(StringComparer.Ordinal);
 
     public CollectionModelBuilder(VaultModelBuilderBase vault, PropertyInfo property)
         : this(vault, property, keyType: null)
@@ -105,6 +107,36 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         return this;
     }
 
+    public IVaultCollectionBuilder<TDocument> SearchIndex(string name,
+        Action<ISearchIndexBuilder<TDocument>> configure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        if (!_searchIndexes.TryGetValue(name, out var index))
+        {
+            _searchIndexes[name] = index = new SearchIndexBuilder<TDocument>(name);
+        }
+
+        configure(index);
+        return this;
+    }
+
+    public IVaultCollectionBuilder<TDocument> VectorSearchIndex(string name,
+        Action<IVectorSearchIndexBuilder<TDocument>> configure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        if (!_vectorSearchIndexes.TryGetValue(name, out var index))
+        {
+            _vectorSearchIndexes[name] = index = new VectorSearchIndexBuilder<TDocument>(name);
+        }
+
+        configure(index);
+        return this;
+    }
+
     /// <summary>
     /// Notes that every read filters on <paramref name="member"/>, such as <c>(ISoftDeletable x) =&gt; x.IsDeleted</c>, so
     /// an index should include it; the index check warns when none does. For built-in features, which also reserve it.
@@ -152,7 +184,8 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     public override IReadOnlySet<FeatureKey> OptedOut => _without;
 
     public override ICollectionModel Build(IMongoDatabase database,
-        VaultEncryption? encryption)
+        VaultEncryption? encryption,
+        VaultLogs logs)
     {
         var definition = new CollectionDefinition<TDocument>(
             Property,
@@ -169,6 +202,8 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         {
             model.EncryptWith(EncryptionOf(model, encryption));
         }
+
+        model.SearchWith(SearchOf(model, logs));
 
         return Model = model;
     }
@@ -250,6 +285,45 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         }
 
         return encryption.ForCollection(model, members);
+    }
+
+    /// <summary>The collection's searches: its declared indexes rendered, with the fields its features filter on mapped.</summary>
+    /// <exception cref="VaultConfigurationException">An index can't be declared as it is.</exception>
+    private CollectionSearch SearchOf(CollectionModel<TDocument> model,
+        VaultLogs logs)
+    {
+        var name = model.Namespace.CollectionName;
+        var declarations = new List<SearchIndexDeclaration>(_searchIndexes.Count + _vectorSearchIndexes.Count);
+
+        if (declarations.Capacity > 0)
+        {
+            if (_searchIndexes.Keys.Intersect(_vectorSearchIndexes.Keys).FirstOrDefault() is { } both)
+            {
+                throw new VaultConfigurationException(
+                    $"{PropertyName} declares {both} as a search index and as a vector search index. An index has one " +
+                    "name per collection.");
+            }
+
+            if (model.Encryption is not null)
+            {
+                throw new VaultConfigurationException(
+                    $"{PropertyName} declares search indexes, but has encrypted members: MongoDB Search can't index a " +
+                    "collection with Queryable Encryption. Search another collection, which holds what can be searched " +
+                    "in plain text.");
+            }
+
+            var features = model.RenderFeatureFields();
+            declarations.AddRange(_searchIndexes.Values.Select(index => index.Build(model.RenderArgs, features)));
+            declarations.AddRange(_vectorSearchIndexes.Values.Select(index => index.Build(model.RenderArgs, features, name)));
+        }
+
+        var collection = model.MongoCollection;
+        return new CollectionSearch(name,
+            declarations,
+            async (index, cancellationToken) =>
+                await (await collection.SearchIndexes.ListAsync(index, cancellationToken: cancellationToken))
+                    .FirstOrDefaultAsync(cancellationToken),
+            logs.Search);
     }
 
     /// <summary>

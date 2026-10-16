@@ -45,6 +45,9 @@ operators work on it. The one exception is `GetClient()`, which needs the driver
 the reads of a collection start from one driver query, so the provider's `LoggedStages` show the last query any request
 ran on it.
 
+`SearchAsync`, `SearchMetaAsync` and `VectorSearchAsync` search with MongoDB Search, filtering with the query filters in
+the index where it maps their fields; see [MongoDB Search](search.md).
+
 `MongoCollection` is the driver's collection: what's read or written through it bypasses query filters, features,
 interceptors and the vault's save. Use it for what MongoFlow doesn't cover, such as indexes or change streams.
 

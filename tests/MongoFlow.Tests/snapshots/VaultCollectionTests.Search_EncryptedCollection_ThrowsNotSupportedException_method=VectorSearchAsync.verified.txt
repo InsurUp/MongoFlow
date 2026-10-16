@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: Patients has encrypted members, and MongoDB Search can't search a collection with Queryable Encryption.
+}

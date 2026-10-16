@@ -1,0 +1,15 @@
+﻿{
+  Count: {
+    Total: 2
+  },
+  Facet: {
+    agencies: {
+      Buckets: [
+        {
+          Count: 2,
+          Id: a-1
+        }
+      ]
+    }
+  }
+}

@@ -139,6 +139,12 @@ public static class MongoFlowLogEvents
 
         /// <summary><c>Trace</c>: <c>GetByKeyAsync</c>, with its key and query filters.</summary>
         public const int ReadingByKey = 27_005_002;
+
+        /// <summary>
+        /// <c>Trace</c>: <c>SearchAsync</c>, <c>SearchMetaAsync</c> or <c>VectorSearchAsync</c>, with its index, the query
+        /// filters' clauses its index filters on, and what's matched after it.
+        /// </summary>
+        public const int Searching = 27_005_003;
     }
 
     /// <summary>Migrations <c>IVaultMigrator</c> applies and reverts.</summary>
@@ -204,5 +210,52 @@ public static class MongoFlowLogEvents
         /// drop it once the encrypted collection is checked.
         /// </summary>
         public const int UnencryptedCopyRemains = 27_007_007;
+
+        /// <summary>
+        /// <c>Warning</c>: a rebuilt collection had MongoDB Search indexes, which followed it to its unencrypted copy, so the
+        /// search process keeps an index of the plain text: drop them, or the copy, which drops them too. MongoDB Search
+        /// can't index the encrypted collection.
+        /// </summary>
+        public const int SearchIndexesFollowCopy = 27_007_008;
+    }
+
+    /// <summary>
+    /// Search indexes: those a vault declares, which <c>IVaultMigrator</c> creates, updates and waits for after the vault's
+    /// migrations, and the query filters searches can't filter on in their index. What changes the database logs at
+    /// <c>Information</c>.
+    /// </summary>
+    public static class Search
+    {
+        /// <summary>The logger category.</summary>
+        public const string Category = "MongoFlow.Search";
+
+        /// <summary><c>Information</c>: a declared search index was created.</summary>
+        public const int IndexCreated = 27_008_001;
+
+        /// <summary><c>Information</c>: a declared search index's definition changed, so it was updated, and is rebuilt.</summary>
+        public const int IndexUpdated = 27_008_002;
+
+        /// <summary><c>Debug</c>: a declared search index is defined as declared already.</summary>
+        public const int IndexUpToDate = 27_008_003;
+
+        /// <summary><c>Debug</c>: a search index created or updated is being built; the migrator waits until it's queryable.</summary>
+        public const int IndexBuilding = 27_008_004;
+
+        /// <summary><c>Information</c>: a search index created or updated is built and queryable.</summary>
+        public const int IndexQueryable = 27_008_005;
+
+        /// <summary><c>Error</c>: a search index failed to build; the migrator throws.</summary>
+        public const int IndexFailed = 27_008_006;
+
+        /// <summary>
+        /// <c>Warning</c>: the query filters on a field are matched after the search, as the index doesn't map it to
+        /// compare exactly, such as a string mapped only as analyzed text, or they compare it in a way a search can't:
+        /// counts, facets and stored source then can't be had, and a vector search can return fewer documents than its
+        /// limit. Logged once per collection, index and field.
+        /// </summary>
+        public const int FilterFieldNotPreFiltered = 27_008_007;
+
+        /// <summary><c>Debug</c>: an index the vault doesn't declare was listed, once, to learn which fields it maps.</summary>
+        public const int IndexListed = 27_008_008;
     }
 }

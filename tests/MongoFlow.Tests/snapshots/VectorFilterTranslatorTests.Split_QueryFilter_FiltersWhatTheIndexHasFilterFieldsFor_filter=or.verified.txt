@@ -1,0 +1,16 @@
+﻿{
+  Filter: {
+    $or: [
+      {
+        TenantId: {
+          $eq: t-1
+        }
+      },
+      {
+        IsDeleted: {
+          $eq: true
+        }
+      }
+    ]
+  }
+}

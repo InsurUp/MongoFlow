@@ -1,0 +1,32 @@
+﻿[
+  {
+    Name: default,
+    TypeName: search,
+    Definition: {
+      storedSource: true,
+      mappings: {
+        fields: {
+          Name: {
+            type: string
+          },
+          Supplier: {
+            type: document,
+            dynamic: true,
+            fields: {
+              city: {
+                type: token
+              }
+            }
+          },
+          TenantId: {
+            type: token
+          },
+          DeletedAt: {
+            type: date
+          }
+        },
+        dynamic: true
+      }
+    }
+  }
+]

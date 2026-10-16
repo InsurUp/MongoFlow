@@ -1,0 +1,11 @@
+﻿{
+  Residual: {
+    Total: {
+      $numberDecimal: 1.5
+    }
+  },
+  PostFiltered: [
+    Total
+  ],
+  HasClauses: false
+}

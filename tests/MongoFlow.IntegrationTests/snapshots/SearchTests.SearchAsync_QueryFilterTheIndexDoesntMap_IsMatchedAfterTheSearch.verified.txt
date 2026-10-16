@@ -1,0 +1,15 @@
+﻿{
+  Found: [
+    Ada King,
+    Ada Lovelace
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Warning,
+      EventId: 27008007,
+      Event: FilterFieldNotPreFiltered,
+      Message: Searches of Customers in default match the query filters on Score after the search: the index doesn't map it to compare exactly, such as a string as SearchField.Token(), or the filters compare it in a way a search can't, such as with a regular expression.
+    }
+  ]
+}

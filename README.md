@@ -5,9 +5,9 @@
 
 A unit of work for MongoDB on .NET, built on the official driver. A vault holds a database's collections: reads return the
 driver's own types with your query filters applied, and writes are queued until `SaveAsync`, which sends them as one
-client bulk write, in a transaction. Soft delete, multi-tenancy, a concurrency token, interceptors, change tracking and
-migrations come with it, it logs, traces and measures what it does, and MongoFlow.Encryption adds Queryable Encryption,
-on MongoDB Community too.
+client bulk write, in a transaction. Soft delete, multi-tenancy, a concurrency token, interceptors, change tracking,
+migrations and MongoDB Search come with it, it logs, traces and measures what it does, and MongoFlow.Encryption adds
+Queryable Encryption, on MongoDB Community too.
 
 > **1.0 is in beta.** Feedback is welcome in [the issues](https://github.com/InsurUp/MongoFlow/issues).
 > [The changelog](https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md#moving-from-05) maps 0.5's API to 1.0's.
@@ -185,10 +185,28 @@ await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
 
 [Migrations](https://github.com/InsurUp/MongoFlow/blob/main/docs/migrations.md).
 
+### MongoDB Search
+
+Search indexes are declared on the collection; the migrator creates them, keeps them as declared and waits until they're
+queryable. Searches and vector searches filter with the query filters in the index, a tenant and soft delete's flag
+included, so they find only what a read would.
+
+```csharp
+.Collection(x => x.Customers, customers => customers
+    .SearchIndex("default", index => index.Map(x => x.Name, SearchField.String(), SearchField.Autocomplete()))
+    .VectorSearchIndex("vectors", index => index.Vector(x => x.Embedding, dimensions: 1536, VectorSimilarity.Cosine)));
+
+var adas = await (await vault.Customers.SearchAsync(Builders<Customer>.Search.Text(x => x.Name, "ada"))).ToListAsync();
+```
+
+[MongoDB Search](https://github.com/InsurUp/MongoFlow/blob/main/docs/search.md): what's filtered in the index and what
+after it, `$searchMeta`, vector search, pipelines of your own, indexes managed by hand, and Queryable Encryption.
+
 ### Logging, tracing and metrics
 
 MongoFlow logs through the `ILoggerFactory` in DI, and warns about keys and feature fields no index covers. It traces
-saves and migrations, and measures saves and transactions, through `System.Diagnostics`, for OpenTelemetry.
+saves, migrations and the search indexes it sets up, and measures saves and transactions, through `System.Diagnostics`,
+for OpenTelemetry.
 
 ```csharp
 services.AddOpenTelemetry()

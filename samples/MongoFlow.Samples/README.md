@@ -13,9 +13,10 @@ From the repository root, with Docker running:
 dotnet run --project samples/MongoFlow.Samples
 ```
 
-It starts MongoDB 8.2 as a replica set for the run, which saves need. To use a server of your own instead, MongoDB 8.0 or
-later as a replica set, name it; each run then writes to databases of its own, named `samples_{time}_...`, or to those
-`Database:Prefix` names:
+It starts MongoDB's Atlas Local image for the run, MongoDB 8.3 as a replica set, which saves need, with MongoDB Search. To
+use a server of your own instead, MongoDB 8.0 or later as a replica set with MongoDB Search (Atlas, or Community with
+mongot), name it; each run then writes to databases of its own, named `samples_{time}_...`, or to those `Database:Prefix`
+names:
 
 ```bash
 dotnet run --project samples/MongoFlow.Samples -- --ConnectionStrings:Mongo="mongodb://localhost:27017/?replicaSet=rs0"
@@ -71,6 +72,7 @@ platform's admin or an agent of one of two agencies (`SampleUsers`), as authenti
 | 10. Audit | An interceptor writing to another vault, in the transaction of each change | `AuditTrailInterceptor`, `AuditReader` |
 | 11. Migrations | The policy vault reverted down to a version, then migrated up again | `Migrations/` |
 | 12. Encryption | KYC records an earlier version stored in plain text, rebuilt encrypted by the migrator at startup, its index kept; found by an encrypted national id and an encrypted birth date range, noted, and added; what the server holds, and the plain copy left to drop | `KycVault`, `KycService`, `LegacyKycRecords` |
+| 13. Search | Customers searched by the start of a name and counted, each agent finding the agency's alone, filtered in a search index the migrator created; in an app that encrypts its KYC records too | `CustomerVaultConfiguration`, `CustomerService.SearchByNameAsync` |
 
 ## Layout
 
@@ -82,8 +84,8 @@ platform's admin or an agent of one of two agencies (`SampleUsers`), as authenti
 | `Interceptors/` | Timestamps (typed, per collection, adding to update definitions), an audit trail (writes to another vault in the same transaction, switchable as a feature), a transactional outbox, and a write condition |
 | `Migrations/` | Indexes created through the vault's collections, a data fix through the vault, a schema change with the driver, and migrations outside a transaction |
 | `Services/` | The app's services, which the walkthrough calls |
-| `Infrastructure/` | The server for the run, the request's user, a serializer for the strongly typed id, and the KYC records an earlier version stored in plain text |
-| `Program.cs` | Registration (defaults, per-vault databases, a second client, skipping defaults, Identity, Queryable Encryption with a local KMS), logging, telemetry and migrating at startup |
+| `Infrastructure/` | The server for the run, with MongoDB Search, the request's user, a serializer for the strongly typed id, and the KYC records an earlier version stored in plain text |
+| `Program.cs` | Registration (defaults, per-vault databases, a second client, skipping defaults, Identity, Queryable Encryption with a local KMS), logging, telemetry and migrating at startup, which sets up the search index too |
 
 ## Gaps
 

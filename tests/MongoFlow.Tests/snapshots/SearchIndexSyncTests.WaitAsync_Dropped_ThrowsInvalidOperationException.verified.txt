@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: There's no search index named default: it wasn't created, or was dropped while waiting for it.
+}

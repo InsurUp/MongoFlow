@@ -22,6 +22,9 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
   MongoFlow.Encryption's live under `Encryption/`, with a local KMS on the community server, which takes explicit
   encryption; `BsonValueConverter` shows encrypted values and `__safeContent__`, random each write, as `(encrypted)` and
   `(tags)`. The unit lane tests its internals too (`Encryption/`), against doubles of the value encryptor.
+  MongoDB Search's tests live under `Search/`, in the `Search` category, on MongoDB's Atlas Local image, mongod with mongot
+  (`SearchFixture`, shared like `MongoFixture`). Seed a collection before migrating, so its index is built over the
+  documents: what's written afterwards is searchable only a moment later.
 - Both target `net10.0` and `net11.0`, like the library.
 
 ## Framework and tooling

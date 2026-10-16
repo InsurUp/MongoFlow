@@ -1,0 +1,25 @@
+﻿[
+  {
+    Name: default,
+    TypeName: search,
+    Definition: {
+      mappings: {
+        dynamic: true
+      }
+    }
+  },
+  {
+    Name: vectors,
+    TypeName: vectorSearch,
+    Definition: {
+      fields: [
+        {
+          type: vector,
+          path: _id,
+          numDimensions: 2,
+          similarity: cosine
+        }
+      ]
+    }
+  }
+]

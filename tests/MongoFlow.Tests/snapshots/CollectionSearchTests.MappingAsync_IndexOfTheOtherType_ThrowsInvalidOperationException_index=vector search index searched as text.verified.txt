@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: vectors, of Products, is a vector search index: search it with VectorSearchAsync, or name a search index.
+}

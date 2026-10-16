@@ -33,6 +33,7 @@ public sealed class PlatformWalkthrough(IServiceProvider services,
         await ReadTheAuditTrailAsync(cancellationToken);
         await MigrateBackAndForthAsync(cancellationToken);
         await QueryEncryptedRecordsAsync(cancellationToken);
+        await SearchCustomersAsync(cancellationToken);
     }
 
     /// <summary>Agencies, a customer with a consent, and policies: inserts, stamped with the tenant and timestamps.</summary>
@@ -330,6 +331,37 @@ public sealed class PlatformWalkthrough(IServiceProvider services,
                            "in plain text: drop it once the encrypted collection is checked",
             stored?["FullName"], stored?["NationalId"] is BsonBinaryData { SubType: (BsonBinarySubType)6 } ? "encrypted binary data" : "plain text",
             unencrypted);
+    }
+
+    /// <summary>
+    /// Customers searched by the start of a name with MongoDB Search, and counted: each agent finds the agency's alone, as the
+    /// agency, soft delete and status are filtered in the index. The app also encrypts its KYC records, in another vault.
+    /// </summary>
+    private async Task SearchCustomersAsync(CancellationToken cancellationToken)
+    {
+        log.LogInformation("13. Search: agents search customers by the start of a name, each finding the agency's alone");
+
+        // The search process indexes what's written a moment after it's committed, so a search right after a write may not
+        // find it yet: the customers were registered in step 1, and this waits until the search catches up, a few seconds at
+        // most on a server that's just started.
+        var (acme, adas) = await _requests.AsAsync(SampleUsers.AcmeAgent, async request =>
+        {
+            var customers = request.GetRequiredService<CustomerService>();
+            var found = await customers.SearchByNameAsync("lov", cancellationToken);
+            for (var attempt = 0; found.Count == 0 && attempt < 40; attempt++)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250), clock, cancellationToken);
+                found = await customers.SearchByNameAsync("lov", cancellationToken);
+            }
+
+            return (found, await customers.CountByNameAsync("ada", cancellationToken));
+        });
+
+        var beta = await _requests.AsAsync(SampleUsers.BetaAgent, request =>
+            request.GetRequiredService<CustomerService>().SearchByNameAsync("lov", cancellationToken));
+
+        log.LogInformation("   Acme finds {Acme} for \"lov\" and counts {Adas} named Ada; Beta, whose customer she isn't, finds {Beta}",
+            string.Join(", ", acme), adas, beta.Count == 0 ? "nobody" : string.Join(", ", beta));
     }
 
     private static Policy NewPolicy(string number,

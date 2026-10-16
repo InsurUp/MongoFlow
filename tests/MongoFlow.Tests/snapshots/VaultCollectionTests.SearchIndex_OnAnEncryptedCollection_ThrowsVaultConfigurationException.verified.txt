@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Patients declares search indexes, but has encrypted members: MongoDB Search can't index a collection with Queryable Encryption. Search another collection, which holds what can be searched in plain text.
+}

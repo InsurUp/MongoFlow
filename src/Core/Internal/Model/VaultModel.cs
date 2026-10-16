@@ -11,6 +11,7 @@ internal sealed class VaultModel(Type vaultType,
     IMongoDatabase database,
     IMongoDatabase sourceDatabase,
     VaultEncryption? encryption,
+    IReadOnlyList<IVaultSetup> setups,
     IReadOnlyList<ICollectionModel> collections,
     IReadOnlyList<InterceptorModel> interceptors,
     MigrationModel? migrations,
@@ -32,6 +33,9 @@ internal sealed class VaultModel(Type vaultType,
 
     /// <summary>The vault's encryption, or <see langword="null"/> when it doesn't encrypt.</summary>
     public VaultEncryption? Encryption { get; } = encryption;
+
+    /// <summary>What the migrator sets up for the vault besides its migrations: its encryption and search indexes.</summary>
+    public IReadOnlyList<IVaultSetup> Setups { get; } = setups;
 
     /// <summary>
     /// Whether saves write with collection commands rather than one client bulk write: the driver refuses client bulk

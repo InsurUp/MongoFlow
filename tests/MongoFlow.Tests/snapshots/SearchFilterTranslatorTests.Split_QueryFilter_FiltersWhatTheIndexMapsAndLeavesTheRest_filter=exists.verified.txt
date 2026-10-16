@@ -1,0 +1,17 @@
+﻿{
+  Filter: [
+    {
+      exists: {
+        path: TenantId
+      }
+    }
+  ],
+  MustNot: [
+    {
+      exists: {
+        path: IsDeleted
+      }
+    }
+  ],
+  HasClauses: true
+}

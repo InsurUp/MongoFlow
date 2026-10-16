@@ -1,0 +1,11 @@
+﻿{
+  Filter: [
+    {
+      equals: {
+        path: Address.City,
+        value: Ankara
+      }
+    }
+  ],
+  HasClauses: true
+}

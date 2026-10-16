@@ -1,0 +1,10 @@
+﻿{
+  Filter: {
+    TenantId: {
+      $eq: t-1
+    },
+    IsDeleted: {
+      $eq: false
+    }
+  }
+}

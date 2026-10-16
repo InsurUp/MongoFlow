@@ -1,0 +1,20 @@
+﻿[
+  {
+    Name: default,
+    TypeName: search,
+    Definition: {
+      mappings: {
+        dynamic: false,
+        fields: {
+          TenantId: {
+            type: token,
+            normalizer: lowercase
+          },
+          DeletedAt: {
+            type: date
+          }
+        }
+      }
+    }
+  }
+]

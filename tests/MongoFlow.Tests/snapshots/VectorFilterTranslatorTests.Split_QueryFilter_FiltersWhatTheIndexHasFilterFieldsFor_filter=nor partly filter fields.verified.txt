@@ -1,0 +1,16 @@
+﻿{
+  Residual: {
+    $nor: [
+      {
+        TenantId: t-1
+      },
+      {
+        Customer: ada
+      }
+    ]
+  },
+  PostFiltered: [
+    TenantId,
+    Customer
+  ]
+}

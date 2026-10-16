@@ -20,6 +20,12 @@ public sealed class CustomerVaultConfiguration(IOptions<CustomerOptions> options
             {
                 customers.Without(SoftDeleteFeature.Key);
             }
+
+            // Searched by name with MongoDB Search, in an index the migrator creates and waits for. The agency and the
+            // soft-delete flag are mapped too, by MongoFlow, and the status here, so searches filter on them in the index.
+            customers.SearchIndex("default", index => index
+                .Map(customer => customer.FullName, SearchField.String(), SearchField.Autocomplete())
+                .Map(customer => customer.Status, SearchField.Number()));
         })
         .Collection(x => x.Agencies, agencies => agencies.Key(agency => agency.AgencyId))
         // A composite key: the constructor's arguments are matched to the members they're built from.

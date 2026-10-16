@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: default, of Products, is a search index: search it with SearchAsync, or name a vector search index.
+}

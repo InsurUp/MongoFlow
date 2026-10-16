@@ -247,7 +247,8 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             }
         }
 
-        var collections = _collections.Select(collection => collection.Build(database, encryption)).ToArray();
+        var logs = VaultLogs.From(Services);
+        var collections = _collections.Select(collection => collection.Build(database, encryption, logs)).ToArray();
 
         var interceptors = Interceptors
             .OrderBy(registration => registration.RunsLast)
@@ -256,15 +257,27 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             .Select(registration => registration.Build(_collections))
             .ToArray();
 
+        var setups = new List<IVaultSetup>();
+        if (encryption is not null)
+        {
+            setups.Add(encryption);
+        }
+
+        if (collections.Any(collection => collection.SearchIndexes.Count > 0))
+        {
+            setups.Add(new SearchIndexSetup(Services.GetService<TimeProvider>() ?? TimeProvider.System));
+        }
+
         return new VaultModel(typeof(TVault),
             database,
             source,
             encryption,
+            setups,
             collections,
             interceptors,
             _migrations.Build(),
             _tracksChanges.TryGet(out var tracksChanges) && tracksChanges,
-            VaultLogs.From(Services),
+            logs,
             Services.GetRequiredService<VaultMetrics>());
     }
 

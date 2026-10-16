@@ -1,0 +1,11 @@
+﻿{
+  MustNot: [
+    {
+      equals: {
+        path: IsDeleted,
+        value: true
+      }
+    }
+  ],
+  HasClauses: true
+}

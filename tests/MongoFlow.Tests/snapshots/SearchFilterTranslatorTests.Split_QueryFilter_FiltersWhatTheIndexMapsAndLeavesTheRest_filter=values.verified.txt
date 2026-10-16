@@ -1,0 +1,30 @@
+﻿{
+  Filter: [
+    {
+      equals: {
+        path: OwnerId,
+        value: {
+          $oid: 650000000000000000000001
+        }
+      }
+    },
+    {
+      equals: {
+        path: Reference,
+        value: {
+          $binary: {
+            base64: Oh8rngAAQACAAAAAAAAAAQ==,
+            subType: 04
+          }
+        }
+      }
+    },
+    {
+      equals: {
+        path: IsDeleted,
+        value: false
+      }
+    }
+  ],
+  HasClauses: true
+}

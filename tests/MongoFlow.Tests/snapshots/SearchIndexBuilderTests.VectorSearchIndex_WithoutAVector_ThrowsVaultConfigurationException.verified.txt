@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: The vector search index vectors of Products indexes no vector. Declare one with Vector, such as .Vector(x => x.Embedding, dimensions: 1536, VectorSimilarity.Cosine).
+}

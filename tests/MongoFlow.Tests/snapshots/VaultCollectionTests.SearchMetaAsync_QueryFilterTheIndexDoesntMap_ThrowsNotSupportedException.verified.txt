@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: SearchMetaAsync can't count the documents of Orders the query filters show: default can't filter on Total as they do, and nothing can follow $searchMeta to filter after it. Map the fields in the index to compare exactly, such as a string as SearchField.Token(), and compare them in ways a search can, without regular expressions or $expr.
+}

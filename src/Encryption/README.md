@@ -49,7 +49,9 @@ await vault.SaveAsync();
 
 Encrypted documents must ignore extra elements (`[BsonIgnoreExtraElements]`): the server adds `__safeContent__` to each.
 
+MongoDB Search can't index a collection with encrypted members; a vault that encrypts searches its other collections.
+
 ## More
 
 [Queryable Encryption](https://github.com/InsurUp/MongoFlow/blob/main/docs/encryption.md) covers query types, setting up
-and rebuilding collections, what can and can't be queried or written, and clients and transactions.
+and rebuilding collections, what can and can't be queried or written, clients and transactions, and MongoDB Search.

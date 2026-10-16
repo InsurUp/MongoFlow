@@ -1,0 +1,86 @@
+﻿{
+  Indexes: [
+    {
+      Name: default,
+      Type: search,
+      Status: READY,
+      Queryable: true,
+      Definition: {
+        mappings: {
+          dynamic: false,
+          fields: {
+            IsDeleted: {
+              type: boolean
+            },
+            AgencyId: {
+              type: token
+            },
+            Name: {
+              type: string,
+              indexOptions: offsets,
+              store: true,
+              norms: include
+            }
+          }
+        }
+      }
+    },
+    {
+      Name: vectors,
+      Type: vectorSearch,
+      Status: READY,
+      Queryable: true,
+      Definition: {
+        fields: [
+          {
+            type: vector,
+            path: Embedding,
+            numDimensions: 3,
+            similarity: cosine
+          },
+          {
+            type: filter,
+            path: IsDeleted
+          },
+          {
+            type: filter,
+            path: AgencyId
+          }
+        ]
+      }
+    }
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008001,
+      Event: IndexCreated,
+      Message: Created the search index default of Customers.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008005,
+      Event: IndexQueryable,
+      Message: The search index default of Customers is built and queryable.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008001,
+      Event: IndexCreated,
+      Message: Created the vectorSearch index vectors of Customers.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008005,
+      Event: IndexQueryable,
+      Message: The vectorSearch index vectors of Customers is built and queryable.
+    }
+  ],
+  Found: [
+    Ada Lovelace
+  ]
+}

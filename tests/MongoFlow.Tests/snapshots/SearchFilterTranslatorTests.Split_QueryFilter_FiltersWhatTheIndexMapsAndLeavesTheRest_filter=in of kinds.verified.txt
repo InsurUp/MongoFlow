@@ -1,0 +1,55 @@
+﻿{
+  Filter: [
+    {
+      compound: {
+        should: [
+          {
+            equals: {
+              path: OwnerId,
+              value: {
+                $oid: 650000000000000000000001
+              }
+            }
+          },
+          {
+            compound: {
+              should: [
+                {
+                  equals: {
+                    path: OwnerId,
+                    value: null
+                  }
+                },
+                {
+                  compound: {
+                    mustNot: [
+                      {
+                        exists: {
+                          path: OwnerId
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              minimumShouldMatch: 1
+            }
+          }
+        ],
+        minimumShouldMatch: 1
+      }
+    }
+  ],
+  Residual: {
+    Total: {
+      $in: [
+        1,
+        one
+      ]
+    }
+  },
+  PostFiltered: [
+    Total
+  ],
+  HasClauses: true
+}

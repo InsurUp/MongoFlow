@@ -1,0 +1,13 @@
+﻿{
+  Residual: {
+    TenantId: {
+      $in: [
+        t-1,
+        null
+      ]
+    }
+  },
+  PostFiltered: [
+    TenantId
+  ]
+}

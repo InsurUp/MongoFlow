@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Products declares default as a search index and as a vector search index. An index has one name per collection.
+}

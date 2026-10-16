@@ -1,0 +1,1 @@
+﻿aggregate([{ "$vectorSearch" : { "path" : "Embedding", "limit" : 10, "numCandidates" : 100, "index" : "default", "queryVector" : [0.10000000149011612, 0.20000000298023224, 0.30000001192092896], "filter" : { "IsDeleted" : { "$ne" : true }, "TenantId" : { "$eq" : "t-1" } } } }, { "$match" : { "Customer" : { "$ne" : "bob" } } }])

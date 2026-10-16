@@ -52,4 +52,13 @@ internal static partial class EncryptionLog
     public static partial void UnencryptedCopyRemains(this ILogger logger,
         string copy,
         string collection);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Encryption.SearchIndexesFollowCopy, Level = LogLevel.Warning,
+        Message = "{Collection} had the search indexes {Indexes}, which followed its documents to {Copy}: the search process " +
+                  "keeps an index of them in plain text. Drop the indexes, or {Copy}, which drops them too; MongoDB Search " +
+                  "can't index the encrypted collection.")]
+    public static partial void SearchIndexesFollowCopy(this ILogger logger,
+        string collection,
+        IEnumerable<string> indexes,
+        string copy);
 }

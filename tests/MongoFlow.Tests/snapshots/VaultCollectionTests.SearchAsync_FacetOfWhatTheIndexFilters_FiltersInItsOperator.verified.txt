@@ -1,0 +1,1 @@
+﻿aggregate([{ "$search" : { "facet" : { "operator" : { "compound" : { "must" : [{ "text" : { "query" : "ada", "path" : "Customer" } }], "filter" : [{ "equals" : { "path" : "TenantId", "value" : "t-1" } }], "mustNot" : [{ "equals" : { "path" : "IsDeleted", "value" : true } }] } }, "facets" : { "customers" : { "type" : "string", "path" : "Customer" } } } } }])

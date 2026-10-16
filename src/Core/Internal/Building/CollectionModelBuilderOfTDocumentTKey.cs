@@ -84,6 +84,20 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
         return this;
     }
 
+    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.SearchIndex(string name,
+        Action<ISearchIndexBuilder<TDocument>> configure)
+    {
+        SearchIndex(name, configure);
+        return this;
+    }
+
+    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.VectorSearchIndex(string name,
+        Action<IVectorSearchIndexBuilder<TDocument>> configure)
+    {
+        VectorSearchIndex(name, configure);
+        return this;
+    }
+
     protected override CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition)
     {
         var keyModel = KeyModel<TDocument, TKey>.Create(

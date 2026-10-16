@@ -1,0 +1,12 @@
+﻿{
+  Residual: {
+    Total: {
+      $not: {
+        $gt: 5
+      }
+    }
+  },
+  PostFiltered: [
+    Total
+  ]
+}

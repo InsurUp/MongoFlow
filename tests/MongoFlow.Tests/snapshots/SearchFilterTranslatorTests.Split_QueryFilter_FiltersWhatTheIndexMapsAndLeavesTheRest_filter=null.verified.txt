@@ -1,0 +1,29 @@
+﻿{
+  Filter: [
+    {
+      compound: {
+        should: [
+          {
+            equals: {
+              path: TenantId,
+              value: null
+            }
+          },
+          {
+            compound: {
+              mustNot: [
+                {
+                  exists: {
+                    path: TenantId
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        minimumShouldMatch: 1
+      }
+    }
+  ],
+  HasClauses: true
+}

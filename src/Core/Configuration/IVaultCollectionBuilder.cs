@@ -62,6 +62,24 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
         where TInterceptor : VaultInterceptor;
 
     /// <summary>
+    /// Declares a MongoDB Search index named <paramref name="name"/>, such as <c>default</c>, which
+    /// <c>IVaultMigrator.MigrateAllAsync</c> creates, keeps up to date and waits for, after the vault's migrations. The
+    /// fields features filter on, such as the tenant, are mapped too, so searches filter on them in the index. Declared
+    /// again, the same index is configured further.
+    /// </summary>
+    IVaultCollectionBuilder<TDocument> SearchIndex(string name,
+        Action<ISearchIndexBuilder<TDocument>> configure);
+
+    /// <summary>
+    /// Declares a MongoDB Vector Search index named <paramref name="name"/>, which <c>IVaultMigrator.MigrateAllAsync</c>
+    /// creates, keeps up to date and waits for, after the vault's migrations. The fields features filter on, such as the
+    /// tenant, are filter fields too, so vector searches filter on them in the index. Declared again, the same index is
+    /// configured further.
+    /// </summary>
+    IVaultCollectionBuilder<TDocument> VectorSearchIndex(string name,
+        Action<IVectorSearchIndexBuilder<TDocument>> configure);
+
+    /// <summary>
     /// Adds an interceptor instance, shared by every request, that sees only this collection's operations. Being
     /// registered per collection, it can be written against <typeparamref name="TDocument"/>. MongoFlow doesn't dispose it.
     /// </summary>

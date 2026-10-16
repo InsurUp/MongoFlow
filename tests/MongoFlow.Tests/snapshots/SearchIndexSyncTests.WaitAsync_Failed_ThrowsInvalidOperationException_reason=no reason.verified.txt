@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: The search index default failed to build: the server gives no reason.
+}
