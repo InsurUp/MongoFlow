@@ -28,6 +28,7 @@ internal abstract class VaultEncryption : IVaultSetup
         CancellationToken cancellationToken);
 
     Task IVaultSetup.RunAsync(VaultModel model,
+        MigrateOptions options,
         CancellationToken cancellationToken) =>
         PrepareAsync(model, cancellationToken);
 }

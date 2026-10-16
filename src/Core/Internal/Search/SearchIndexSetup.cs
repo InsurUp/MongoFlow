@@ -7,7 +7,8 @@ namespace MongoFlow;
 
 /// <summary>
 /// Sets up the search indexes a vault's collections declare, after its migrations: creates those missing, updates those
-/// defined otherwise, and waits until every one is queryable, so searches find what's there once the migrator returns.
+/// defined otherwise, and unless <see cref="MigrateOptions.WaitForSearchIndexes"/> says not to, waits until every one is
+/// queryable, so searches find what's there once the migrator returns.
 /// </summary>
 internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
 {
@@ -16,6 +17,7 @@ internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
     public bool BeforeMigrations => false;
 
     public async Task RunAsync(VaultModel model,
+        MigrateOptions options,
         CancellationToken cancellationToken)
     {
         var settingUp = new List<Task>();
@@ -33,7 +35,8 @@ internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
                 .ToDictionary(index => index["name"].AsString, StringComparer.Ordinal);
 
             settingUp.AddRange(collection.SearchIndexes.Select(index =>
-                SetUpAsync(model, name, indexes, index, byName.GetValueOrDefault(index.Name), cancellationToken)));
+                SetUpAsync(model, name, indexes, index, byName.GetValueOrDefault(index.Name), options.WaitForSearchIndexes,
+                    cancellationToken)));
         }
 
         await Task.WhenAll(settingUp);
@@ -44,6 +47,7 @@ internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
         IMongoSearchIndexManager indexes,
         SearchIndexDeclaration index,
         BsonDocument? listed,
+        bool wait,
         CancellationToken cancellationToken)
     {
         var log = model.Logs.Search;
@@ -70,7 +74,7 @@ internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
             }
 
             // One unchanged may still be building, created by another instance or before a restart.
-            if (change != SearchIndexChange.Unchanged || listed is null || !SearchIndexSync.IsQueryable(listed))
+            if (wait && (change != SearchIndexChange.Unchanged || listed is null || !SearchIndexSync.IsQueryable(listed)))
             {
                 await SearchIndexSync.WaitAsync(indexes,
                     index.Name,

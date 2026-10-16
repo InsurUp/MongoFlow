@@ -96,6 +96,9 @@ await migrator.MigrateAllAsync();
 await migrator.MigrateAsync<PolicyVault>();
 await migrator.MigrateAsync<PolicyVault>(new SemVersion(1, 1, 0));
 
+// Without waiting until search indexes are queryable.
+await migrator.MigrateAllAsync(new MigrateOptions { WaitForSearchIndexes = false });
+
 SemVersion? version = await migrator.GetVersionAsync<PolicyVault>();
 ```
 
@@ -130,8 +133,8 @@ when it has none: created encrypted with their data keys, or rebuilt encrypted w
 [Queryable Encryption](encryption.md#setting-up-the-collections).
 
 A vault whose collections declare search indexes has them set up after its migrations, even when it has none: created,
-or updated when they're declared otherwise, then waited for until they're queryable. See
-[MongoDB Search](search.md#setting-up-indexes), which also has helpers for search indexes a migration sets up by hand.
+or updated when they're declared otherwise, then waited for until they're queryable, unless `MigrateOptions` says not to.
+See [MongoDB Search](search.md#setting-up-indexes), which also has helpers for search indexes a migration sets up by hand.
 
 Migrations log under `MongoFlow.Migrations`, and are traced as `MongoFlow.Migrate` and `MongoFlow.Migration` spans, and
 search indexes as `MongoFlow.SearchIndex` spans; see [observability](observability.md).

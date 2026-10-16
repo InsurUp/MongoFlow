@@ -23,6 +23,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
     public IMongoClient Client => Model.SourceDatabase.Client;
 
     public async Task MigrateAsync(SemVersion? target,
+        MigrateOptions options,
         CancellationToken cancellationToken)
     {
         var model = Model;
@@ -40,7 +41,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
             // they map.
             foreach (var setup in model.Setups.Where(setup => setup.BeforeMigrations))
             {
-                await setup.RunAsync(model, cancellationToken);
+                await setup.RunAsync(model, options, cancellationToken);
             }
 
             if (history is not null)
@@ -50,7 +51,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
 
             foreach (var setup in model.Setups.Where(setup => !setup.BeforeMigrations))
             {
-                await setup.RunAsync(model, cancellationToken);
+                await setup.RunAsync(model, options, cancellationToken);
             }
         }
         catch (Exception exception)

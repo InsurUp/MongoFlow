@@ -6,7 +6,8 @@ using Semver;
 namespace MongoFlow.IntegrationTests.Search;
 
 // Customers of agencies, soft deleted, searched by name and by an embedding; patients whose identity number is
-// encrypted, beside plain notes searched by text; a migration that sets up an index by hand.
+// encrypted, beside plain notes searched by text; a migration that sets up an index by hand; a search index as the server
+// lists it.
 public partial class SearchTests
 {
     public sealed class Customer
@@ -77,6 +78,13 @@ public partial class SearchTests
             CancellationToken cancellationToken) =>
             Task.CompletedTask;
     }
+
+    /// <summary>A search index as the server lists it: its name, type, status, and the definition it's built to.</summary>
+    public sealed record ListedIndex(string Name,
+        string Type,
+        string Status,
+        bool Queryable,
+        BsonValue Definition);
 
     // Five customers named Ada, of two agencies, one, or none, one deleted; and Bob, who isn't.
     private static Customer[] Customers() =>

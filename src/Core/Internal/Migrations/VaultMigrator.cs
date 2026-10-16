@@ -6,24 +6,36 @@ namespace MongoFlow;
 internal sealed class VaultMigrator(IServiceProvider services,
     IEnumerable<IVaultMigrationRunner> runners) : IVaultMigrator
 {
-    public async Task MigrateAllAsync(CancellationToken cancellationToken = default)
+    public Task MigrateAllAsync(CancellationToken cancellationToken = default) =>
+        MigrateAllAsync(new MigrateOptions(), cancellationToken);
+
+    public async Task MigrateAllAsync(MigrateOptions options,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(options);
         ThrowIfHistoriesShared();
 
         foreach (var runner in runners)
         {
-            await runner.MigrateAsync(target: null, cancellationToken);
+            await runner.MigrateAsync(target: null, options, cancellationToken);
         }
     }
 
     public Task MigrateAsync<TVault>(SemVersion? target = null,
         CancellationToken cancellationToken = default)
+        where TVault : MongoVault =>
+        MigrateAsync<TVault>(target, new MigrateOptions(), cancellationToken);
+
+    public Task MigrateAsync<TVault>(SemVersion? target,
+        MigrateOptions options,
+        CancellationToken cancellationToken = default)
         where TVault : MongoVault
     {
+        ArgumentNullException.ThrowIfNull(options);
         var runner = Runner<TVault>();
         ThrowIfHistoriesShared();
 
-        return runner.MigrateAsync(target, cancellationToken);
+        return runner.MigrateAsync(target, options, cancellationToken);
     }
 
     public Task<SemVersion?> GetVersionAsync<TVault>(CancellationToken cancellationToken = default) where TVault : MongoVault =>

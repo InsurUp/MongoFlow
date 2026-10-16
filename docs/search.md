@@ -159,6 +159,16 @@ The migrator then waits until every index it created or updated, and any still b
 searches find what's stored once it returns; one that fails to build fails it. Each index is set up in parallel, and the
 wait is bounded by the migrator's cancellation token. An index no longer declared isn't dropped: drop it in a migration.
 
+Over a large collection, the wait can take minutes. To start serving sooner, the migrator can return without it:
+
+```csharp
+await migrator.MigrateAllAsync(new MigrateOptions { WaitForSearchIndexes = false });
+```
+
+It then returns once the indexes are created or updated: until it's built, a created index finds nothing, and an updated
+one is searched as it was. One that fails to build no longer fails the migrator: `WaitUntilQueryableAsync`, below, waits
+for one and throws if it failed.
+
 Seed a collection before its index is built, in tests for instance: what's written afterwards is searchable a moment
 later.
 

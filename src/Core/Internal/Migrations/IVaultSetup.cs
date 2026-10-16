@@ -13,5 +13,6 @@ internal interface IVaultSetup
     bool BeforeMigrations { get; }
 
     Task RunAsync(VaultModel model,
+        MigrateOptions options,
         CancellationToken cancellationToken);
 }

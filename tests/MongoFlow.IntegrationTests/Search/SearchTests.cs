@@ -192,6 +192,7 @@ public partial class SearchTests
         bool allAgencies = false,
         Action<IVaultCollectionBuilder<Customer, int>>? customers = null,
         Action<IVaultBuilder<CrmVault>>? configure = null,
+        MigrateOptions? migrate = null,
         params BsonDocument[] extra)
     {
         var host = Mongo.Host<CrmVault>(vault =>
@@ -215,7 +216,7 @@ public partial class SearchTests
             await host.SeedAsync("Customers", extra);
         }
 
-        await host.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
+        await host.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync(migrate ?? new MigrateOptions());
         return host;
     }
 

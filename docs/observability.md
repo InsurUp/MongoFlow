@@ -59,7 +59,7 @@ services.AddOpenTelemetry()
 | `MongoFlow.Save` | A save with writes queued | The vault; whether it ran in a transaction of its own or joined one; the writes it sent; what it inserted, matched, modified and deleted |
 | `MongoFlow.Migrate` | One vault migrated, its encrypted collections set up first | The vault; its version before, and the target |
 | `MongoFlow.Migration` | One migration applied or reverted | The vault; the migration's version and name; up or down |
-| `MongoFlow.SearchIndex` | One search index the migrator sets up, and waits for, under `MongoFlow.Migrate` | The vault; the collection; the index's name and type; whether it was created, updated or unchanged |
+| `MongoFlow.SearchIndex` | One search index the migrator sets up, and waits for unless `MigrateOptions` says not to, under `MongoFlow.Migrate` | The vault; the collection; the index's name and type; whether it was created, updated or unchanged |
 
 A span that fails has an error status, `error.type` and an exception event. `MongoFlowTelemetry.Activities` and
 `MongoFlowTelemetry.Tags` name them all.

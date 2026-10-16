@@ -23,6 +23,20 @@ public partial class SearchTests
     }
 
     [Test]
+    public async Task MigrateAllAsync_NotWaitingForSearchIndexes_ReturnsOnceTheyAreCreated()
+    {
+        // Act — CrmAsync migrates with the options.
+        await using var host = await CrmAsync(migrate: new MigrateOptions { WaitForSearchIndexes = false });
+
+        // Assert — logged created, and neither building nor queryable; how far each has got is up to the server.
+        await Verify(new
+        {
+            Indexes = (await IndexesAsync(host.Database)).Select(index => new { index.Name, index.Type }),
+            Logs = _sink.Snapshot(MongoFlowLogEvents.Search.Category).OrderBy(entry => entry.Message.Contains("vectorSearch"))
+        });
+    }
+
+    [Test]
     public async Task MigrateAllAsync_IndexesAsDeclared_LeavesThem()
     {
         // Arrange
@@ -85,16 +99,14 @@ public partial class SearchTests
             .OrderBy(entry => entry.Message.Contains("vectorSearch"))
             .ThenBy(entry => entry.EventId);
 
-    private static async Task<IEnumerable<object>> IndexesAsync(IMongoDatabase database)
+    private static async Task<IEnumerable<ListedIndex>> IndexesAsync(IMongoDatabase database)
     {
         var listed = await (await database.GetCollection<BsonDocument>("Customers").SearchIndexes.ListAsync()).ToListAsync();
-        return listed.OrderBy(index => index["name"].AsString).Select(index => new
-        {
-            Name = index["name"].AsString,
-            Type = index["type"].AsString,
-            Status = index["status"].AsString,
-            Queryable = index["queryable"].AsBoolean,
-            Definition = index["latestDefinition"]
-        });
+        return listed.OrderBy(index => index["name"].AsString).Select(index => new ListedIndex(
+            index["name"].AsString,
+            index["type"].AsString,
+            index["status"].AsString,
+            index["queryable"].AsBoolean,
+            index["latestDefinition"]));
     }
 }
