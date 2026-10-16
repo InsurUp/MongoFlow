@@ -9,8 +9,8 @@ namespace MongoFlow.IntegrationTests;
 // A customer with an embedded address, a field left out when null, a list, and fields stored but not mapped; an account
 // with a concurrency token; a soft-deletable lead; a price with an element name no path can hold; a coupon keyed by a
 // code it may lack; an invoice holding events it doesn't store, and an outbox for them; interceptors that record writes,
-// originals and tracked documents, fail once, dispose the vault mid-save, stamp updates, reuse pooled memory, and store
-// or queue events; and a feature that runs saves for events.
+// originals and tracked documents, fail once, dispose or reset the vault mid-save, stamp updates, reuse pooled memory,
+// and store or queue events; and a feature that runs saves for events.
 public partial class ChangeTrackingTests
 {
     public interface IVersioned
@@ -363,6 +363,16 @@ public partial class ChangeTrackingTests
         public override ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken)
         {
             ((MongoVault)context.Vault).Dispose();
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>Resets the vault while its save runs, as code starting the unit of work over too early would.</summary>
+    public sealed class ResettingTheVault : VaultInterceptor
+    {
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            context.Vault.Reset();
             return ValueTask.CompletedTask;
         }
     }

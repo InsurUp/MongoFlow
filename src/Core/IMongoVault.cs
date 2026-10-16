@@ -23,15 +23,29 @@ public interface IMongoVault
     /// Writes every queued operation, in order, as one client bulk write, after an update for each tracked document that
     /// changed. It runs in the scope's open transaction if there is one, and in its own otherwise. Nothing is written if
     /// any operation fails: in an open transaction, a save that fails after writing rolls the transaction back. Queued
-    /// operations are discarded either way; tracked changes stay pending until a save that writes them commits. With
-    /// nothing to write, it returns <see cref="SaveResult.Empty"/> without a transaction or interceptors, unless
-    /// <see cref="IVaultBuilder{TVault}.RunSaveWhen{TDocument}"/> says a tracked document needs them.
+    /// operations are discarded either way; tracked changes stay pending until a save that writes them commits, or
+    /// <see cref="Reset"/> forgets them. With nothing to write, it returns <see cref="SaveResult.Empty"/> without a
+    /// transaction or interceptors, unless <see cref="IVaultBuilder{TVault}.RunSaveWhen{TDocument}"/> says a tracked
+    /// document needs them.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Called from one of this vault's own interceptors, while another save of this vault instance or of another vault of
     /// the scope runs, or inside a transaction on a different client; or a tracked document's key changed.
     /// </exception>
     Task<SaveResult> SaveAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Starts the vault instance over, as a new scope's would be: forgets every document it tracks, so the next read
+    /// tracks afresh and the next save compares nothing read before, and discards the writes queued on it. For running a
+    /// unit of work again in the same scope, such as after a save that failed with a transient error: the changes a
+    /// failed save left pending, made to what the failed attempt read, would otherwise be written with the new ones.
+    /// Nothing stored changes, and the scope's open transaction is left as it is, with what its saves wrote.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// A save of this vault instance is under way: called from one of the vault's own interceptors, or while it saves on
+    /// another task.
+    /// </exception>
+    void Reset();
 
     /// <summary>The vault's collection of <typeparamref name="TDocument"/>, for code that only knows the document type.</summary>
     /// <exception cref="InvalidOperationException">The vault doesn't declare one.</exception>

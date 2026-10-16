@@ -125,7 +125,8 @@ await vault.SaveAsync(); // { $set: { Status: "Cancelled" } }
 ```
 
 Interceptors read every tracked document, changed or not, from `SaveContext.Tracked`, and `RunSaveWhen` runs them for a
-save with nothing else to write, for what documents hold outside their BSON, such as domain events.
+save with nothing else to write, for what documents hold outside their BSON, such as domain events. `vault.Reset()`
+forgets what the vault tracks and queued, to run a unit of work again in the same scope after a failed save.
 
 [Change tracking](https://github.com/InsurUp/MongoFlow/blob/main/docs/change-tracking.md).
 

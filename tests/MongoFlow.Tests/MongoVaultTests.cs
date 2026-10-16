@@ -1,8 +1,8 @@
 namespace MongoFlow.Tests;
 
 /// <summary>
-/// <see cref="MongoVault"/>: a vault works only once MongoFlow created it, finds its collections by document type, and
-/// saving nothing touches nothing.
+/// <see cref="MongoVault"/>: a vault works only once MongoFlow created it, finds its collections by document type,
+/// saving nothing touches nothing, and a reset discards the writes queued.
 /// </summary>
 public class MongoVaultTests
 {
@@ -34,6 +34,32 @@ public class MongoVaultTests
 
         // Act & Assert
         await Assert.That(vault.Dispose).ThrowsNothing();
+    }
+
+    [Test]
+    public async Task Reset_VaultNotCreatedByMongoFlow_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var vault = new ShopVault();
+
+        // Act & Assert
+        await Assert.That(vault.Reset).ThrowsExactly<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task SaveAsync_WritesQueuedThenReset_ReturnsEmpty()
+    {
+        // Arrange — nothing was read, so nothing is tracked.
+        await using var host = new VaultHost<ShopVault>();
+        host.Vault.Orders.Add(new Order { Id = 1 });
+        host.Vault.Audit.Add(new AuditEntry { Message = "placed" });
+        host.Vault.Reset();
+
+        // Act
+        var result = await host.Vault.SaveAsync();
+
+        // Assert
+        await Assert.That(result).IsEqualTo(SaveResult.Empty);
     }
 
     [Test]

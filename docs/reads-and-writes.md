@@ -157,7 +157,8 @@ Each write's own result is on its operation, which [interceptors](interceptors.m
   server's error, which names the index;
 - the driver's `ClientBulkWriteException` when the server rejects a write for another reason. When another transaction
   is changing one of the documents, MongoDB fails the write at once rather than waiting: the exception has the
-  `TransientTransactionError` label, and the save can be tried again. MongoFlow doesn't retry it;
+  `TransientTransactionError` label, and the save can be tried again. MongoFlow doesn't retry it. With change
+  tracking, [reset the vault](change-tracking.md#starting-over) before running the unit of work again in the same scope;
 - `ConcurrencyException` when a write guarded by a [concurrency token](features.md#concurrency-token) finds the document
   changed or gone;
 - `InvalidOperationException` when it's called from one of the vault's own interceptors, while another save of the scope

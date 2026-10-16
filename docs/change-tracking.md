@@ -157,9 +157,37 @@ the unchanged documents in `Tracked`.
 - A queued `Replace` or `Delete` of a tracked document takes the place of its changes. After a delete, it isn't tracked.
   A queued `Update(document, update)` doesn't: its tracked changes are written too, before it.
 - Once a save writes a document's changes, later saves compare against what it wrote, in the same transaction too. If
-  the save fails, or the transaction it joined rolls back, the changes are pending again, and the next save writes them.
+  the save fails, or the transaction it joined rolls back, the changes are pending again, and the next save writes them,
+  unless the vault is [reset](#starting-over).
 - Don't set a concurrency token by hand on a tracked document: the save would set it and increment it in one update,
   which the server rejects.
+
+## Starting over
+
+A save that fails leaves the tracked changes pending, so saving again writes them without reading again. Code that runs
+a unit of work again in the same scope instead, reading afresh, such as a retry after a `TransientTransactionError`,
+resets the vault first: otherwise the next save writes the changes made to what the failed attempt read, computed from
+what it read then, along with the new ones, and undoes what another writer changed meanwhile.
+
+```csharp
+for (var attempt = 1; ; attempt++)
+{
+    try
+    {
+        await handler.HandleAsync(command, cancellationToken); // reads, changes and saves
+        return;
+    }
+    catch (MongoException exception) when (exception.HasErrorLabel("TransientTransactionError") && attempt < 3)
+    {
+        vault.Reset();
+    }
+}
+```
+
+`Reset()` forgets every document the vault instance tracks and discards the writes queued on it, so the vault is as a
+new scope's would be: the next read tracks afresh, and the next save compares nothing read before. Nothing stored
+changes, and the scope's open [transaction](transactions.md) is left as it is, with what its saves wrote. It fails with
+`InvalidOperationException` while a save of the vault runs, from its own interceptors too.
 
 ## Cost
 
