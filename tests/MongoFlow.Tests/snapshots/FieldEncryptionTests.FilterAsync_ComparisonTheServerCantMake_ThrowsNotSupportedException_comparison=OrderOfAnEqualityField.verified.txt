@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: A filter of Customers compares Ssn, which is encrypted for equality, with $gt: it supports $eq, $ne, $in, $nin and $exists.
+}

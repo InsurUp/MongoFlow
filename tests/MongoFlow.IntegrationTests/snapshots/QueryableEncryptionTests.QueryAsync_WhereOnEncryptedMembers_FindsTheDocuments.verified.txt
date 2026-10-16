@@ -1,0 +1,18 @@
+﻿{
+  Where: [
+    Customer 2
+  ],
+  Range: [
+    2,
+    3
+  ],
+  Both: [
+    2
+  ],
+  First: Customer 3,
+  Count: 2,
+  Any: false,
+  Enumerated: [
+    1
+  ]
+}

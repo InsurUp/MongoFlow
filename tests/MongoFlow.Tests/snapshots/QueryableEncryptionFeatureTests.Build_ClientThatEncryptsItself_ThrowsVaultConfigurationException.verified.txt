@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: A vault that encrypts with UseQueryableEncryption needs a client without AutoEncryptionOptions of its own: MongoFlow makes the client that encrypts from it.
+}

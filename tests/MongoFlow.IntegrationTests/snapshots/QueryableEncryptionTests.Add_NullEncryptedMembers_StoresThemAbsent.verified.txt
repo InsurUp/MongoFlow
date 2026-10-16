@@ -1,0 +1,13 @@
+﻿[
+  {
+    _id: 1,
+    Name: Ada,
+    Salary: (encrypted),
+    Address: {
+      City: London
+    },
+    IsDeleted: false,
+    Version: 0,
+    __safeContent__: (tags)
+  }
+]

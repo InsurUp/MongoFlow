@@ -1,0 +1,46 @@
+﻿{
+  encrypted: {
+    $set: {
+      Name: Ada,
+      Ssn: {
+        encrypted: 999-99,
+        algorithm: Indexed,
+        queryType: null,
+        key: 1
+      },
+      Address: {
+        City: Paris,
+        Street: {
+          encrypted: Rue de Rivoli,
+          algorithm: Unindexed,
+          queryType: null,
+          key: 4
+        }
+      }
+    },
+    $inc: {
+      Version: 1
+    },
+    $unset: {
+      Notes: ,
+      Salary: 
+    }
+  },
+  Original: {
+    $set: {
+      Name: Ada,
+      Ssn: 999-99,
+      Notes: null,
+      Address: {
+        City: Paris,
+        Street: Rue de Rivoli
+      }
+    },
+    $unset: {
+      Salary: 
+    },
+    $inc: {
+      Version: 1
+    }
+  }
+}

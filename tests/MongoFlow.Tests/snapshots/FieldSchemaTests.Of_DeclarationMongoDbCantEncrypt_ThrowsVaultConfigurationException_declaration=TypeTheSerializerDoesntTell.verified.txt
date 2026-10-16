@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Photo, in Customers, is encrypted, but its serializer, ObjectSerializer, doesn't tell its BSON type. Give it to Encrypt, such as bsonType: BsonType.String.
+}

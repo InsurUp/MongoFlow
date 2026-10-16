@@ -1,0 +1,155 @@
+﻿{
+  $and: [
+    {
+      Name: Ada,
+      $or: [
+        {
+          encryptedExpression: {
+            $and: [
+              {
+                Salary: {
+                  $gte: 2000
+                }
+              },
+              {
+                Salary: {
+                  $lte: 2000
+                }
+              }
+            ]
+          },
+          queryType: range,
+          key: 2
+        },
+        {
+          $or: [
+            {
+              encryptedExpression: {
+                $and: [
+                  {
+                    Salary: {
+                      $gte: 4000
+                    }
+                  },
+                  {
+                    Salary: {
+                      $lte: 4000
+                    }
+                  }
+                ]
+              },
+              queryType: range,
+              key: 2
+            },
+            {
+              encryptedExpression: {
+                $and: [
+                  {
+                    Salary: {
+                      $gte: 5000
+                    }
+                  },
+                  {
+                    Salary: {
+                      $lte: 5000
+                    }
+                  }
+                ]
+              },
+              queryType: range,
+              key: 2
+            }
+          ]
+        },
+        {
+          $and: [
+            {
+              $nor: [
+                {
+                  encryptedExpression: {
+                    $and: [
+                      {
+                        Salary: {
+                          $gte: 6000
+                        }
+                      },
+                      {
+                        Salary: {
+                          $lte: 6000
+                        }
+                      }
+                    ]
+                  },
+                  queryType: range,
+                  key: 2
+                }
+              ]
+            },
+            {
+              $nor: [
+                {
+                  encryptedExpression: {
+                    $and: [
+                      {
+                        Salary: {
+                          $gte: 7000
+                        }
+                      },
+                      {
+                        Salary: {
+                          $lte: 7000
+                        }
+                      }
+                    ]
+                  },
+                  queryType: range,
+                  key: 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          $and: [
+            {
+              Salary: {
+                $exists: true
+              }
+            },
+            {
+              encryptedExpression: {
+                $and: [
+                  {
+                    Salary: {
+                      $lt: 8000
+                    }
+                  }
+                ]
+              },
+              queryType: range,
+              key: 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      encryptedExpression: {
+        $and: [
+          {
+            Salary: {
+              $gt: 1000
+            }
+          },
+          {
+            Salary: {
+              $lte: 3000
+            }
+          }
+        ]
+      },
+      queryType: range,
+      key: 2
+    }
+  ]
+}

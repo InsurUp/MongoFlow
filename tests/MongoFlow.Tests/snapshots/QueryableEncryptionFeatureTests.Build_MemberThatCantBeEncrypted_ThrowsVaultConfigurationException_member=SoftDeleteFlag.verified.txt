@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: x => x.IsDeleted, stored as IsDeleted in Customers, can't be encrypted: a feature, such as soft delete, multi-tenancy or the concurrency token, filters on it or changes it.
+}

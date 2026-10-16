@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: A filter of Customers looks for null among values of Ssn, which is encrypted and stored as absent when null: compare it with null on its own.
+}

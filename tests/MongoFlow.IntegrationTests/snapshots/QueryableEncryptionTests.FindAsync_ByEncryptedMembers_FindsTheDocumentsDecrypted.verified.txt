@@ -1,0 +1,37 @@
+﻿{
+  Equal: [
+    2
+  ],
+  NotEqual: [
+    1,
+    3
+  ],
+  Among: [
+    1,
+    3
+  ],
+  Between: [
+    2,
+    3
+  ],
+  Above: [
+    3
+  ],
+  Exactly: [
+    2
+  ],
+  Inside: 3,
+  One: {
+    Id: 3,
+    Name: Customer 3,
+    Ssn: 333-33,
+    Salary: 3000,
+    Notes: note 3,
+    Address: {
+      City: London,
+      Street: 3 Baker Street
+    },
+    IsDeleted: false,
+    Version: 0
+  }
+}

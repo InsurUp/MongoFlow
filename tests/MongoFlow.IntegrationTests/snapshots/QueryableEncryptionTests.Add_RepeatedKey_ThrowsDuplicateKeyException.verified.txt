@@ -1,0 +1,9 @@
+﻿{
+  Kind: Insert,
+  Key: 1,
+  Stored: [
+    1,
+    2,
+    3
+  ]
+}

@@ -84,7 +84,8 @@ Each changed document gets one update, by the key it was read with:
 
 - a changed or added field is set, and a removed one, such as a null member with `[BsonIgnoreIfNull]`, is unset;
 - an embedded document is compared field by field, so its changed fields are set by path, such as `"Address.City"`;
-- an array is set whole when anything in it changed;
+- an array is set whole when anything in it changed, and so is an [encrypted](encryption.md) member, which the server
+  refuses to update inside;
 - a field stored but not mapped by the class, which the class ignores on reads, is left alone; a `Replace` would drop it.
 
 A name no path can hold, such as `a.b` or `$a`, sets the embedded document that holds it whole; at the top level, the

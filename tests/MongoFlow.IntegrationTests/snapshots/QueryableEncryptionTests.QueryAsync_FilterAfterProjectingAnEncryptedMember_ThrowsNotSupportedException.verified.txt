@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: A query of Customers projects an encrypted member, then goes on with Where, which could compare it with plain values that match nothing the server holds. Filter and sort before projecting it.
+}

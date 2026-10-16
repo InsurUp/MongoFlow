@@ -1,0 +1,24 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 2
+  },
+  Stored: [
+    {
+      _id: 2,
+      Name: Customer 2,
+      Ssn: (encrypted),
+      Salary: (encrypted),
+      Notes: (encrypted),
+      Address: {
+        City: London,
+        Street: (encrypted)
+      },
+      IsDeleted: false,
+      Version: 0,
+      __safeContent__: (tags)
+    }
+  ]
+}

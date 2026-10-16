@@ -1,0 +1,76 @@
+﻿[
+  {
+    path: Ssn,
+    bsonType: string,
+    keyId: null,
+    queries: {
+      queryType: equality,
+      contention: 4
+    }
+  },
+  {
+    path: Salary,
+    bsonType: int,
+    keyId: null,
+    queries: {
+      queryType: range,
+      contention: 8,
+      min: 0,
+      max: 1000000,
+      sparsity: 2,
+      trimFactor: 6
+    }
+  },
+  {
+    path: BornAt,
+    bsonType: date,
+    keyId: null,
+    queries: {
+      queryType: range,
+      contention: 8,
+      min: {
+        $date: {
+          $numberLong: -2208988800000
+        }
+      },
+      max: {
+        $date: DateTimeOffset_1
+      },
+      sparsity: 2,
+      trimFactor: 6
+    }
+  },
+  {
+    path: Rate,
+    bsonType: decimal,
+    keyId: null,
+    queries: {
+      queryType: range,
+      contention: 8,
+      min: {
+        $numberDecimal: 0
+      },
+      max: {
+        $numberDecimal: 1
+      },
+      sparsity: 1,
+      trimFactor: 2,
+      precision: 4
+    }
+  },
+  {
+    path: Address,
+    bsonType: object,
+    keyId: null
+  },
+  {
+    path: Tags,
+    bsonType: array,
+    keyId: null
+  },
+  {
+    path: Photo,
+    bsonType: binData,
+    keyId: null
+  }
+]

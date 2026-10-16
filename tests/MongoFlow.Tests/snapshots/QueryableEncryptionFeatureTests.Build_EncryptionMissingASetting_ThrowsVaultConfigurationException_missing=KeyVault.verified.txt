@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: UseQueryableEncryption needs the collection the data keys are kept in: call KeyVault, such as KeyVault("encryption", "__keyVault").
+}

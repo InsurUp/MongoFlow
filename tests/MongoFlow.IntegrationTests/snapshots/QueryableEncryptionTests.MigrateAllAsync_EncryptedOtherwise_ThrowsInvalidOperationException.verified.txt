@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Customers is encrypted differently from how the vault declares it: Ssn is encrypted as string, equality (contention 8), not as string, without queries; Notes is encrypted as string, without queries, not as string, equality (contention 8); Name isn't encrypted; Address.Street is encrypted, though the vault doesn't declare it. MongoDB can't change an encrypted collection's fields: copy its documents into a new collection, under another name, encrypted as declared.
+}

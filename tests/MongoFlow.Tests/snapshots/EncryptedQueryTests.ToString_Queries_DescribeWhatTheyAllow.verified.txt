@@ -1,0 +1,7 @@
+﻿[
+  equality (contention 8),
+  equality (contention 2),
+  range from 0 to 100 (contention 4),
+  range from 0.5 to 1.5 (contention 8),
+  range from 1900-01-01T00:00:00.0000000Z to 2100-01-01T00:00:00.0000000Z (contention 8)
+]

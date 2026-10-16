@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -7,6 +8,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using MongoFlow;
+using MongoFlow.Encryption;
 using MongoFlow.Identity;
 using MongoFlow.Samples.Configuration;
 using MongoFlow.Samples.Domain;
@@ -71,6 +73,7 @@ builder.Services
     .AddScoped<AgencyService>()
     .AddScoped<AccountService>()
     .AddScoped<AuditReader>()
+    .AddScoped<KycService>()
     .AddSingleton<PlatformWalkthrough>();
 
 // Rules for every vault. Where these calls sit relative to AddMongoVault doesn't matter.
@@ -107,6 +110,19 @@ builder.Services.AddMongoVault<PlatformUserVault>((services, vault) => vault
     .UseDatabase(services.GetRequiredKeyedService<IMongoClient>("identity").GetDatabase(prefix + "identity"))
     .SkipDefaultConfiguration<PlatformDefaults<PlatformUserVault>>());
 
+// KYC records, encrypted with Queryable Encryption. The local master key is 96 bytes kept out of MongoDB, such as in a
+// secret store: Encryption:MasterKey, in base64. Without it, the run makes one, which only it can read its data with.
+var masterKey = builder.Configuration["Encryption:MasterKey"] is { } configured
+    ? LocalKms.FromBase64(configured)
+    : new LocalKms(RandomNumberGenerator.GetBytes(LocalKms.KeyLength));
+
+builder.Services.AddMongoVault<KycVault>(vault => vault
+    .UseDatabase(prefix + "kyc")
+    .UseQueryableEncryption(qe => qe
+        .KeyVault(prefix + "encryption", "__keyVault")
+        .Kms(masterKey))
+    .SkipDefaultConfiguration<PlatformDefaults<KycVault>>());
+
 builder.Services.AddIdentityCore<PlatformUser>()
     .AddRoles<PlatformRole>()
     .AddMongoFlowStores<PlatformUserVault>();
@@ -121,7 +137,11 @@ if (prefix.Length > 0)
         .LogInformation("Writing to databases starting with {Prefix}", prefix);
 }
 
-// Pending migrations of every registered vault. A deployment of several instances runs this from one of them.
+// KYC records an earlier version stored in plain text: the migrator rebuilds their collection as an encrypted one.
+await LegacyKycRecords.SeedAsync(app.Services.GetRequiredService<IMongoClient>().GetDatabase(prefix + "kyc"), CancellationToken.None);
+
+// Pending migrations of every registered vault, after setting up their encrypted collections. A deployment of several
+// instances runs this from one of them.
 await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
 
 await app.Services.GetRequiredService<PlatformWalkthrough>().RunAsync(CancellationToken.None);

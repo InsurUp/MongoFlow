@@ -1,0 +1,13 @@
+﻿{
+  encryptedExpression: {
+    $and: [
+      {
+        Salary: {
+          $lt: 1000
+        }
+      }
+    ]
+  },
+  queryType: range,
+  key: 2
+}

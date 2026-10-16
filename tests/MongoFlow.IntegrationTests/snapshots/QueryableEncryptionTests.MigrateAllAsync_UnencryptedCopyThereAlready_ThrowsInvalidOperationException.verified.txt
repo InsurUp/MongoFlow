@@ -1,0 +1,1 @@
+﻿Customers is rebuilt as an encrypted collection, but its unencrypted copy can't be kept as Customers.unencrypted, which exists already. Drop or rename Customers.unencrypted, and migrate again: what's left is renaming Customers.encrypting.

@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Rate, in Customers, is stored as double, so its range needs a precision: the digits after the point it keeps.
+}
