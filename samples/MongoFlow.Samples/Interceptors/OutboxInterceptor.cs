@@ -6,7 +6,8 @@ namespace MongoFlow.Samples.Interceptors;
 
 /// <summary>
 /// Transactional outbox: events raised by saved documents are stored in the same transaction as the change, and the
-/// dispatcher is woken only once they're committed.
+/// dispatcher is woken only once they're committed. A tracked document that raised events without changing isn't
+/// written, so its events are taken from the documents the vault tracks.
 /// </summary>
 public sealed class OutboxInterceptor(IOutboxVault outbox, IOutboxSignal signal, TimeProvider clock) : VaultInterceptor
 {
@@ -16,7 +17,9 @@ public sealed class OutboxInterceptor(IOutboxVault outbox, IOutboxSignal signal,
     {
         var events = context.Operations
             .Select(operation => operation.Document)
+            .Concat(context.Tracked)
             .OfType<IRaisesEvents>()
+            .Distinct<IRaisesEvents>(ReferenceEqualityComparer.Instance)
             .SelectMany(document => document.TakeEvents())
             .ToList();
 

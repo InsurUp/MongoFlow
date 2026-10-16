@@ -1,0 +1,56 @@
+﻿[
+  {
+    Hook: Saving,
+    Tracked: [
+      Invoice 1,
+      Invoice 2
+    ],
+    Operations: [
+      {
+        Kind: Delete,
+        Collection: Invoices,
+        Key: 1
+      }
+    ]
+  },
+  {
+    Hook: Saved,
+    Tracked: [
+      Invoice 1,
+      Invoice 2
+    ],
+    Operations: [
+      {
+        Kind: Delete,
+        Collection: Invoices,
+        Key: 1
+      }
+    ],
+    Result: {
+      Inserted: 0,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 1
+    }
+  },
+  {
+    Hook: Saving,
+    Tracked: [
+      Invoice 2
+    ],
+    Operations: []
+  },
+  {
+    Hook: Saved,
+    Tracked: [
+      Invoice 2
+    ],
+    Operations: [],
+    Result: {
+      Inserted: 0,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 0
+    }
+  }
+]

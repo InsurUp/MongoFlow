@@ -1,0 +1,84 @@
+﻿{
+  Seen: [
+    {
+      Hook: Saving,
+      Tracked: [
+        Invoice 2,
+        Customer 1,
+        Invoice 1
+      ],
+      Operations: [
+        {
+          Kind: Update,
+          Collection: Invoices,
+          Key: 1
+        },
+        {
+          Kind: Insert,
+          Collection: Customers,
+          Key: 2
+        }
+      ]
+    },
+    {
+      Hook: Saved,
+      Tracked: [
+        Invoice 2,
+        Customer 1,
+        Invoice 1
+      ],
+      Operations: [
+        {
+          Kind: Update,
+          Collection: Invoices,
+          Key: 1
+        },
+        {
+          Kind: Insert,
+          Collection: Customers,
+          Key: 2
+        }
+      ],
+      Result: {
+        Inserted: 1,
+        Matched: 1,
+        Modified: 1,
+        Deleted: 0
+      }
+    },
+    {
+      Hook: Committed,
+      Tracked: [
+        Invoice 2,
+        Customer 1,
+        Invoice 1
+      ],
+      Operations: [
+        {
+          Kind: Update,
+          Collection: Invoices,
+          Key: 1
+        },
+        {
+          Kind: Insert,
+          Collection: Customers,
+          Key: 2
+        }
+      ],
+      Result: {
+        Inserted: 1,
+        Matched: 1,
+        Modified: 1,
+        Deleted: 0
+      }
+    }
+  ],
+  Outbox: [
+    {
+      _id: invoice-1-paid
+    },
+    {
+      _id: invoice-2-reminded
+    }
+  ]
+}

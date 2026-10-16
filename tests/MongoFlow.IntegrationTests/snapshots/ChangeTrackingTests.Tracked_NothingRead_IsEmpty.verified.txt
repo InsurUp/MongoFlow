@@ -1,0 +1,47 @@
+﻿[
+  {
+    Hook: Saving,
+    Tracked: [],
+    Operations: [
+      {
+        Kind: Insert,
+        Collection: Customers,
+        Key: 2
+      }
+    ]
+  },
+  {
+    Hook: Saved,
+    Tracked: [],
+    Operations: [
+      {
+        Kind: Insert,
+        Collection: Customers,
+        Key: 2
+      }
+    ],
+    Result: {
+      Inserted: 1,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 0
+    }
+  },
+  {
+    Hook: Committed,
+    Tracked: [],
+    Operations: [
+      {
+        Kind: Insert,
+        Collection: Customers,
+        Key: 2
+      }
+    ],
+    Result: {
+      Inserted: 1,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 0
+    }
+  }
+]

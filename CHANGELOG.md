@@ -3,6 +3,19 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `SaveContext.Tracked`: the documents the vault tracked when the save started, changed or not, in the order they were
+  read, minus those the interceptor doesn't see. The unchanged ones aren't written; the changed ones are among
+  `Operations` too. For what an interceptor needs from documents whether or not they changed, such as domain events
+  they hold outside their BSON.
+- `IVaultBuilder.RunSaveWhen<TDocument>(pending)`: a save with nothing to write runs its interceptors, in its
+  transaction, when a tracked document assignable to `TDocument` matches `pending`, with no `Operations` and a `Result`
+  of zero counts, so what they write through `context.Session`, or queue on the vault, commits. Only such a save, of a
+  vault with interceptors, checks it, so a vault without it pays nothing.
+
 ## [1.0.0-beta.8] - 2026-10-15
 
 ### Added

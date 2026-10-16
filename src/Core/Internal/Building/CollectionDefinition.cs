@@ -10,4 +10,5 @@ internal sealed record CollectionDefinition<TDocument>(
     Type? KeyType,
     IMongoCollection<TDocument> Collection,
     ImmutableArray<QueryFilterEntry<TDocument>> Filters,
-    ImmutableArray<(LambdaExpression Field, string Feature)> IndexedFields);
+    ImmutableArray<(LambdaExpression Field, string Feature)> IndexedFields,
+    ImmutableArray<(Func<TDocument, bool> Pending, FeatureKey? Owner)> RunSaveWhen);

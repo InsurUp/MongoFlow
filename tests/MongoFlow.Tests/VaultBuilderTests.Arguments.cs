@@ -59,6 +59,7 @@ public partial class VaultBuilderTests
     {
         yield return () => ("UseDatabase(name)", vault => vault.UseDatabase((string)null!));
         yield return () => ("UseDatabase(database)", vault => vault.UseDatabase((IMongoDatabase)null!));
+        yield return () => ("RunSaveWhen", vault => vault.RunSaveWhen<Order>(null!));
         yield return () => ("UseConfiguration", vault => vault.UseConfiguration(null!));
         yield return () => ("Collection(selector)", vault => vault.Collection<AuditEntry>(null!, _ => { }));
         yield return () => ("Collection(configure)", vault => vault.Collection(x => x.Audit, null!));

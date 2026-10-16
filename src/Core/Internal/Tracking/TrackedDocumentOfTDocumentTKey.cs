@@ -12,7 +12,13 @@ internal sealed class TrackedDocument<TDocument, TKey>(KeyedCollectionModel<TDoc
     TKey key,
     BsonSnapshot snapshot) : TrackedDocument(document!, snapshot)
 {
+    public override IVaultCollectionInfo Collection => model;
+
+    public override FeatureSet Disabled => disabled;
+
     public override BsonSnapshot Serialize() => BsonSnapshot.Of(model.MongoCollection.DocumentSerializer, document);
+
+    public override bool RunsSave() => model.RunsSaveFor(document, disabled);
 
     public override VaultOperation? DetectChange()
     {

@@ -13,6 +13,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     private readonly bool _hasAsyncFilters = definition.Filters.Any(filter => filter.IsAsync);
     private readonly bool _onlyStatic = definition.Filters.All(filter => filter.Static is not null);
     private readonly ImmutableArray<(LambdaExpression Field, string Feature)> _indexedFields = definition.IndexedFields;
+    private readonly ImmutableArray<(Func<TDocument, bool> Pending, FeatureKey? Owner)> _runSaveWhen = definition.RunSaveWhen;
 
     // The static filters joined once, at startup; the whole filter when every filter is static.
     private readonly Expression<Func<TDocument, bool>>? _staticFilter =
@@ -90,7 +91,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
         for (var i = 0; i < _filters.Length; i++)
         {
-            if (IsActive(_filters[i], disabled))
+            if (IsActive(_filters[i].Owner, disabled))
             {
                 resolved[i] = _filters[i].Resolve(services);
             }
@@ -113,13 +114,31 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
         for (var i = 0; i < _filters.Length; i++)
         {
-            if (IsActive(_filters[i], disabled))
+            if (IsActive(_filters[i].Owner, disabled))
             {
                 resolved[i] = await _filters[i].ResolveAsync(services, cancellationToken);
             }
         }
 
         return FilterExpressions.Combine(resolved);
+    }
+
+    /// <summary>
+    /// Whether a <c>RunSaveWhen</c> predicate, of the features <paramref name="disabled"/> leaves on, matches
+    /// <paramref name="document"/>.
+    /// </summary>
+    public bool RunsSaveFor(TDocument document,
+        FeatureSet disabled)
+    {
+        foreach (var (pending, owner) in _runSaveWhen)
+        {
+            if (IsActive(owner, disabled) && pending(document))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static Action<MongoVault, object> CompileSetter(PropertyInfo property)
@@ -132,7 +151,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
         return Expression.Lambda<Action<MongoVault, object>>(set, vault, value).Compile();
     }
 
-    private static bool IsActive(QueryFilterEntry<TDocument> filter,
+    private static bool IsActive(FeatureKey? owner,
         FeatureSet disabled) =>
-        filter.Owner is not { } owner || !disabled.Contains(owner);
+        owner is not { } feature || !disabled.Contains(feature);
 }

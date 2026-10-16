@@ -6,6 +6,12 @@ internal abstract class TrackedDocument(object document,
 {
     public object Document { get; } = document;
 
+    /// <summary>The collection it was read from.</summary>
+    public abstract IVaultCollectionInfo Collection { get; }
+
+    /// <summary>The features switched off on the view that read it.</summary>
+    public abstract FeatureSet Disabled { get; }
+
     /// <summary>What saves compare the document against: as read, or as the last save wrote it.</summary>
     public BsonSnapshot Snapshot { get; set; } = snapshot;
 
@@ -41,4 +47,7 @@ internal abstract class TrackedDocument(object document,
     /// <summary>The write that brings the stored document up to date, or <see langword="null"/> when it hasn't changed.</summary>
     /// <exception cref="InvalidOperationException">Its key changed.</exception>
     public abstract VaultOperation? DetectChange();
+
+    /// <summary>Whether a save with nothing to write runs for it: a <c>RunSaveWhen</c> predicate matches it.</summary>
+    public abstract bool RunsSave();
 }

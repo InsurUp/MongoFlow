@@ -96,6 +96,31 @@ It's serialized with the collection's serializer, so fields the class doesn't ma
 time it's read, so saves no interceptor reads it in pay nothing. Read it in the save's hooks, `CommittedAsync` and
 `FailedAsync` included: once they've run, an original nobody read can't be read any more, while one that was read stays.
 
+## Documents that didn't change
+
+Interceptors read every document the vault tracks from `SaveContext.Tracked`, changed or not, as it was tracked when the
+save started, in the order they were read. The changed ones are among `Operations` too, as are those a queued `Replace`
+or `Delete` writes; the unchanged ones aren't written. One an earlier save deleted, in a transaction still open, isn't
+there, and an interceptor sees only those of the collections it applies to, read with its feature on.
+
+That's for what a document holds outside its BSON, such as the domain events an aggregate collects: a method that raises
+an event without changing a stored field leaves the document with nothing to write. A save with nothing to write returns
+before running any interceptor, so the vault says which tracked documents still need them:
+
+```csharp
+vault.RunSaveWhen((IDomainEventSet x) => x.HasEvents);
+```
+
+A save with nothing else to write then runs its interceptors, in its transaction, if a tracked document of a collection
+whose documents are `IDomainEventSet`s has events: `SavingAsync`, `SavedAsync` and `CommittedAsync`, with no
+`Operations` and a `Result` of zero counts. What they write through `context.Session`, or queue on the vault during
+`SavingAsync`, commits with it, and nothing is written for the document itself. Only a save with nothing else to write,
+of a vault with interceptors, checks it, so a vault without it pays nothing; collections whose documents don't match are
+left alone, so a default configuration can add it to every vault. A save that writes runs its interceptors anyway, with
+the unchanged documents in `Tracked`.
+
+[A transactional outbox](interceptors.md#a-transactional-outbox) reads its events this way.
+
 ## Rules
 
 - A key can't change: a save that finds a tracked document's key changed fails with `InvalidOperationException` before
@@ -110,6 +135,7 @@ time it's read, so saves no interceptor reads it in pay nothing. Read it in the 
 ## Cost
 
 Tracking serializes each document once when it's read, keeps the bytes in pooled memory until the scope ends, and
-serializes each tracked document again when the vault saves; an unchanged one costs a comparison of bytes. Read what
+serializes each tracked document again when the vault saves; an unchanged one costs a comparison of bytes. A save of a
+vault with interceptors also keeps a list of the tracked documents, for `Tracked`. Read what
 won't change with `WithNoTracking()`. For 1,000 orders read, changed and saved, a tracked save allocates about 2.4 KB
 per document more than queuing the same updates by key; see `benchmarks/artifacts/results/` for the numbers.

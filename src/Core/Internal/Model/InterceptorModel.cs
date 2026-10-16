@@ -13,9 +13,15 @@ internal sealed class InterceptorModel(Type? type,
     /// Whether the interceptor sees <paramref name="operation"/>: it's on a collection the interceptor applies to, decided at
     /// startup, and wasn't queued with the interceptor's feature switched off.
     /// </summary>
-    public bool Sees(VaultOperation operation) =>
-        visible.Contains(operation.Collection) &&
-        (Owner is not { } owner || !operation.DisabledFeatures.Contains(owner));
+    public bool Sees(VaultOperation operation) => Sees(operation.Collection, operation.DisabledFeatures);
+
+    /// <summary>
+    /// Whether the interceptor sees what's of <paramref name="collection"/> with <paramref name="disabled"/> features off,
+    /// such as a tracked document read with them off.
+    /// </summary>
+    public bool Sees(IVaultCollectionInfo collection,
+        FeatureSet disabled) =>
+        visible.Contains(collection) && (Owner is not { } owner || !disabled.Contains(owner));
 
     /// <summary>
     /// The shared instance, or one created from the request's <paramref name="services"/>; a disposable one is disposed

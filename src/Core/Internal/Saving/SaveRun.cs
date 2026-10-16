@@ -37,6 +37,9 @@ internal sealed class SaveRun(VaultRuntime runtime,
     private (int Changes, IReadOnlyList<VaultOperation>? Operations)[]? _seen;
     private int _changes;
 
+    // What each interceptor sees of the documents tracked when the save began, which don't change during it.
+    private IReadOnlyCollection<object>?[]? _trackedSeen;
+
     public VaultRuntime Runtime { get; } = runtime;
 
     public PooledList<VaultOperation> Operations { get; } = operations;
@@ -305,6 +308,36 @@ internal sealed class SaveRun(VaultRuntime runtime,
         }
 
         return seen.Operations;
+    }
+
+    /// <summary>The documents tracked when the save began that <paramref name="interceptor"/> sees, in the order they were read.</summary>
+    public IReadOnlyCollection<object> TrackedSeenBy(int interceptor)
+    {
+        if (tracked?.Documents is not { } documents)
+        {
+            return [];
+        }
+
+        _trackedSeen ??= new IReadOnlyCollection<object>?[Runtime.Model.Interceptors.Count];
+        ref var seen = ref _trackedSeen[interceptor];
+
+        if (seen is null)
+        {
+            var model = Runtime.Model.Interceptors[interceptor];
+            var visible = new List<object>(documents.Count);
+
+            foreach (var document in documents)
+            {
+                if (model.Sees(document.Collection, document.Disabled))
+                {
+                    visible.Add(document.Document);
+                }
+            }
+
+            seen = visible.AsReadOnly();
+        }
+
+        return seen;
     }
 
     public void Dispose()

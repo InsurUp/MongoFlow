@@ -38,6 +38,27 @@ public interface IVaultBuilder<TVault> where TVault : MongoVault
     /// <param name="enabled"><see langword="false"/> to switch it off for a vault a default configuration switched it on for.</param>
     IVaultBuilder<TVault> UseChangeTracking(bool enabled = true);
 
+    /// <summary>
+    /// Runs a save's interceptors, in its transaction, even when it has nothing to write, if a tracked document assignable
+    /// to <typeparamref name="TDocument"/> matches <paramref name="pending"/>, such as an aggregate holding domain events
+    /// that aren't stored. Nothing is written for that document; interceptors read it from
+    /// <see cref="SaveContext.Tracked"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Checked only by a save with nothing else to write, of a vault with interceptors, for each tracked document of a
+    /// collection whose document is assignable to <typeparamref name="TDocument"/>, so a vault without it pays nothing.
+    /// Collections that don't match are left alone, so a default configuration can add it to every vault.
+    /// </para>
+    /// <para>
+    /// Such a save runs <see cref="VaultInterceptor.SavingAsync"/>, <see cref="VaultInterceptor.SavedAsync"/> and
+    /// <see cref="VaultInterceptor.CommittedAsync"/> with no <see cref="SaveContext.Operations"/> and a
+    /// <see cref="SaveContext.Result"/> of zero counts, so what they write through <see cref="SaveContext.Session"/>, or
+    /// queue on the vault, commits with it.
+    /// </para>
+    /// </remarks>
+    IVaultBuilder<TVault> RunSaveWhen<TDocument>(Func<TDocument, bool> pending);
+
     /// <summary>Applies a configuration created from the root provider. Each configuration type applies once per vault.</summary>
     IVaultBuilder<TVault> UseConfiguration<TConfiguration>() where TConfiguration : class, IVaultConfiguration<TVault>;
 

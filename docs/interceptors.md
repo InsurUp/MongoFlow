@@ -47,6 +47,7 @@ Each hook gets a `SaveContext`:
 | Member | What it is |
 |---|---|
 | `Operations` | The save's writes in queue order, minus those the interceptor doesn't see. Every interceptor works on the same list. |
+| `Tracked` | The documents the vault tracked when the save started, [changed or not](change-tracking.md#documents-that-didnt-change), minus those the interceptor doesn't see |
 | `Replace(operation, replacement)`, `Remove(operation)` | Change the list, during `SavingAsync` |
 | `Result` | The save's counts, once written |
 | `Session` | The session of the transaction the save runs in |
@@ -187,7 +188,8 @@ operation's `Original`, without reading it back.
 ### A transactional outbox
 
 Events are stored in `SavedAsync`, in the save's transaction, and the dispatcher is woken in `CommittedAsync`, once
-they're committed. `Items` carries what the first hook found to the second:
+they're committed. `Items` carries what the first hook found to the second. With [change tracking](change-tracking.md),
+a tracked document that raised an event without changing isn't written, so its events are taken from `Tracked`:
 
 ```csharp
 public sealed class OutboxInterceptor(IOutboxVault outbox, IOutboxSignal signal) : VaultInterceptor
@@ -196,7 +198,14 @@ public sealed class OutboxInterceptor(IOutboxVault outbox, IOutboxSignal signal)
 
     public override async ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken)
     {
-        var events = context.Operations.Select(o => o.Document).OfType<IRaisesEvents>().SelectMany(d => d.TakeEvents()).ToList();
+        var events = context.Operations
+            .Select(o => o.Document)
+            .Concat(context.Tracked)
+            .OfType<IRaisesEvents>()
+            .Distinct<IRaisesEvents>(ReferenceEqualityComparer.Instance)
+            .SelectMany(d => d.TakeEvents())
+            .ToList();
+
         if (events.Count == 0)
         {
             return;
@@ -218,5 +227,9 @@ public sealed class OutboxInterceptor(IOutboxVault outbox, IOutboxSignal signal)
     }
 }
 ```
+
+A save that only raised events has nothing to write, so it runs its interceptors only when the vault says so:
+`vault.RunSaveWhen((IRaisesEvents x) => x.HasEvents)`; see
+[documents that didn't change](change-tracking.md#documents-that-didnt-change).
 
 The [samples](https://github.com/InsurUp/MongoFlow/tree/main/samples/MongoFlow.Samples) run each of these.

@@ -38,6 +38,8 @@ public sealed class Policy : ITenantOwned, ISoftDeletable, IOwnedByUser, ITimest
 
     public DateTimeOffset? UpdatedAt { get; set; }
 
+    public bool HasEvents => _events.Count > 0;
+
     public void Raise(object @event) => _events.Add(@event);
 
     public IReadOnlyList<object> TakeEvents()

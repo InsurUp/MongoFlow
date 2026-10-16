@@ -8,8 +8,9 @@ namespace MongoFlow.IntegrationTests;
 
 // A customer with an embedded address, a field left out when null, a list, and fields stored but not mapped; an account
 // with a concurrency token; a soft-deletable lead; a price with an element name no path can hold; a coupon keyed by a
-// code it may lack; and interceptors that record writes and originals, fail once, dispose the vault mid-save, stamp
-// updates, and reuse pooled memory.
+// code it may lack; an invoice holding events it doesn't store, and an outbox for them; interceptors that record writes,
+// originals and tracked documents, fail once, dispose the vault mid-save, stamp updates, reuse pooled memory, and store
+// or queue events; and a feature that runs saves for events.
 public partial class ChangeTrackingTests
 {
     public interface IVersioned
@@ -79,6 +80,26 @@ public partial class ChangeTrackingTests
         public int Percent { get; set; }
     }
 
+    public interface IRaisesEvents
+    {
+        List<string> Events { get; }
+    }
+
+    public sealed class Invoice : IRaisesEvents
+    {
+        public int Id { get; set; }
+
+        public string Status { get; set; } = "";
+
+        [BsonIgnore]
+        public List<string> Events { get; } = [];
+    }
+
+    public sealed class OutboxEntry
+    {
+        public string Id { get; set; } = "";
+    }
+
     public sealed class CrmVault : MongoVault
     {
         public IVaultCollection<Customer, int> Customers { get; init; } = null!;
@@ -90,6 +111,10 @@ public partial class ChangeTrackingTests
         public IVaultCollection<Price, int> Prices { get; init; } = null!;
 
         public IVaultCollection<Coupon, string> Coupons { get; init; } = null!;
+
+        public IVaultCollection<Invoice, int> Invoices { get; init; } = null!;
+
+        public IVaultCollection<OutboxEntry> Outbox { get; init; } = null!;
     }
 
     /// <summary>Records each write a save sends, as the interceptors before the concurrency token see it.</summary>
@@ -240,6 +265,98 @@ public partial class ChangeTrackingTests
         }
     }
 
+    /// <summary>Records, in each hook, the documents tracked, and the operations and the result the save has.</summary>
+    public sealed class TrackedRecorder : VaultInterceptor
+    {
+        public List<object> Seen { get; } = [];
+
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken) =>
+            Record("Saving", context);
+
+        public override ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken) =>
+            Record("Saved", context);
+
+        public override ValueTask CommittedAsync(SaveContext context, CancellationToken cancellationToken) =>
+            Record("Committed", context);
+
+        public override ValueTask FailedAsync(SaveContext context,
+            Exception exception,
+            CancellationToken cancellationToken) =>
+            Record("Failed", context);
+
+        private ValueTask Record(string hook,
+            SaveContext context)
+        {
+            Seen.Add(new
+            {
+                Hook = hook,
+                Tracked = context.Tracked.Select(Describe).ToList(),
+                Operations = context.Operations
+                    .Select(operation => new { operation.Kind, Collection = operation.Namespace.CollectionName, operation.Key })
+                    .ToList(),
+                context.Result
+            });
+
+            return ValueTask.CompletedTask;
+        }
+
+        private static string Describe(object document) => document switch
+        {
+            Customer customer => $"Customer {customer.Id}",
+            Invoice invoice => $"Invoice {invoice.Id}",
+            _ => document.GetType().Name
+        };
+    }
+
+    /// <summary>
+    /// Stores the events of the documents a save writes or tracks in the outbox, through the save's session after the
+    /// write, and clears them: a transactional outbox.
+    /// </summary>
+    public sealed class OutboxWriter : VaultInterceptor
+    {
+        public override async ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            var outbox = ((CrmVault)context.Vault).Outbox.MongoCollection;
+
+            foreach (var document in RaisingEvents(context))
+            {
+                foreach (var @event in document.Events)
+                {
+                    await outbox.InsertOneAsync(context.Session, new OutboxEntry { Id = @event }, cancellationToken: cancellationToken);
+                }
+
+                document.Events.Clear();
+            }
+        }
+    }
+
+    /// <summary>Queues the events of the documents a save writes or tracks on the vault's outbox, and clears them.</summary>
+    public sealed class OutboxQueuer : VaultInterceptor
+    {
+        public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
+        {
+            var outbox = ((CrmVault)context.Vault).Outbox;
+
+            foreach (var document in RaisingEvents(context))
+            {
+                outbox.AddRange(document.Events.Select(@event => new OutboxEntry { Id = @event }));
+                document.Events.Clear();
+            }
+
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>Runs saves for documents holding events, for its interceptor to see; switched off with its key.</summary>
+    public sealed class EventsFeature(VaultInterceptor interceptor) : IVaultFeature
+    {
+        public static FeatureKey Key { get; } = new("events");
+
+        public void Configure<TVault>(IVaultBuilder<TVault> vault) where TVault : MongoVault => vault
+            .RunSaveWhen((IRaisesEvents x) => x.Events.Count > 0)
+            .AddInterceptor(interceptor);
+    }
+
     /// <summary>Disposes the vault while its save runs, as a scope ending under a save would.</summary>
     public sealed class DisposingTheVault : VaultInterceptor
     {
@@ -249,4 +366,12 @@ public partial class ChangeTrackingTests
             return ValueTask.CompletedTask;
         }
     }
+
+    /// <summary>The documents a save writes or tracks that hold events, each once.</summary>
+    private static IEnumerable<IRaisesEvents> RaisingEvents(SaveContext context) =>
+        context.Operations
+            .Select(operation => operation.Document)
+            .Concat(context.Tracked)
+            .OfType<IRaisesEvents>()
+            .Distinct<IRaisesEvents>(ReferenceEqualityComparer.Instance);
 }

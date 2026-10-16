@@ -26,9 +26,13 @@ internal sealed class ChangeTracker : IDisposable
     /// Puts an update for each tracked document that changed before <paramref name="operations"/>, the writes queued on
     /// the vault, so a document changed and then deleted by a queued write is updated first. A queued replace or delete of
     /// a tracked document takes the place of its changes. Each of these writes carries the document as it was before
-    /// the save.
+    /// the save. With nothing to write, it creates the list, empty, when a <c>RunSaveWhen</c> predicate matches a tracked
+    /// document, so the save runs its interceptors.
     /// </summary>
-    /// <returns>What the save does to tracked documents, or <see langword="null"/> when it does nothing to them.</returns>
+    /// <returns>
+    /// What the save does to tracked documents and which it found, or <see langword="null"/> when it does nothing to them
+    /// and has no interceptors to read them.
+    /// </returns>
     /// <exception cref="InvalidOperationException">A tracked document's key changed.</exception>
     public TrackedChanges? DetectChanges(ref PooledList<VaultOperation>? operations,
         VaultModel model)
@@ -44,10 +48,19 @@ internal sealed class ChangeTracker : IDisposable
             var replacedOrDeleted = ReplacedOrDeleted(operations, changes);
             List<VaultOperation>? updates = null;
 
+            // As they are when the save begins, for its interceptors to read; without interceptors nothing reads them.
+            var tracked = model.Interceptors.Count > 0 ? new List<TrackedDocument>(_documents.Count) : null;
+
             foreach (var document in _documents.Values)
             {
-                if (document.Deleting || replacedOrDeleted?.ContainsKey(document) == true ||
-                    document.DetectChange() is not { } update)
+                if (document.Deleting)
+                {
+                    continue;
+                }
+
+                tracked?.Add(document);
+
+                if (replacedOrDeleted?.ContainsKey(document) == true || document.DetectChange() is not { } update)
                 {
                     continue;
                 }
@@ -71,6 +84,13 @@ internal sealed class ChangeTracker : IDisposable
 
                 operations = merged;
             }
+            else if (operations is null && tracked is not null && tracked.Exists(static document => document.RunsSave()))
+            {
+                // Nothing to write, but a document the vault runs saves for: the save runs its interceptors, writing nothing.
+                operations = new PooledList<VaultOperation>(clearOnReturn: true);
+            }
+
+            changes.Documents = tracked;
 
             return changes.IsEmpty ? null : changes;
         }
