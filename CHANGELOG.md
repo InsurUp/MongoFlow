@@ -3,6 +3,39 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.12] - 2026-10-16
+
+### Added
+
+- MongoFlow.Encryption, a new package shipped with MongoFlow at the same version: MongoDB Queryable Encryption for a
+  vault, on MongoDB Community too. `vault.UseQueryableEncryption(qe => qe.KeyVault(...).Kms(...))` names where the data
+  keys are kept and the KMS that protects them, typed: `LocalKms`, `AwsKms`, `AzureKms`, `GcpKms` or `KmipKms`, with
+  credentials from the environment through `FromEnvironment` and `FromManagedIdentity`. A collection declares what's
+  encrypted with `Encrypt(x => x.Ssn, EncryptedQuery.Equality)`, `EncryptedQuery.Range(min, max)`, or no query for a
+  member that's only stored encrypted. MongoFlow encrypts with the driver's explicit encryption: documents are stored with
+  their encrypted members encrypted, and null ones left out; `$set` encrypts what it sets; and the values the filters it
+  renders compare encrypted members with, LINQ `Where` clauses included, are encrypted. What MongoDB can't do to an
+  encrypted member throws `NotSupportedException` instead of writing or silently matching nothing: `$inc`, a pipeline
+  update, a sort or group on one, or a filter after projecting one. `UpdateMany`, `DeleteMany` and soft delete write each
+  matching document in turn, as the server changes encrypted documents only one at a time. The vault reads and writes
+  through a client made from the one it was given, which vaults with the same settings share. The model fails to build
+  when a member can't be encrypted, such as the key or a feature's member, or when the documents don't ignore extra
+  elements, as the server adds `__safeContent__` to each.
+- `IVaultMigrator` sets a vault's encrypted collections up before its migrations: it creates them with their data keys,
+  checks existing ones against what the vault declares, and rebuilds as encrypted a collection that holds documents
+  already, which MongoDB can't encrypt in place: renamed to `{name}.encrypting`, copied in batches into the encrypted
+  collection, its indexes that don't cover an encrypted member copied too, then kept as `{name}.unencrypted`, which
+  MongoFlow never drops. An interrupted rebuild goes on where it stopped. It logs under `MongoFlow.Encryption`.
+
+### Changed
+
+- A vault on a client with `AutoEncryptionOptions`, which the driver refuses client bulk writes, saves with collection
+  commands, in queue order, in the same transaction: inserts into one collection that follow each other in one, every
+  other write in a command of its own. Through such a client, `DuplicateKeyException`'s inner exception is the driver's
+  `MongoWriteException` or `MongoBulkWriteException` rather than `ClientBulkWriteException`.
+- A vault on another client than the scope's open transaction's fails with a message saying that a vault that encrypts
+  uses a client of its own, which vaults with the same encryption settings share.
+
 ## [1.0.0-beta.11] - 2026-10-16
 
 ### Added
@@ -263,6 +296,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[1.0.0-beta.12]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.11...v1.0.0-beta.12
 [1.0.0-beta.11]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.10...v1.0.0-beta.11
 [1.0.0-beta.10]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.9...v1.0.0-beta.10
 [1.0.0-beta.9]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.8...v1.0.0-beta.9
