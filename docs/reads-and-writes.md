@@ -144,6 +144,9 @@ SaveResult result = await vault.SaveAsync(cancellationToken);
 ```
 
 `SaveAsync` sends every queued write as one ordered client bulk write, in queue order, across the vault's collections.
+Through a client that encrypts, as a vault with [Queryable Encryption](encryption.md) uses, which the driver refuses client
+bulk writes, it sends a command per write instead, in the same order: inserts into one collection that follow each other
+go in one.
 It runs in the scope's open [transaction](transactions.md) if there is one, and in a transaction of its own otherwise, so
 nothing is written if any write fails. Queued writes are discarded once the save ends, whether it succeeded or failed.
 A save with nothing to write returns `SaveResult.Empty` without starting a transaction or running interceptors, unless
@@ -154,7 +157,8 @@ Each write's own result is on its operation, which [interceptors](interceptors.m
 - `DuplicateKeyException` when a unique index refuses a write, such as an insert repeating a stored key. A save stops at
   its first refused write, and the exception's `Operation` is that write, so a save writing to two collections with
   unique indexes tells which one it was. The driver's `ClientBulkWriteException` is its `InnerException`, with the
-  server's error, which names the index;
+  server's error, which names the index; through a client that encrypts, its `MongoWriteException` or
+  `MongoBulkWriteException`;
 - the driver's `ClientBulkWriteException` when the server rejects a write for another reason. When another transaction
   is changing one of the documents, MongoDB fails the write at once rather than waiting: the exception has the
   `TransientTransactionError` label, and the save can be tried again. MongoFlow doesn't retry it. With change

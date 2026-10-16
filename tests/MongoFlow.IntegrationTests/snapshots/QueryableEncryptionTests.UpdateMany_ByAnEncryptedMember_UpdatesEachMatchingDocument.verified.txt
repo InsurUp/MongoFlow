@@ -1,0 +1,36 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 2,
+    Modified: 2,
+    Deleted: 0
+  },
+  Read: [
+    {
+      Id: 2,
+      Name: Customer 2,
+      Ssn: 000-00,
+      Salary: 2000,
+      Notes: note 2,
+      Address: {
+        City: London,
+        Street: 2 Baker Street
+      },
+      IsDeleted: false,
+      Version: 1
+    },
+    {
+      Id: 3,
+      Name: Customer 3,
+      Ssn: 000-00,
+      Salary: 3000,
+      Notes: note 3,
+      Address: {
+        City: London,
+        Street: 3 Baker Street
+      },
+      IsDeleted: false,
+      Version: 1
+    }
+  ]
+}

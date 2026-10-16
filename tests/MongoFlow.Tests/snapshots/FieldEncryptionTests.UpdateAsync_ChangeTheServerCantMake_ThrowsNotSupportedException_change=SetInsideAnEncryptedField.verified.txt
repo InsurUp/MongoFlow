@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: An update of Customers sets Address.Street.Number, inside Address.Street, which is encrypted: set the encrypted member whole.
+}

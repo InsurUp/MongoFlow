@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: Customers has encrypted members, so it can't be updated with a pipeline: the server refuses pipeline updates of an encrypted collection. Use update operators, such as $set.
+}

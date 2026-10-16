@@ -1,0 +1,14 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 3,
+    Modified: 3,
+    Deleted: 0
+  },
+  Left: [],
+  Marked: [
+    1,
+    2,
+    3
+  ]
+}

@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: A filter of Customers compares Salary, which is encrypted for range, with $mod: it supports $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin and $exists.
+}

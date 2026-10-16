@@ -9,10 +9,11 @@ ID; refer to them by constant, not by number.
 |---|---|
 | `MongoFlow.Model` | A vault's model built, at `Debug` |
 | `MongoFlow.Indexes` | Indexes a vault relies on and lacks, at `Warning`; the check itself at `Debug` |
-| `MongoFlow.Save` | Each save: starting, how many tracked documents changed, and how it ended, at `Debug`; each write at `Trace`; a concurrency conflict or a write to another tenant, at `Debug`; an interceptor's `FailedAsync` or `CommittedAsync` throwing, at `Error` |
+| `MongoFlow.Save` | Each save: starting, how many tracked documents changed, and how it ended, at `Debug`; each write at `Trace`; a concurrency conflict, a write to another tenant, or a set-based write to encrypted documents made one at a time, at `Debug`; an interceptor's `FailedAsync` or `CommittedAsync` throwing, at `Error` |
 | `MongoFlow.Transaction` | Transactions begun with `BeginAsync`: begun, committed, rolled back or doomed, at `Debug`; one a save opens for itself at `Trace` |
 | `MongoFlow.Query` | Each read, with the query filters it runs with, at `Trace` |
 | `MongoFlow.Migrations` | Migrations applied and reverted, at `Information`; a history recording a version twice, at `Warning`; a failure at `Error` |
+| `MongoFlow.Encryption` | Encrypted collections the migrator sets up: created, or rebuilt from one that wasn't encrypted, at `Information`, and found as declared at `Debug`; an index a rebuild left behind, or an unencrypted copy still there, at `Warning` |
 
 ```json
 {
@@ -55,13 +56,14 @@ services.AddOpenTelemetry()
 | Span | For | Tags |
 |---|---|---|
 | `MongoFlow.Save` | A save with writes queued | The vault; whether it ran in a transaction of its own or joined one; the writes it sent; what it inserted, matched, modified and deleted |
-| `MongoFlow.Migrate` | One vault migrated | The vault; its version before, and the target |
+| `MongoFlow.Migrate` | One vault migrated, its encrypted collections set up first | The vault; its version before, and the target |
 | `MongoFlow.Migration` | One migration applied or reverted | The vault; the migration's version and name; up or down |
 
 A span that fails has an error status, `error.type` and an exception event. `MongoFlowTelemetry.Activities` and
 `MongoFlowTelemetry.Tags` name them all.
 
-The driver's spans for a save's bulk write and commit nest under its `MongoFlow.Save` span. In a transaction begun with
+The driver's spans for a save's bulk write, or its commands through a client that encrypts, and its commit nest under
+its `MongoFlow.Save` span. In a transaction begun with
 `BeginAsync`, the driver's span for the transaction starts under the code that began it. Reads have no span of their
 own: a query runs after `QueryAsync` returns, and the driver traces it.
 

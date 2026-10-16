@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: BsonDocument, in Raw, has encrypted members, so it has to be serialized with a class map, which MongoFlow finds them by. Its serializer is BsonDocumentSerializer.
+}

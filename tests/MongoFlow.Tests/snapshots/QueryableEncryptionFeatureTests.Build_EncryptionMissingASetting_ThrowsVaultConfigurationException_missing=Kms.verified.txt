@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: UseQueryableEncryption needs the KMS that protects the data keys: call Kms, such as Kms(new LocalKms(masterKey)).
+}

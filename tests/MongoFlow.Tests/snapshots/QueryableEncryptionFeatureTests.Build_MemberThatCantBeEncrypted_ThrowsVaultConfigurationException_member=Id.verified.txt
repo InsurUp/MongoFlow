@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: x => x.Id, stored as _id in Customers, can't be encrypted: it's the _id, or reaches it.
+}

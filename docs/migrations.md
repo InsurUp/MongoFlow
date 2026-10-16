@@ -125,6 +125,10 @@ the failure inside.
 Run migrations from one instance of the app. Instances migrating at once can apply a migration twice: one in a
 transaction fails to record the second time and rolls back, but one without a transaction has already run.
 
+A vault that encrypts, with MongoFlow.Encryption, has its encrypted collections set up before its migrations run, even
+when it has none: created encrypted with their data keys, or rebuilt encrypted when they hold documents already. See
+[Queryable Encryption](encryption.md#setting-up-the-collections).
+
 Migrations log under `MongoFlow.Migrations`, and are traced as `MongoFlow.Migrate` and `MongoFlow.Migration` spans; see
 [observability](observability.md).
 

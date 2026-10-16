@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Ssn, in Customers, is stored as string, so it can't be queried by range: a range takes an int, long, date, double or decimal.
+}

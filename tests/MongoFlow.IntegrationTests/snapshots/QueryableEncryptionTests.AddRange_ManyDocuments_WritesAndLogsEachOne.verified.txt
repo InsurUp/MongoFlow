@@ -1,0 +1,86 @@
+﻿{
+  result: {
+    Inserted: 3,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Read: [
+    {
+      Id: 1,
+      Name: Customer 1,
+      Ssn: 111-11,
+      Salary: 1000,
+      Notes: note 1,
+      Address: {
+        City: London,
+        Street: 1 Baker Street
+      },
+      IsDeleted: false,
+      Version: 0
+    },
+    {
+      Id: 2,
+      Name: Customer 2,
+      Ssn: 222-22,
+      Salary: 2000,
+      Notes: note 2,
+      Address: {
+        City: London,
+        Street: 2 Baker Street
+      },
+      IsDeleted: false,
+      Version: 0
+    },
+    {
+      Id: 3,
+      Name: Customer 3,
+      Ssn: 333-33,
+      Salary: 3000,
+      Notes: note 3,
+      Address: {
+        City: London,
+        Street: 3 Baker Street
+      },
+      IsDeleted: false,
+      Version: 0
+    }
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Save,
+      Level: Debug,
+      EventId: 27003001,
+      Event: SavingAlone,
+      Message: Saving CustomerVault in a transaction of its own. Operations queued: 3.
+    },
+    {
+      Category: MongoFlow.Save,
+      Level: Trace,
+      EventId: 27003003,
+      Event: Writing,
+      Message: Writing Insert to Customers: key 1, set-based False.
+    },
+    {
+      Category: MongoFlow.Save,
+      Level: Trace,
+      EventId: 27003003,
+      Event: Writing,
+      Message: Writing Insert to Customers: key 2, set-based False.
+    },
+    {
+      Category: MongoFlow.Save,
+      Level: Trace,
+      EventId: 27003003,
+      Event: Writing,
+      Message: Writing Insert to Customers: key 3, set-based False.
+    },
+    {
+      Category: MongoFlow.Save,
+      Level: Debug,
+      EventId: 27003004,
+      Event: Saved,
+      Message: Saved CustomerVault in {elapsed} ms: 3 inserted, 0 matched, 0 modified, 0 deleted.
+    }
+  ]
+}

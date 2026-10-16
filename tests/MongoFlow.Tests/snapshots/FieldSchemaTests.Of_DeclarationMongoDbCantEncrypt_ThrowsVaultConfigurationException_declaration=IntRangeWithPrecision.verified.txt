@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Salary, in Customers, is stored as int, so its range takes no precision: only a double or a decimal has one.
+}

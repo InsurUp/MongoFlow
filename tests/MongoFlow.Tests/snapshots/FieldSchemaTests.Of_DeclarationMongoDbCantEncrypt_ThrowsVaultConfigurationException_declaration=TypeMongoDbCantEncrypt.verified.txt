@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Missing, in Customers, is stored as Null, which MongoDB can't encrypt.
+}

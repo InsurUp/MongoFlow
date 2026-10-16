@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Keeping, in Keepings, has encrypted members, so it can't keep extra elements in Extra: it would hold the __safeContent__ the server adds to each encrypted document, and send it back on replace, which the server refuses. Remove the member and ignore extra elements.
+}

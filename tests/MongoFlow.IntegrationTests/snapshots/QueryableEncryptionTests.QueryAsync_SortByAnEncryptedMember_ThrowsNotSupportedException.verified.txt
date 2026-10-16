@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: Salary in Customers is encrypted, so a query can't sort by it: the server holds it encrypted.
+}
