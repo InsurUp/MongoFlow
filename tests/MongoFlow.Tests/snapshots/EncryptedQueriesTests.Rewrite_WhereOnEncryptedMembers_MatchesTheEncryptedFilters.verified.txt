@@ -1,0 +1,1 @@
+﻿unit.Patients.Aggregate([{ "$match" : { "encrypted" : { "Ssn" : "111-11" } } }, { "$sort" : { "Name" : 1 } }, { "$match" : { "encrypted" : { "Age" : { "$gt" : 30 }, "Name" : { "$ne" : "Bob" } } } }, { "$match" : { "Name" : "Ada" } }, { "$limit" : 5 }])

@@ -1,6 +1,6 @@
 namespace MongoFlow;
 
-/// <summary>What one operation changed, from the bulk write's per-operation result.</summary>
+/// <summary>What one operation changed, from the bulk write's per-operation result, or its command's.</summary>
 public sealed record OperationResult(long Inserted, long Matched, long Modified, long Deleted)
 {
     // A single-document write only ever inserts, matches, modifies or deletes 0 or 1 documents, so those results are

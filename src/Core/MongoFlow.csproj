@@ -18,6 +18,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="MongoFlow.Tests" />
     <InternalsVisibleTo Include="MongoFlow.Benchmarks" />
+    <InternalsVisibleTo Include="MongoFlow.Encryption" />
   </ItemGroup>
 
   <ItemGroup>

@@ -25,6 +25,9 @@ internal sealed class VaultLogs(ILoggerFactory factory)
     /// <summary>Migrations applied and reverted.</summary>
     public ILogger Migrations { get; } = factory.CreateLogger(MongoFlowLogEvents.Migrations.Category);
 
+    /// <summary>Encrypted collections set up by the migrator, logged by MongoFlow.Encryption.</summary>
+    public ILogger Encryption { get; } = factory.CreateLogger(MongoFlowLogEvents.Encryption.Category);
+
     public static VaultLogs From(IServiceProvider services) =>
         new(services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance);
 

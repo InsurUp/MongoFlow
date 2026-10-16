@@ -10,7 +10,8 @@ namespace MongoFlow.Tests;
 /// <item>embedded documents are compared field by field, by dotted path; arrays and anything else change whole;</item>
 /// <item>a field inside a document whose name a path can't hold sets that document whole; a top-level one needs a
 /// replace;</item>
-/// <item>every type the driver writes is walked, and any other fails.</item>
+/// <item>every type the driver writes is walked, and any other fails;</item>
+/// <item>an embedded document at a leaf path, such as an encrypted member, changes whole.</item>
 /// </list>
 /// </summary>
 public class BsonDiffTests
@@ -192,6 +193,20 @@ public class BsonDiffTests
 
         // Act & Assert
         await Assert.That(() => BsonDiff.Compare(other, unknown)).ThrowsExactly<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task Compare_EmbeddedDocumentAtALeaf_SetsItWhole()
+    {
+        // Arrange — the server refuses an update inside an encrypted member, which is set whole.
+        var before = new BsonDocument { { "_id", 1 }, { "Card", new BsonDocument { { "Number", "1111" }, { "Cvc", "123" } } }, { "Home", new BsonDocument("City", "London") } };
+        var after = new BsonDocument { { "_id", 1 }, { "Card", new BsonDocument { { "Number", "2222" }, { "Cvc", "123" } } }, { "Home", new BsonDocument("City", "Paris") } };
+
+        // Act
+        var changes = BsonDiff.Compare(before.ToBson(), after.ToBson(), leaves: ["Card"])!;
+
+        // Assert
+        await Verify(changes.ToUpdate(after));
     }
 
     private static BsonChanges? Compare(BsonDocument before,

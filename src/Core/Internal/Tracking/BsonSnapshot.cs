@@ -8,16 +8,21 @@ namespace MongoFlow;
 
 /// <summary>
 /// A document serialized to BSON, in an array rented from <see cref="ArrayPool{T}.Shared"/>. Whoever holds it gives the
-/// array back, once.
+/// array back, once: cleared first, when it's sensitive, so the plaintext of encrypted fields isn't left in a shared array.
 /// </summary>
 internal readonly struct BsonSnapshot(byte[] bytes,
-    int length)
+    int length,
+    bool sensitive)
 {
     public ReadOnlySpan<byte> Span => bytes.AsSpan(0, length);
 
-    /// <summary>Serializes <paramref name="document"/> with <paramref name="serializer"/>, the collection's.</summary>
+    /// <summary>
+    /// Serializes <paramref name="document"/> with <paramref name="serializer"/>, the collection's. A collection with
+    /// encrypted members takes <paramref name="sensitive"/> snapshots.
+    /// </summary>
     public static BsonSnapshot Of<TDocument>(IBsonSerializer<TDocument> serializer,
-        TDocument document)
+        TDocument document,
+        bool sensitive = false)
     {
         // A document's length is written last, so the BSON is written to the driver's pooled chunks first, then copied.
         using var stream = new ByteBufferStream(new MultiChunkBuffer(BsonChunkPool.Default), ownsBuffer: true);
@@ -30,7 +35,7 @@ internal readonly struct BsonSnapshot(byte[] bytes,
         var bytes = ArrayPool<byte>.Shared.Rent(length);
         stream.Buffer.GetBytes(0, bytes, 0, length);
 
-        return new BsonSnapshot(bytes, length);
+        return new BsonSnapshot(bytes, length, sensitive);
     }
 
     public BsonDocument ToBsonDocument()
@@ -46,7 +51,7 @@ internal readonly struct BsonSnapshot(byte[] bytes,
     {
         if (bytes is not null)
         {
-            ArrayPool<byte>.Shared.Return(bytes);
+            ArrayPool<byte>.Shared.Return(bytes, clearArray: sensitive);
         }
     }
 }

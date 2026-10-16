@@ -13,6 +13,8 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     private readonly HashSet<FeatureKey> _without = [];
     private readonly List<(LambdaExpression Field, FeatureKey? Owner)> _indexed = [];
     private readonly List<(Func<TDocument, bool> Pending, FeatureKey? Owner)> _runSaveWhen = [];
+    private readonly List<LambdaExpression> _reserved = [];
+    private readonly List<(LambdaExpression Member, object Options)> _encrypted = [];
 
     public CollectionModelBuilder(VaultModelBuilderBase vault, PropertyInfo property)
         : this(vault, property, keyType: null)
@@ -105,18 +107,28 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
 
     /// <summary>
     /// Notes that every read filters on <paramref name="member"/>, such as <c>(ISoftDeletable x) =&gt; x.IsDeleted</c>, so
-    /// an index should include it; the index check warns when none does. For built-in features.
+    /// an index should include it; the index check warns when none does. For built-in features, which also reserve it.
     /// </summary>
     public void ExpectIndex(LambdaExpression member)
     {
-        var source = member.Parameters[0];
-        var parameter = Expression.Parameter(typeof(TDocument), source.Name);
-        var argument = source.Type == typeof(TDocument) ? parameter : (Expression)Expression.Convert(parameter, source.Type);
-
-        // The member alone, looking through a conversion of its value, retyped onto the document.
-        var field = ParameterReplacer.Inline(Expression.Lambda(member.GetMember(nameof(member)), source), argument);
-        _indexed.Add((Expression.Lambda(field, parameter), Vault.Owner));
+        var field = OnDocument(member);
+        _indexed.Add((field, Vault.Owner));
+        _reserved.Add(field);
     }
+
+    /// <summary>
+    /// Notes that a built-in feature filters or writes on <paramref name="member"/>, such as the concurrency token's, so it
+    /// can't be encrypted: features compare it with null, increment it, or match it in every write.
+    /// </summary>
+    public void ReserveField(LambdaExpression member) => _reserved.Add(OnDocument(member));
+
+    /// <summary>
+    /// Declares <paramref name="member"/>, such as <c>x =&gt; x.Address.Street</c>, encrypted, with what MongoFlow.Encryption
+    /// declared it with.
+    /// </summary>
+    public void Encrypt(LambdaExpression member,
+        object options) =>
+        _encrypted.Add((member, options));
 
     public override void Accept(IVaultCollectionConfiguration configuration) => configuration.Configure(this);
 
@@ -139,7 +151,8 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
 
     public override IReadOnlySet<FeatureKey> OptedOut => _without;
 
-    public override ICollectionModel Build(IMongoDatabase database)
+    public override ICollectionModel Build(IMongoDatabase database,
+        VaultEncryption? encryption)
     {
         var definition = new CollectionDefinition<TDocument>(
             Property,
@@ -151,13 +164,133 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
 
         EnsureIdIsRead(definition.Collection);
 
-        return Model = CreateModel(definition);
+        var model = CreateModel(definition);
+        if (_encrypted.Count > 0)
+        {
+            model.EncryptWith(EncryptionOf(model, encryption));
+        }
+
+        return Model = model;
     }
 
     protected virtual CollectionModel<TDocument> CreateModel(CollectionDefinition<TDocument> definition) =>
         new(definition);
 
     private bool IsOn(FeatureKey? owner) => owner is not { } feature || !_without.Contains(feature);
+
+    /// <summary>
+    /// <paramref name="member"/>, such as <c>(ISoftDeletable x) =&gt; x.IsDeleted</c>, as the member alone, looking through a
+    /// conversion of its value, retyped onto the document.
+    /// </summary>
+    private static LambdaExpression OnDocument(LambdaExpression member)
+    {
+        var source = member.Parameters[0];
+        var parameter = Expression.Parameter(typeof(TDocument), source.Name);
+        var argument = source.Type == typeof(TDocument) ? parameter : (Expression)Expression.Convert(parameter, source.Type);
+
+        var field = ParameterReplacer.Inline(Expression.Lambda(member.GetMember(nameof(member)), source), argument);
+        return Expression.Lambda(field, parameter);
+    }
+
+    /// <summary>How <paramref name="model"/> encrypts its encrypted members, once they're checked.</summary>
+    /// <exception cref="VaultConfigurationException">A member can't be encrypted, or the documents can't be read back.</exception>
+    private ICollectionEncryption EncryptionOf(CollectionModel<TDocument> model,
+        VaultEncryption? encryption)
+    {
+        var name = model.Namespace.CollectionName;
+        if (encryption is null)
+        {
+            throw new VaultConfigurationException(
+                $"{PropertyName} declares encrypted members, but its vault doesn't encrypt. Call UseQueryableEncryption " +
+                "on the vault.");
+        }
+
+        EnsureExtraElementsIgnored(model.MongoCollection);
+
+        var reserved = _reserved.Select(field => FilterDocuments.RenderField(field, model.RenderArgs).FieldName).ToList();
+        var members = new List<EncryptedMember>(_encrypted.Count);
+
+        foreach (var (member, options) in _encrypted)
+        {
+            var field = FilterDocuments.RenderField(member, model.RenderArgs);
+            var path = field.FieldName;
+            var described = $"{member}, stored as {path} in {name},";
+
+            string? reason = null;
+            if (ElementPaths.Reaches(path, "_id"))
+            {
+                reason = "it's the _id, or reaches it";
+            }
+            else if (model.KeyFields?.FirstOrDefault(key => ElementPaths.Reaches(path, key)) is { } key)
+            {
+                reason = key == path
+                    ? "it's the key, which writes by key match"
+                    : $"it reaches the key, {key}, which writes by key match";
+            }
+            else if (reserved.FirstOrDefault(field => ElementPaths.Reaches(path, field)) is { } feature)
+            {
+                const string Features = "a feature, such as soft delete, multi-tenancy or the concurrency token,";
+                reason = feature == path
+                    ? $"{Features} filters on it or changes it"
+                    : $"it reaches {feature}, which {Features} filters on or changes";
+            }
+            else if (members.FirstOrDefault(other => ElementPaths.Reaches(path, other.Path)) is { } other)
+            {
+                reason = other.Path == path
+                    ? "it's declared encrypted twice"
+                    : $"it holds, or is inside, {other.Path}, which is encrypted too: an encrypted field can't hold another";
+            }
+
+            if (reason is not null)
+            {
+                throw new VaultConfigurationException($"{described} can't be encrypted: {reason}.");
+            }
+
+            members.Add(new EncryptedMember(path, field.FieldSerializer, options));
+        }
+
+        return encryption.ForCollection(model, members);
+    }
+
+    /// <summary>
+    /// Fails unless the documents, and the ones derived from them, ignore extra elements and have no member for them: the
+    /// server adds <c>__safeContent__</c> to each encrypted document, which reading back would fail on, and a member
+    /// holding it would send it back with a replace, which the server refuses.
+    /// </summary>
+    private static void EnsureExtraElementsIgnored(IMongoCollection<TDocument> collection)
+    {
+        var name = collection.CollectionNamespace.CollectionName;
+        if (collection.DocumentSerializer is not BsonClassMapSerializer<TDocument>)
+        {
+            throw new VaultConfigurationException(
+                $"{typeof(TDocument).Name}, in {name}, has encrypted members, so it has to be serialized with a class map, " +
+                $"which MongoFlow finds them by. Its serializer is {collection.DocumentSerializer.GetType().Name}.");
+        }
+
+        var classMaps = BsonClassMap.GetRegisteredClassMaps()
+            .Where(classMap => classMap.ClassType.IsAssignableTo(typeof(TDocument)))
+            .Prepend(BsonClassMap.LookupClassMap(typeof(TDocument)))
+            .Distinct();
+
+        foreach (var classMap in classMaps)
+        {
+            if (classMap.ExtraElementsMemberMap is { } extra)
+            {
+                throw new VaultConfigurationException(
+                    $"{classMap.ClassType.Name}, in {name}, has encrypted members, so it can't keep extra elements in " +
+                    $"{extra.MemberName}: it would hold the __safeContent__ the server adds to each encrypted document, " +
+                    "and send it back on replace, which the server refuses. Remove the member and ignore extra elements.");
+            }
+
+            if (!classMap.IgnoreExtraElements)
+            {
+                throw new VaultConfigurationException(
+                    $"{classMap.ClassType.Name}, in {name}, has encrypted members, so it must ignore extra elements: the " +
+                    "server adds __safeContent__ to each encrypted document, and reading it back would fail. Mark it " +
+                    "[BsonIgnoreExtraElements].");
+            }
+        }
+    }
 
     /// <summary>A filter resolved per query, as a filter of the collection's documents.</summary>
     /// <exception cref="InvalidOperationException">It can't filter them.</exception>

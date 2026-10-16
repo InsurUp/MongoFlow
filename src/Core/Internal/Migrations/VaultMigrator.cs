@@ -40,9 +40,9 @@ internal sealed class VaultMigrator(IServiceProvider services,
     private void ThrowIfHistoriesShared()
     {
         var shared = runners
-            .Select(runner => (runner.VaultType, runner.History))
+            .Select(runner => (runner.VaultType, runner.History, runner.Client))
             .Where(runner => runner.History is not null)
-            .GroupBy(runner => (runner.History!.Database.Client, runner.History.CollectionNamespace))
+            .GroupBy(runner => (runner.Client, runner.History!.CollectionNamespace))
             .FirstOrDefault(group => group.Count() > 1);
 
         if (shared is not null)

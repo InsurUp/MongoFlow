@@ -109,6 +109,14 @@ internal sealed class SaveRun(VaultRuntime runtime,
             return SaveResult.Empty;
         }
 
+        if (Runtime.Model.WritesPerCommand)
+        {
+            var commanded = await CommandWrites.WriteAsync(this, cancellationToken);
+            Result = commanded;
+
+            return commanded;
+        }
+
         var log = Runtime.Model.Logs.Save;
         var tracing = log.IsEnabled(LogLevel.Trace);
 

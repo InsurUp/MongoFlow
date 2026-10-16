@@ -37,11 +37,17 @@ internal class VaultCollection<TDocument>(
         LogReading(nameof(QueryAsync), filter);
         var session = await Runtime.GetSessionAsync(cancellationToken);
 
+        // Loaded now, so the query, which may run synchronously, only has to encrypt.
+        if (model.Encryption is { } encryption)
+        {
+            await encryption.EnsureReadyAsync(cancellationToken);
+        }
+
         var queryable = model.Queryable(session);
 
         var query = filter is null ? queryable : queryable.Where(filter);
         var provider = new VaultQueryProvider<TDocument>(query.GetMongoQueryProvider(),
-            model.Namespace.DatabaseNamespace,
+            model,
             Tracker);
 
         return new VaultQueryable<TDocument, TDocument>(query, provider);
@@ -79,7 +85,7 @@ internal class VaultCollection<TDocument>(
 
         var aggregate = session is null ? model.MongoCollection.Aggregate() : model.MongoCollection.Aggregate(session);
 
-        return filter is null ? aggregate : aggregate.Match(filter);
+        return filter is null ? aggregate : aggregate.Match(await model.ReadFilterAsync(filter, cancellationToken));
     }
 
     public void Add(TDocument document)
@@ -166,21 +172,7 @@ internal class VaultCollection<TDocument>(
     /// <paramref name="update"/>, handed to an untyped member, as an update definition: a document of update operators, or
     /// an array of pipeline stages.
     /// </summary>
-    protected static UpdateDefinition<TDocument> UpdateOf(BsonValue update)
-    {
-        ArgumentNullException.ThrowIfNull(update);
-
-        return update switch
-        {
-            BsonDocument operators when IsOperators(operators) => new BsonDocumentUpdateDefinition<TDocument>(operators),
-            BsonArray stages when IsPipeline(stages) => new PipelineUpdateDefinition<TDocument>(
-                new BsonDocumentStagePipelineDefinition<TDocument, TDocument>(stages.Select(stage => stage.AsBsonDocument))),
-            _ => throw new ArgumentException(
-                $"An update is a document of update operators, such as {{ $set: {{ Total: 20 }} }}, or an array of " +
-                $"pipeline stages, such as [{{ $set: {{ Total: 20 }} }}], but it is {update}.",
-                nameof(update))
-        };
-    }
+    protected static UpdateDefinition<TDocument> UpdateOf(BsonValue update) => UpdateDocuments.Of<TDocument>(update);
 
     /// <summary>What a find returns: wrapped, to track the documents it returns, when the reads track changes.</summary>
     protected IFindFluent<TDocument, TDocument> Tracked(IFindFluent<TDocument, TDocument> find) =>
@@ -191,6 +183,7 @@ internal class VaultCollection<TDocument>(
         CancellationToken cancellationToken)
     {
         var session = await Runtime.GetSessionAsync(cancellationToken);
+        filter = await model.ReadFilterAsync(filter, cancellationToken);
 
         return Tracked(session is null ? model.MongoCollection.Find(filter) : model.MongoCollection.Find(session, filter));
     }
@@ -201,30 +194,6 @@ internal class VaultCollection<TDocument>(
 
     private void QueueDeleteMany(FilterDefinition<TDocument> filter) =>
         Runtime.Enqueue(new DeleteOperation<TDocument>(model, Disabled, null, filter, default));
-
-    /// <summary>Whether <paramref name="update"/> is update operators, such as <c>{ $set: { Total: 20 } }</c>.</summary>
-    private static bool IsOperators(BsonDocument update)
-    {
-        if (update.ElementCount == 0)
-        {
-            return false;
-        }
-
-        for (var i = 0; i < update.ElementCount; i++)
-        {
-            if (!update.GetElement(i).Name.StartsWith('$'))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>Whether <paramref name="update"/> is pipeline stages, each one stage such as <c>{ $set: { Total: 20 } }</c>.</summary>
-    private static bool IsPipeline(BsonArray update) =>
-        update.Count > 0 &&
-        update.All(stage => stage is BsonDocument { ElementCount: 1 } document && document.GetElement(0).Name.StartsWith('$'));
 
     private void LogReading(string method,
         Expression<Func<TDocument, bool>>? queryFilter)

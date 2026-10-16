@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 using MongoDB.Bson;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace MongoFlow;
@@ -48,6 +50,65 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     /// <summary>Renders the collection's filters and fields the way the driver renders its writes.</summary>
     public RenderArgs<TDocument> RenderArgs { get; } = FilterDocuments.RenderArgs(definition.Collection);
+
+    /// <summary>How the collection's encrypted members are written and queried, or <see langword="null"/> when it has none.</summary>
+    public ICollectionEncryption? Encryption { get; private set; }
+
+    /// <summary>The collection as BSON documents, which a save with encrypted members writes through.</summary>
+    public IMongoCollection<BsonDocument> BsonCollection =>
+        field ??= MongoCollection.Database.GetCollection<BsonDocument>(Namespace.CollectionName, MongoCollection.Settings);
+
+    /// <summary>
+    /// How LINQ queries of the collection are rewritten to encrypt their filters, or <see langword="null"/> when it has no
+    /// encrypted members.
+    /// </summary>
+    public EncryptedQueries<TDocument>? EncryptedQueries { get; private set; }
+
+    /// <summary>Sets <see cref="Encryption"/>, once, while the model is built.</summary>
+    public void EncryptWith(ICollectionEncryption encryption)
+    {
+        Encryption = encryption;
+        EncryptedQueries = new EncryptedQueries<TDocument>(this, encryption);
+    }
+
+    /// <summary>
+    /// <paramref name="document"/> serialized as the driver would send it. For an insert, the id is generated first when
+    /// the collection assigns ids and the document's is empty, as the driver does, so the document holds it once written.
+    /// </summary>
+    public BsonDocument Serialize(TDocument document,
+        bool assignId)
+    {
+        var serializer = MongoCollection.DocumentSerializer;
+        if (assignId && MongoCollection.Settings.AssignIdOnInsert && serializer is IBsonIdProvider ids &&
+            ids.GetDocumentId(document, out var id, out _, out var generator) && generator is not null && generator.IsEmpty(id))
+        {
+            ids.SetDocumentId(document, generator.GenerateId(MongoCollection, document));
+        }
+
+        var serialized = new BsonDocument();
+        using (var writer = new BsonDocumentWriter(serialized))
+        {
+            serializer.Serialize(BsonSerializationContext.CreateRoot(writer), document);
+        }
+
+        return serialized;
+    }
+
+    /// <summary>
+    /// <paramref name="filter"/>, with the values it compares encrypted members with encrypted; as it is when the
+    /// collection has none.
+    /// </summary>
+    public async ValueTask<FilterDefinition<TDocument>> ReadFilterAsync(FilterDefinition<TDocument> filter,
+        CancellationToken cancellationToken) =>
+        Encryption is { } encryption
+            ? new BsonDocumentFilterDefinition<TDocument>(await encryption.EncryptFilterAsync(filter.Render(RenderArgs), cancellationToken))
+            : filter;
+
+    /// <inheritdoc/>
+    public bool Touches(LambdaExpression filter) =>
+        Encryption is { } encryption &&
+        FilterDocuments.Touches(((FilterDefinition<TDocument>)FilterExpressions.ForDocument<TDocument>(filter)!).Render(RenderArgs),
+            encryption.Paths);
 
     public virtual VaultCollection<TDocument> CreateCollection(VaultRuntime runtime,
         FeatureSet disabled) =>

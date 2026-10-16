@@ -7,7 +7,6 @@ namespace MongoFlow;
 
 internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultBuilder<TVault> where TVault : MongoVault
 {
-    private readonly IServiceProvider _services;
     private readonly List<CollectionModelBuilder> _collections;
     private readonly Layered<Func<IMongoDatabase>> _database = new();
     private readonly Layered<bool> _tracksChanges = new();
@@ -18,8 +17,8 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
     private bool _skipAll;
 
     public VaultModelBuilder(IServiceProvider services)
+        : base(services)
     {
-        _services = services;
         _migrations = new MigrationModelBuilder<TVault>(this);
         _collections = typeof(TVault)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -34,7 +33,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        _database.Set(Layer, () => _services.GetRequiredService<IMongoClient>().GetDatabase(name));
+        _database.Set(Layer, () => Services.GetRequiredService<IMongoClient>().GetDatabase(name));
         return this;
     }
 
@@ -66,7 +65,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
 
     public IVaultBuilder<TVault> UseConfiguration<TConfiguration>() where TConfiguration : class, IVaultConfiguration<TVault>
     {
-        Apply(typeof(TConfiguration), () => ActivatorUtilities.CreateInstance<TConfiguration>(_services));
+        Apply(typeof(TConfiguration), () => ActivatorUtilities.CreateInstance<TConfiguration>(Services));
         return this;
     }
 
@@ -165,7 +164,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
     }
 
     public IVaultBuilder<TVault> AddFeature<TFeature>() where TFeature : class, IVaultFeature =>
-        AddFeature(ActivatorUtilities.CreateInstance<TFeature>(_services));
+        AddFeature(ActivatorUtilities.CreateInstance<TFeature>(Services));
 
     public IVaultBuilder<TVault> AddFeature<TFeature>(TFeature feature) where TFeature : class, IVaultFeature
     {
@@ -219,7 +218,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             return;
         }
 
-        Apply(configuration, () => (IVaultConfiguration<TVault>)ActivatorUtilities.CreateInstance(_services, configuration));
+        Apply(configuration, () => (IVaultConfiguration<TVault>)ActivatorUtilities.CreateInstance(Services, configuration));
     }
 
     public VaultModel Build()
@@ -232,10 +231,13 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
                 $"({string.Join(", ", duplicate.Select(collection => collection.PropertyName))}).");
         }
 
-        var database = _database.TryGet(out var resolve)
+        var source = _database.TryGet(out var resolve)
             ? resolve()
             : throw new VaultConfigurationException(
                 $"{typeof(TVault).Name} has no database. Call UseDatabase when registering it, or in a configuration.");
+
+        var encryption = Encryption;
+        var database = encryption?.Database(source) ?? source;
 
         foreach (var filter in _filters.All)
         {
@@ -245,7 +247,7 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             }
         }
 
-        var collections = _collections.Select(collection => collection.Build(database)).ToArray();
+        var collections = _collections.Select(collection => collection.Build(database, encryption)).ToArray();
 
         var interceptors = Interceptors
             .OrderBy(registration => registration.RunsLast)
@@ -256,12 +258,14 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
 
         return new VaultModel(typeof(TVault),
             database,
+            source,
+            encryption,
             collections,
             interceptors,
             _migrations.Build(),
             _tracksChanges.TryGet(out var tracksChanges) && tracksChanges,
-            VaultLogs.From(_services),
-            _services.GetRequiredService<VaultMetrics>());
+            VaultLogs.From(Services),
+            Services.GetRequiredService<VaultMetrics>());
     }
 
     private void Apply(Type configurationType, Func<IVaultConfiguration<TVault>> create)

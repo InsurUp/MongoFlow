@@ -55,7 +55,7 @@ public readonly struct SaveContext
     /// </remarks>
     public IReadOnlyCollection<object> Tracked => _run.TrackedSeenBy(_interceptor);
 
-    /// <summary>What the bulk write changed. Available from <see cref="VaultInterceptor.SavedAsync"/> on.</summary>
+    /// <summary>What the save's writes changed. Available from <see cref="VaultInterceptor.SavedAsync"/> on.</summary>
     public SaveResult? Result => _run.Result;
 
     /// <summary>State shared by every hook of every interceptor during this save.</summary>

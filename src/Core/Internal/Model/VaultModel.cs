@@ -9,6 +9,8 @@ namespace MongoFlow;
 /// </summary>
 internal sealed class VaultModel(Type vaultType,
     IMongoDatabase database,
+    IMongoDatabase sourceDatabase,
+    VaultEncryption? encryption,
     IReadOnlyList<ICollectionModel> collections,
     IReadOnlyList<InterceptorModel> interceptors,
     MigrationModel? migrations,
@@ -21,6 +23,21 @@ internal sealed class VaultModel(Type vaultType,
     public IMongoDatabase Database { get; } = database;
 
     public IMongoClient Client => Database.Client;
+
+    /// <summary>
+    /// The database as configured. It's <see cref="Database"/>, unless the vault encrypts: then <see cref="Database"/> is
+    /// the same database through a client that encrypts, and this one is through the client the vault was given.
+    /// </summary>
+    public IMongoDatabase SourceDatabase { get; } = sourceDatabase;
+
+    /// <summary>The vault's encryption, or <see langword="null"/> when it doesn't encrypt.</summary>
+    public VaultEncryption? Encryption { get; } = encryption;
+
+    /// <summary>
+    /// Whether saves write with collection commands rather than one client bulk write: the driver refuses client bulk
+    /// writes to a client that encrypts.
+    /// </summary>
+    public bool WritesPerCommand { get; } = database.Client.Settings.AutoEncryptionOptions is not null;
 
     public IReadOnlyList<ICollectionModel> Collections { get; } = collections;
 

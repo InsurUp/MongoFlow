@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: A join on Patients filters it with x => (x.Ssn != "000-00"), which compares an encrypted member: inside a $lookup, MongoFlow can't encrypt the values it's compared with, which would match nothing. Filter the joined collection on members that aren't encrypted, or read it with FindAsync.
+}

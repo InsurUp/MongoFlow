@@ -26,4 +26,36 @@ public sealed class ReplaceOperation<TDocument> : VaultOperation<TDocument>
     internal override async ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken) =>
         new BulkWriteReplaceOneModel<TDocument>(Namespace, await WriteFilterAsync(run, null, cancellationToken), Document!);
+
+    internal override async ValueTask<int> WriteAsync(SaveRun run,
+        int index,
+        OperationResult[] results,
+        CancellationToken cancellationToken)
+    {
+        var filter = await WriteFilterDocumentAsync(run, null, cancellationToken);
+        ReplaceOneResult written;
+
+        try
+        {
+            if (TypedModel.Encryption is { } encryption)
+            {
+                var replacement = await encryption.EncryptDocumentAsync(TypedModel.Serialize(Document!, assignId: false),
+                    cancellationToken);
+                written = await TypedModel.BsonCollection.ReplaceOneAsync(run.Session, filter, replacement,
+                    cancellationToken: cancellationToken);
+            }
+            else
+            {
+                written = await TypedModel.MongoCollection.ReplaceOneAsync(run.Session,
+                    new BsonDocumentFilterDefinition<TDocument>(filter), Document!, cancellationToken: cancellationToken);
+            }
+        }
+        catch (MongoWriteException exception) when (IsDuplicateKey(exception))
+        {
+            throw new DuplicateKeyException(this, exception);
+        }
+
+        results[index] = OperationResult.Of(0, written.MatchedCount, written.ModifiedCount, 0);
+        return 1;
+    }
 }

@@ -14,10 +14,12 @@ internal static class BsonDiff
 
     /// <summary>
     /// What changed from <paramref name="before"/> to <paramref name="after"/>, or <see langword="null"/> when nothing did.
-    /// Fields that only moved don't count.
+    /// Fields that only moved don't count. An embedded document at one of <paramref name="leaves"/>, such as an encrypted
+    /// field, changes as a whole too.
     /// </summary>
     public static BsonChanges? Compare(ReadOnlySpan<byte> before,
-        ReadOnlySpan<byte> after)
+        ReadOnlySpan<byte> after,
+        IReadOnlyList<string>? leaves = null)
     {
         if (before.SequenceEqual(after))
         {
@@ -25,7 +27,7 @@ internal static class BsonDiff
         }
 
         var changes = new BsonChanges();
-        changes.NeedsReplace = !CompareDocuments(before, after, prefix: null, changes);
+        changes.NeedsReplace = !CompareDocuments(before, after, prefix: null, leaves, changes);
 
         return changes.Count == 0 ? null : changes;
     }
@@ -35,6 +37,7 @@ internal static class BsonDiff
     private static bool CompareDocuments(ReadOnlySpan<byte> before,
         ReadOnlySpan<byte> after,
         string? prefix,
+        IReadOnlyList<string>? leaves,
         BsonChanges changes)
     {
         using var old = Elements(before);
@@ -68,10 +71,11 @@ internal static class BsonDiff
             }
 
             var path = Path(prefix, name);
-            if (previous.Type == EmbeddedDocument && element.Type == EmbeddedDocument && IsPathName(name))
+            if (previous.Type == EmbeddedDocument && element.Type == EmbeddedDocument && IsPathName(name) &&
+                leaves?.Contains(path) != true)
             {
                 var found = changes.Count;
-                if (CompareDocuments(previousValue, value, path, changes))
+                if (CompareDocuments(previousValue, value, path, leaves, changes))
                 {
                     continue;
                 }

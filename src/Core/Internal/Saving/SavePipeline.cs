@@ -8,7 +8,7 @@ internal static class SavePipeline
 {
     public static async Task<SaveResult> RunAsync(VaultRuntime runtime, CancellationToken cancellationToken)
     {
-        // A save is one ordered bulk write on one session, so a second save of the vault instance while one runs is a bug.
+        // A save writes in order on one session, so a second save of the vault instance while one runs is a bug.
         if (!runtime.TryStartSaving())
         {
             throw new InvalidOperationException(
@@ -77,7 +77,11 @@ internal static class SavePipeline
             transaction.EnterSave();
             entered = true;
 
-            await BulkWriteSupport.EnsureAsync(runtime.Model.Database, log, cancellationToken);
+            // A client that encrypts saves with collection commands, which every server MongoFlow runs on has.
+            if (!runtime.Model.WritesPerCommand)
+            {
+                await BulkWriteSupport.EnsureAsync(runtime.Model.Database, log, cancellationToken);
+            }
 
             run.Session = await transaction.GetSessionAsync(runtime.Model.Client, cancellationToken);
             transaction.Enlist(callbacks);

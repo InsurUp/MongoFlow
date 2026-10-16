@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: Ssn in Patients is encrypted, so a query can't use it in Join: only a Where on the collection's documents, before any projection or join, can compare an encrypted member, through the values MongoFlow encrypts. Use FindAsync, or a Where straight after QueryAsync.
+}
