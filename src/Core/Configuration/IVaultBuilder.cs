@@ -30,7 +30,8 @@ public interface IVaultBuilder<TVault> where TVault : MongoVault
 
     /// <summary>
     /// Makes reads on the vault's keyed collections track the documents they return, so <see cref="IMongoVault.SaveAsync"/>
-    /// writes what changed in them without a write being queued. Off by default; a view can say otherwise with
+    /// writes what changed in them without a write being queued. A document a save inserts or replaces through them is
+    /// tracked once written, as if it had been read back. Off by default; a view can say otherwise with
     /// <see cref="IVaultCollection{TDocument, TKey}.WithTracking"/> or
     /// <see cref="IVaultCollection{TDocument, TKey}.WithNoTracking"/>. Keyless collections aren't tracked: an update needs a
     /// key.

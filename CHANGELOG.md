@@ -3,6 +3,19 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- With change tracking, a document a save inserts with `Add` or replaces with `Replace` is tracked once the save writes
+  it, as if it had been read back, with its BSON as it is after the save's interceptors, such as a stamped tenant or an
+  incremented concurrency token. A later change in the same scope is written as an update of what changed, and a later
+  `Replace` or `Delete` works as for any tracked document. It's tracked when the view the write was queued through
+  tracks, as a read through it would be, so an `Add` through `WithNoTracking()` stays untracked. A document without a
+  key, a replace that matched nothing, and a document another write of the same save updates or deletes stay untracked,
+  and a save or transaction that rolls back forgets what it started tracking. Code that changes an added document after
+  its save without meaning to write it now writes it on the next save: add it through `WithNoTracking()`.
+
 ## [1.0.0-beta.9] - 2026-10-16
 
 ### Added

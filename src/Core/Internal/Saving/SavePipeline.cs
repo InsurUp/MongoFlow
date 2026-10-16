@@ -94,8 +94,7 @@ internal static class SavePipeline
             await run.SavedAsync(cancellationToken);
             transaction.ThrowIfUnusable();
 
-            // Before the commit, so a later save in an open transaction doesn't send these changes again.
-            tracked?.Apply();
+            run.ApplyTracking();
 
             if (outer is null)
             {

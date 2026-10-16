@@ -44,10 +44,39 @@ var policy = await vault.Policies.WithTracking().GetByKeyAsync("P-1001", cancell
   `Where`, `OrderBy`, `ThenBy`, `Skip`, `Take`, `Distinct`, `OfType`, `First`, `Single`, `Last`, `ElementAt` or `Sample`.
   A `Select`, even to the document type, isn't tracked: a document missing fields could carry a default key. Nor is a
   join, whose results have its own shape.
-- Not aggregations, and not documents passed to `Add` or `Replace`.
+- A document passed to `Add` or `Replace`, once a save writes it; see
+  [documents a save writes whole](#documents-a-save-writes-whole).
+- Not aggregations.
 - Not documents whose key is null.
 
 Each instance a read returns is tracked by reference; reading a document twice tracks two instances.
+
+### Documents a save writes whole
+
+A document a save inserts with `Add`, or replaces with `Replace`, is tracked once the save writes it, as if it had been
+read back. Its BSON is taken as it is after the save's interceptors, so a tenant they stamped or a concurrency token
+they incremented is part of it. A later change in the same scope is written as an update of what changed, and a later
+`Replace` or `Delete` works as it does for any tracked document:
+
+```csharp
+var invoice = new Invoice { Id = invoiceId, Status = InvoiceStatus.Pending };
+vault.Invoices.Add(invoice);
+await vault.SaveAsync(cancellationToken);
+
+invoice.Status = InvoiceStatus.Issued;
+await vault.SaveAsync(cancellationToken); // { $set: { Status: "Issued" } }
+```
+
+It's tracked if the view the write was queued through tracks, as a read through it would be: an `Add` through
+`WithNoTracking()` isn't, and one through `WithTracking()` is, on a vault that doesn't track. It isn't tracked either when:
+
+- its key is null;
+- the replace matched nothing, so nothing was written;
+- another write of the same save updates or deletes it, such as `Update(document, update)`, whose definition stores
+  what the document doesn't hold;
+- the save fails, or the transaction it joined rolls back: a rolled-back insert isn't compared against later.
+
+A document that was already tracked stays tracked as before.
 
 ## What a save writes
 
@@ -134,8 +163,9 @@ the unchanged documents in `Tracked`.
 
 ## Cost
 
-Tracking serializes each document once when it's read, keeps the bytes in pooled memory until the scope ends, and
-serializes each tracked document again when the vault saves; an unchanged one costs a comparison of bytes. A save of a
-vault with interceptors also keeps a list of the tracked documents, for `Tracked`. Read what
-won't change with `WithNoTracking()`. For 1,000 orders read, changed and saved, a tracked save allocates about 2.4 KB
-per document more than queuing the same updates by key; see `benchmarks/artifacts/results/` for the numbers.
+Tracking serializes each document once when it's read, or once a save writes it whole, keeps the bytes in pooled memory
+until the scope ends, and serializes each tracked document again when the vault saves; an unchanged one costs a
+comparison of bytes. A save of a vault with interceptors also keeps a list of the tracked documents, for `Tracked`. Read
+what won't change with `WithNoTracking()`, and add through it what won't change once saved, such as a bulk import. For
+1,000 orders read, changed and saved, a tracked save allocates about 2.4 KB per document more than queuing the same
+updates by key; see `benchmarks/artifacts/results/` for the numbers.

@@ -1,0 +1,31 @@
+﻿{
+  Writes: [
+    {
+      Kind: Replace,
+      Key: 1
+    },
+    {
+      Kind: Update,
+      Key: 1,
+      Update: {
+        $set: {
+          Note: met
+        }
+      }
+    }
+  ],
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada Lovelace,
+      Address: {
+        City: Izmir,
+        Zip: 35000
+      },
+      Note: met,
+      Tags: [
+        early
+      ]
+    }
+  ]
+}

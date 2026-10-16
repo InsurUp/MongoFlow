@@ -40,6 +40,9 @@ internal sealed class SaveRun(VaultRuntime runtime,
     // What each interceptor sees of the documents tracked when the save began, which don't change during it.
     private IReadOnlyCollection<object>?[]? _trackedSeen;
 
+    // How many times the vault was disposed before the save: one disposed during it tracks nothing the save wrote.
+    private readonly int _disposals = runtime.Disposals;
+
     public VaultRuntime Runtime { get; } = runtime;
 
     public PooledList<VaultOperation> Operations { get; } = operations;
@@ -164,6 +167,30 @@ internal sealed class SaveRun(VaultRuntime runtime,
         {
             Running.Value = null;
         }
+    }
+
+    /// <summary>
+    /// After the save's writes and its hooks before the commit: tracks the documents it inserted or replaced whole through
+    /// views that track changes, as they are now, and takes new snapshots of the tracked documents it wrote. Before the
+    /// commit, so a later save in an open transaction doesn't send these changes again.
+    /// </summary>
+    public void ApplyTracking()
+    {
+        if (WrittenWhole() is { } written)
+        {
+            var tracker = Runtime.Tracker;
+            lock (tracker.Lock)
+            {
+                // A vault disposed during the save starts again with nothing tracked.
+                if (Runtime.Disposals == _disposals)
+                {
+                    tracked ??= new TrackedChanges(tracker);
+                    tracked.Track(written);
+                }
+            }
+        }
+
+        tracked?.Apply();
     }
 
     public async Task CommittedAsync(CancellationToken cancellationToken)
@@ -398,6 +425,40 @@ internal sealed class SaveRun(VaultRuntime runtime,
             throw new InvalidOperationException(
                 $"{method} can only be called during {nameof(VaultInterceptor.SavingAsync)}.");
         }
+    }
+
+    /// <summary>
+    /// The inserts and replaces queued through views that track changes that the save wrote, of documents no other write of
+    /// it updates or deletes: those documents are stored as they are now. An update made with a definition, or soft delete's
+    /// update of a delete, changes the stored document past what it holds.
+    /// </summary>
+    private List<VaultOperation>? WrittenWhole()
+    {
+        List<VaultOperation>? whole = null;
+        HashSet<object>? changedPast = null;
+
+        foreach (var operation in Operations)
+        {
+            if (operation.TracksWritten)
+            {
+                // A replace that matched nothing wrote nothing.
+                if (operation.Result is { Inserted: > 0 } or { Matched: > 0 })
+                {
+                    (whole ??= []).Add(operation);
+                }
+            }
+            else if (operation is { Kind: OperationKind.Update or OperationKind.Delete, Document: { } document })
+            {
+                (changedPast ??= new HashSet<object>(ReferenceEqualityComparer.Instance)).Add(document);
+            }
+        }
+
+        if (whole is not null && changedPast is not null)
+        {
+            whole.RemoveAll(operation => changedPast.Contains(operation.Document!));
+        }
+
+        return whole is { Count: > 0 } ? whole : null;
     }
 
     /// <summary>Whether a unique index refused a write, and the index of that write.</summary>
