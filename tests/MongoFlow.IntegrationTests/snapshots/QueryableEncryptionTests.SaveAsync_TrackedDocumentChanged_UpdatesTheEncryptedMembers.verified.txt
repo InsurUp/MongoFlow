@@ -1,0 +1,21 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 1,
+    Modified: 1,
+    Deleted: 0
+  },
+  Read: {
+    Id: 1,
+    Name: Customer 1,
+    Ssn: 999-99,
+    Salary: 1000,
+    Notes: note 1,
+    Address: {
+      City: London,
+      Street: Abbey Road
+    },
+    IsDeleted: false,
+    Version: 1
+  }
+}

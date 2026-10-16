@@ -1,0 +1,10 @@
+﻿{
+  Read: 2,
+  Collections: [
+    __keyVault,
+    Customers,
+    Customers.unencrypted,
+    enxcol_.Customers.ecoc,
+    enxcol_.Customers.esc
+  ]
+}

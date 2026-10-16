@@ -1,5 +1,5 @@
 <Project>
-  <!-- What the packages in src share: MongoFlow and MongoFlow.Identity ship together, with one version. -->
+  <!-- What the packages in src share: MongoFlow, MongoFlow.Identity and MongoFlow.Encryption ship together, with one version. -->
   <PropertyGroup>
     <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>

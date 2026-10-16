@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: An update of Customers uses $inc on Salary but Salary is encrypted: the server changes an encrypted member only with $set and $unset.
+}

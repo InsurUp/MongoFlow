@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Customers doesn't exist, so it isn't encrypted yet. Run IVaultMigrator.MigrateAllAsync before using the vault: it creates the encrypted collections.
+}

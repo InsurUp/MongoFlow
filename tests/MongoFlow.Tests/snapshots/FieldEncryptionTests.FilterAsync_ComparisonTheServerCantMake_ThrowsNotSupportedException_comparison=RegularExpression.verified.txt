@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: A filter of Customers matches Ssn, which is encrypted, with a regular expression: the server compares encrypted values only whole.
+}

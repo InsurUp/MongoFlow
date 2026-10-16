@@ -1,0 +1,51 @@
+﻿{
+  Read: [
+    111-11,
+    222-22,
+    333-33
+  ],
+  Collections: [
+    __keyVault,
+    Customers,
+    Customers.unencrypted,
+    enxcol_.Customers.ecoc,
+    enxcol_.Customers.esc
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007001,
+      Event: CollectionCreated,
+      Message: Created {database}.Customers encrypted, with a data key for each of its encrypted fields: Ssn (string, equality (contention 8)), Salary (int, range from 0 to 1000000 (contention 8)), Notes (string, without queries), Address.Street (string, without queries).
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007003,
+      Event: RebuildStarted,
+      Message: Rebuilding {database}.Customers as an encrypted collection: its documents are copied from Customers.encrypting, encrypted. Going on with an interrupted rebuild: True.
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007004,
+      Event: RebuildProgress,
+      Message: Rebuilding {database}.Customers: 2 documents copied, encrypted.
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007005,
+      Event: RebuildCompleted,
+      Message: Rebuilt {database}.Customers as an encrypted collection: 2 documents copied, encrypted, and 0 indexes.
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Warning,
+      EventId: 27007007,
+      Event: UnencryptedCopyRemains,
+      Message: Customers.unencrypted holds the documents of {database}.Customers as they were before it was encrypted, unencrypted. MongoFlow never drops it: drop it once the encrypted collection is checked.
+    }
+  ]
+}

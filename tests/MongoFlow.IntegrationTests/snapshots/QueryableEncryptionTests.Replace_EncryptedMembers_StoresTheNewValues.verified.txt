@@ -1,0 +1,56 @@
+﻿{
+  result: {
+    Inserted: 0,
+    Matched: 1,
+    Modified: 1,
+    Deleted: 0
+  },
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada,
+      Ssn: (encrypted),
+      Salary: (encrypted),
+      Address: null,
+      IsDeleted: false,
+      Version: 1,
+      __safeContent__: (tags)
+    },
+    {
+      _id: 2,
+      Name: Customer 2,
+      Ssn: (encrypted),
+      Salary: (encrypted),
+      Notes: (encrypted),
+      Address: {
+        City: London,
+        Street: (encrypted)
+      },
+      IsDeleted: false,
+      Version: 0,
+      __safeContent__: (tags)
+    },
+    {
+      _id: 3,
+      Name: Customer 3,
+      Ssn: (encrypted),
+      Salary: (encrypted),
+      Notes: (encrypted),
+      Address: {
+        City: London,
+        Street: (encrypted)
+      },
+      IsDeleted: false,
+      Version: 0,
+      __safeContent__: (tags)
+    }
+  ],
+  Read: {
+    Id: 1,
+    Name: Ada,
+    Ssn: 999-99,
+    Salary: 7000,
+    IsDeleted: false,
+    Version: 1
+  }
+}

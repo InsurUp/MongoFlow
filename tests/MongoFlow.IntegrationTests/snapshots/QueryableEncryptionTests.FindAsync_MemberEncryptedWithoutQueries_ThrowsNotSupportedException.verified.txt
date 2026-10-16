@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: Notes in Customers is encrypted without queries, so a filter can't compare it: declare it with an EncryptedQuery to query it.
+}

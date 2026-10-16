@@ -1,0 +1,9 @@
+﻿{
+  Copied: 2500,
+  Last: Customer 2500,
+  Progress: [
+    Rebuilding {database}.Customers: 1000 documents copied, encrypted.,
+    Rebuilding {database}.Customers: 2000 documents copied, encrypted.,
+    Rebuilding {database}.Customers: 2500 documents copied, encrypted.
+  ]
+}

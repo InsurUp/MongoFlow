@@ -6,14 +6,16 @@
 A unit of work for MongoDB on .NET, built on the official driver. A vault holds a database's collections: reads return the
 driver's own types with your query filters applied, and writes are queued until `SaveAsync`, which sends them as one
 client bulk write, in a transaction. Soft delete, multi-tenancy, a concurrency token, interceptors, change tracking and
-migrations come with it, and it logs, traces and measures what it does.
+migrations come with it, it logs, traces and measures what it does, and MongoFlow.Encryption adds Queryable Encryption,
+on MongoDB Community too.
 
 > **1.0 is in beta.** Feedback is welcome in [the issues](https://github.com/InsurUp/MongoFlow/issues).
 > [The changelog](https://github.com/InsurUp/MongoFlow/blob/main/CHANGELOG.md#moving-from-05) maps 0.5's API to 1.0's.
 
 ## Requirements
 
-- MongoDB 8.0 or later, as a replica set: a save is one client bulk write, in a transaction.
+- MongoDB 8.0 or later, as a replica set: a save is one client bulk write, in a transaction. Through a client that
+  encrypts, which the driver refuses client bulk writes, it's a command per write, in the same transaction.
 - .NET 10 or .NET 11, and MongoDB.Driver 3.12.
 
 ## Installation
@@ -200,6 +202,29 @@ services.AddOpenTelemetry()
 
 [MongoFlow.Identity](https://github.com/InsurUp/MongoFlow/blob/main/src/Identity/README.md) stores Identity's users and
 roles in a vault, where your features and interceptors apply to them too.
+
+### Queryable Encryption
+
+[MongoFlow.Encryption](https://github.com/InsurUp/MongoFlow/blob/main/src/Encryption/README.md) stores the members you
+declare encrypted, and encrypts the values your filters compare them with, so they stay queryable. MongoFlow encrypts
+them itself, so it works on MongoDB Community. The migrator creates the encrypted collections and their keys, and
+rebuilds as encrypted a collection that holds documents already.
+
+```csharp
+services.AddMongoVault<CustomerVault>(vault => vault
+    .UseDatabase("crm")
+    .UseQueryableEncryption(qe => qe
+        .KeyVault("encryption", "__keyVault")
+        .Kms(new LocalKms(masterKey)))
+    .Collection(x => x.Customers, customers => customers
+        .Encrypt(x => x.Ssn, EncryptedQuery.Equality)
+        .Encrypt(x => x.Salary, EncryptedQuery.Range(0, 1_000_000))));
+
+var customer = await vault.Customers.FirstOrDefaultAsync(x => x.Ssn == ssn);
+```
+
+[Queryable Encryption](https://github.com/InsurUp/MongoFlow/blob/main/docs/encryption.md): query types, setting up and
+rebuilding collections, what can and can't be queried or written, and clients and transactions.
 
 ## Samples
 

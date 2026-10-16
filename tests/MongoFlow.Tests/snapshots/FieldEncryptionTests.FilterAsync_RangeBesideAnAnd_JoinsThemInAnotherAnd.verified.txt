@@ -1,0 +1,24 @@
+﻿{
+  $and: [
+    {
+      $and: [
+        {
+          Name: Ada
+        }
+      ]
+    },
+    {
+      encryptedExpression: {
+        $and: [
+          {
+            Salary: {
+              $gte: 1000
+            }
+          }
+        ]
+      },
+      queryType: range,
+      key: 2
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+﻿[
+  {
+    Id: 2,
+    Ssn: 222-22,
+    Street: 2 Baker Street
+  },
+  {
+    Id: 3,
+    Ssn: 333-33,
+    Street: 3 Baker Street
+  }
+]

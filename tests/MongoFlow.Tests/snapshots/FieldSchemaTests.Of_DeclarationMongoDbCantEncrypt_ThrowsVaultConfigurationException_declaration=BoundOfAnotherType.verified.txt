@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Salary, in Customers, can't take a range bound of 0 (Int64): bounds are of the member's type. Unable to cast object of type 'System.Int64' to type 'System.Int32'.
+}

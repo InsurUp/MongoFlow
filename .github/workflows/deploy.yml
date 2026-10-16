@@ -39,10 +39,10 @@ jobs:
     - name: Run tests
       run: dotnet test --solution MongoFlow.sln --configuration Release --no-build
 
-    # MongoFlow and MongoFlow.Identity ship together, with the tag's version.
+    # MongoFlow, MongoFlow.Identity and MongoFlow.Encryption ship together, with the tag's version.
     - name: Pack
       run: |
-        for project in src/Core/MongoFlow.csproj src/Identity/MongoFlow.Identity.csproj; do
+        for project in src/Core/MongoFlow.csproj src/Identity/MongoFlow.Identity.csproj src/Encryption/MongoFlow.Encryption.csproj; do
           dotnet pack "$project" --configuration Release --no-build --output artifacts/packages \
             -p:Version=${{ steps.get_version.outputs.version }}
         done

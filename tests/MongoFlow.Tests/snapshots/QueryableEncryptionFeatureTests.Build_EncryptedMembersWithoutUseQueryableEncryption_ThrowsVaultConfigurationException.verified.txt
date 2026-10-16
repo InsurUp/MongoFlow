@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Customers declares encrypted members, but its vault doesn't encrypt. Call UseQueryableEncryption on the vault.
+}

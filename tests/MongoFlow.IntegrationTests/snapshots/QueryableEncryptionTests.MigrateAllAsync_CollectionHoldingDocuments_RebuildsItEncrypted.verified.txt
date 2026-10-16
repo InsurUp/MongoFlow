@@ -1,0 +1,153 @@
+﻿{
+  Stored: [
+    {
+      _id: 1,
+      Name: Customer 1,
+      Ssn: (encrypted),
+      Salary: (encrypted),
+      Notes: (encrypted),
+      Address: {
+        City: London,
+        Street: (encrypted)
+      },
+      IsDeleted: false,
+      Version: 0,
+      __safeContent__: (tags)
+    },
+    {
+      _id: 2,
+      Name: Customer 2,
+      Ssn: (encrypted),
+      Salary: (encrypted),
+      Notes: (encrypted),
+      Address: {
+        City: London,
+        Street: (encrypted)
+      },
+      IsDeleted: false,
+      Version: 0,
+      __safeContent__: (tags)
+    },
+    {
+      _id: 3,
+      Name: Customer 3,
+      Ssn: (encrypted),
+      Salary: (encrypted),
+      Notes: (encrypted),
+      Address: {
+        City: London,
+        Street: (encrypted)
+      },
+      IsDeleted: false,
+      Version: 0,
+      __safeContent__: (tags)
+    }
+  ],
+  Read: [
+    Customer 2
+  ],
+  Indexes: [
+    _id_,
+    __safeContent___1,
+    byName
+  ],
+  Unencrypted: [
+    {
+      _id: 1,
+      Name: Customer 1,
+      Ssn: 111-11,
+      Salary: 1000,
+      Notes: note 1,
+      Address: {
+        City: London,
+        Street: 1 Baker Street
+      },
+      IsDeleted: false,
+      Version: 0
+    },
+    {
+      _id: 2,
+      Name: Customer 2,
+      Ssn: 222-22,
+      Salary: 2000,
+      Notes: note 2,
+      Address: {
+        City: London,
+        Street: 2 Baker Street
+      },
+      IsDeleted: false,
+      Version: 0
+    },
+    {
+      _id: 3,
+      Name: Customer 3,
+      Ssn: 333-33,
+      Salary: 3000,
+      Notes: note 3,
+      Address: {
+        City: London,
+        Street: 3 Baker Street
+      },
+      IsDeleted: false,
+      Version: 0
+    }
+  ],
+  Collections: [
+    __keyVault,
+    Customers,
+    Customers.unencrypted,
+    enxcol_.Customers.ecoc,
+    enxcol_.Customers.esc
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007003,
+      Event: RebuildStarted,
+      Message: Rebuilding {database}.Customers as an encrypted collection: its documents are copied from Customers.encrypting, encrypted. Going on with an interrupted rebuild: False.
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007001,
+      Event: CollectionCreated,
+      Message: Created {database}.Customers encrypted, with a data key for each of its encrypted fields: Ssn (string, equality (contention 8)), Salary (int, range from 0 to 1000000 (contention 8)), Notes (string, without queries), Address.Street (string, without queries).
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007004,
+      Event: RebuildProgress,
+      Message: Rebuilding {database}.Customers: 3 documents copied, encrypted.
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Warning,
+      EventId: 27007006,
+      Event: IndexSkipped,
+      Message: The index bySsn of {database}.Customers wasn't copied into the encrypted collection: it covers Ssn, which is encrypted, and the server can't index encrypted values.
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Warning,
+      EventId: 27007006,
+      Event: IndexSkipped,
+      Message: The index versionsOfThoseWithAnSsn of {database}.Customers wasn't copied into the encrypted collection: it covers Ssn, which is encrypted, and the server can't index encrypted values.
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007005,
+      Event: RebuildCompleted,
+      Message: Rebuilt {database}.Customers as an encrypted collection: 3 documents copied, encrypted, and 1 indexes.
+    },
+    {
+      Category: MongoFlow.Encryption,
+      Level: Warning,
+      EventId: 27007007,
+      Event: UnencryptedCopyRemains,
+      Message: Customers.unencrypted holds the documents of {database}.Customers as they were before it was encrypted, unencrypted. MongoFlow never drops it: drop it once the encrypted collection is checked.
+    }
+  ]
+}

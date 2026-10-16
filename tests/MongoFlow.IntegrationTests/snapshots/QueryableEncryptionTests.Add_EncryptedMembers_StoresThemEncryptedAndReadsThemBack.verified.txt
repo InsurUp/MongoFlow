@@ -1,0 +1,37 @@
+﻿{
+  result: {
+    Inserted: 1,
+    Matched: 0,
+    Modified: 0,
+    Deleted: 0
+  },
+  Stored: [
+    {
+      _id: 1,
+      Name: Ada,
+      Ssn: (encrypted),
+      Salary: (encrypted),
+      Notes: (encrypted),
+      Address: {
+        City: London,
+        Street: (encrypted)
+      },
+      IsDeleted: false,
+      Version: 0,
+      __safeContent__: (tags)
+    }
+  ],
+  Read: {
+    Id: 1,
+    Name: Ada,
+    Ssn: 111-11,
+    Salary: 5000,
+    Notes: pays on time,
+    Address: {
+      City: London,
+      Street: Baker Street
+    },
+    IsDeleted: false,
+    Version: 0
+  }
+}

@@ -1,0 +1,8 @@
+﻿{
+  Supplier: {
+    Id: 1,
+    TaxNumber: TR-1
+  },
+  Customers: 1,
+  Entries: 1
+}
