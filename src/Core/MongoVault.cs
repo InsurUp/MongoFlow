@@ -38,6 +38,9 @@ public abstract class MongoVault : IMongoVault, IDisposable
         return Runtime.GetKeyedCollection(documentType);
     }
 
+    /// <inheritdoc/>
+    public void Reset() => Runtime.Reset();
+
     /// <summary>
     /// Gives back the pooled memory the vault holds: its tracked documents' snapshots, and writes queued but never saved,
     /// which are dropped. Its scope disposes it; afterwards it starts again with nothing tracked or queued.

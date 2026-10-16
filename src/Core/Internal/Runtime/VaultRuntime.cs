@@ -144,10 +144,38 @@ internal sealed class VaultRuntime : IDisposable
             : throw new InvalidOperationException($"{Model.VaultType.Name}.{collection.PropertyName} isn't keyed.");
     }
 
+    /// <summary>
+    /// Forgets the documents the instance tracks, giving their snapshots back, and discards the writes queued on it. It
+    /// holds the instance's save meanwhile, so no save starts while it runs.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">A save of the instance is under way.</exception>
+    public void Reset()
+    {
+        if (!TryStartSaving())
+        {
+            throw new InvalidOperationException(
+                $"{Model.VaultType.Name} is saving. Reset it once the save ends, not from the vault's own interceptors.");
+        }
+
+        try
+        {
+            Clear();
+        }
+        finally
+        {
+            EndSaving();
+        }
+    }
+
     /// <summary>Gives back what the instance rented: its tracked documents' snapshots, and writes queued but never saved.</summary>
     public void Dispose()
     {
         Interlocked.Increment(ref _disposals);
+        Clear();
+    }
+
+    private void Clear()
+    {
         Volatile.Read(ref _tracker)?.Dispose();
         Drain()?.Dispose();
     }

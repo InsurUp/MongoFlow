@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: CrmVault is saving. Reset it once the save ends, not from the vault's own interceptors.
+}

@@ -21,6 +21,9 @@ namespace MongoFlow.IntegrationTests;
 /// save's hooks run, whatever the pool does meanwhile; see <c>ChangeTrackingTests.Originals.cs</c>;</item>
 /// <item>which reads track; see <c>ChangeTrackingTests.Reads.cs</c>. Transactions, failures, the concurrency token and
 /// the vault's disposal; see <c>ChangeTrackingTests.Transactions.cs</c>;</item>
+/// <item>a reset forgets what the vault tracks and queued, so a unit of work run again after a failed save writes only
+/// its own changes, and leaves what saves wrote in an open transaction to it; see
+/// <c>ChangeTrackingTests.Reset.cs</c>;</item>
 /// <item>interceptors read the documents tracked when the save starts, changed or not, as far as they see them, and a save
 /// with nothing to write runs them, in its transaction, when <c>RunSaveWhen</c> says a tracked document needs them; see
 /// <c>ChangeTrackingTests.RunSaveWhen.cs</c>.</item>

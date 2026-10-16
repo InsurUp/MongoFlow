@@ -3,6 +3,18 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `IMongoVault.Reset()`: starts the vault instance over, as a new scope's would be. It forgets every document the vault
+  tracks, giving its snapshot back, so the next read tracks afresh and the next save compares nothing read before, and
+  discards the writes queued on it. For running a unit of work again in the same scope, such as a retry after a
+  `TransientTransactionError`: the changes a failed save leaves pending, made to what the failed attempt read, would
+  otherwise be written with the retry's. Nothing stored changes, and the scope's open transaction is left as it is. It
+  fails with `InvalidOperationException` while a save of the vault runs, from its own interceptors too. A class that
+  implements `IMongoVault` itself, rather than deriving from `MongoVault`, implements it too.
+
 ## [1.0.0-beta.10] - 2026-10-16
 
 ### Changed
