@@ -123,6 +123,9 @@ policy!.Status = PolicyStatus.Cancelled;
 await vault.SaveAsync(); // { $set: { Status: "Cancelled" } }
 ```
 
+Interceptors read every tracked document, changed or not, from `SaveContext.Tracked`, and `RunSaveWhen` runs them for a
+save with nothing else to write, for what documents hold outside their BSON, such as domain events.
+
 [Change tracking](https://github.com/InsurUp/MongoFlow/blob/main/docs/change-tracking.md).
 
 ### Transactions

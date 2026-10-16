@@ -59,7 +59,8 @@ when it's added, and a per-query or asynchronous one fails its query with `Inval
 
 ## Features
 
-A feature is configuration with a name: the query filters and interceptors it adds belong to it, and switch off with it.
+A feature is configuration with a name: the query filters, interceptors and
+[`RunSaveWhen`](change-tracking.md#documents-that-didnt-change) predicates it adds belong to it, and switch off with it.
 Soft delete, multi-tenancy and a concurrency token are built in, each with its key on its feature class.
 
 ### Switching a feature off
@@ -74,7 +75,8 @@ vault.Collection(x => x.Customers, customers => customers.Without(SoftDeleteFeat
 ```
 
 A write queued through a view keeps the view's features off, as does an update [change tracking](change-tracking.md)
-writes for a document read through it.
+writes for a document read through it; the feature's interceptors don't see the document in `SaveContext.Tracked`, and
+its `RunSaveWhen` predicates don't check it.
 
 ### Soft delete
 

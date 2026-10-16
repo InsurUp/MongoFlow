@@ -52,6 +52,18 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
         return this;
     }
 
+    public IVaultBuilder<TVault> RunSaveWhen<TDocument>(Func<TDocument, bool> pending)
+    {
+        ArgumentNullException.ThrowIfNull(pending);
+
+        foreach (var collection in _collections)
+        {
+            collection.RunSaveWhen(pending, Owner);
+        }
+
+        return this;
+    }
+
     public IVaultBuilder<TVault> UseConfiguration<TConfiguration>() where TConfiguration : class, IVaultConfiguration<TVault>
     {
         Apply(typeof(TConfiguration), () => ActivatorUtilities.CreateInstance<TConfiguration>(_services));

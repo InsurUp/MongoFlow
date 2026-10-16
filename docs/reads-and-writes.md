@@ -146,7 +146,8 @@ SaveResult result = await vault.SaveAsync(cancellationToken);
 `SaveAsync` sends every queued write as one ordered client bulk write, in queue order, across the vault's collections.
 It runs in the scope's open [transaction](transactions.md) if there is one, and in a transaction of its own otherwise, so
 nothing is written if any write fails. Queued writes are discarded once the save ends, whether it succeeded or failed.
-A save with nothing queued returns `SaveResult.Empty` without starting a transaction.
+A save with nothing to write returns `SaveResult.Empty` without starting a transaction or running interceptors, unless
+[`RunSaveWhen`](change-tracking.md#documents-that-didnt-change) says a tracked document needs them.
 
 Each write's own result is on its operation, which [interceptors](interceptors.md) see. A save fails with:
 

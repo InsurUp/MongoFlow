@@ -1,0 +1,35 @@
+﻿[
+  {
+    Hook: Saving,
+    Tracked: [
+      Invoice 1
+    ],
+    Operations: []
+  },
+  {
+    Hook: Saved,
+    Tracked: [
+      Invoice 1
+    ],
+    Operations: [],
+    Result: {
+      Inserted: 0,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 0
+    }
+  },
+  {
+    Hook: Committed,
+    Tracked: [
+      Invoice 1
+    ],
+    Operations: [],
+    Result: {
+      Inserted: 0,
+      Matched: 0,
+      Modified: 0,
+      Deleted: 0
+    }
+  }
+]

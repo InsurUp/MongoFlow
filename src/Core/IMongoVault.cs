@@ -23,7 +23,9 @@ public interface IMongoVault
     /// Writes every queued operation, in order, as one client bulk write, after an update for each tracked document that
     /// changed. It runs in the scope's open transaction if there is one, and in its own otherwise. Nothing is written if
     /// any operation fails: in an open transaction, a save that fails after writing rolls the transaction back. Queued
-    /// operations are discarded either way; tracked changes stay pending until a save that writes them commits.
+    /// operations are discarded either way; tracked changes stay pending until a save that writes them commits. With
+    /// nothing to write, it returns <see cref="SaveResult.Empty"/> without a transaction or interceptors, unless
+    /// <see cref="IVaultBuilder{TVault}.RunSaveWhen{TDocument}"/> says a tracked document needs them.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Called from one of this vault's own interceptors, while another save of this vault instance or of another vault of

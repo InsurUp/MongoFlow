@@ -7,7 +7,8 @@ namespace MongoFlow;
 /// What one save does to tracked documents: writes their changes or replaces them, which refreshes their snapshots, or
 /// deletes them. Once its writes are in, later saves compare against what it wrote; rolled back, against what was there
 /// before. It keeps each document's snapshot from before the save, the original its operations expose, alive until its
-/// interceptors' hooks have run, and gives back what it holds once, when it ends.
+/// interceptors' hooks have run, and gives back what it holds once, when it ends. It also holds the documents tracked
+/// when the save began, for its interceptors to read.
 /// </summary>
 internal sealed class TrackedChanges(ChangeTracker tracker)
 {
@@ -21,7 +22,13 @@ internal sealed class TrackedChanges(ChangeTracker tracker)
     private bool _applied;
     private bool _ended;
 
-    public bool IsEmpty => _changes.Count == 0;
+    /// <summary>
+    /// The documents tracked when the save began, minus those an earlier save deleted, in the order they were read; or
+    /// <see langword="null"/> when the vault has no interceptors to read them.
+    /// </summary>
+    public IReadOnlyList<TrackedDocument>? Documents { get; set; }
+
+    public bool IsEmpty => _changes.Count == 0 && Documents is null;
 
     /// <summary>Records that the save writes or replaces <paramref name="document"/>; returns its index.</summary>
     public int Refresh(TrackedDocument document) => Add(document, delete: false);

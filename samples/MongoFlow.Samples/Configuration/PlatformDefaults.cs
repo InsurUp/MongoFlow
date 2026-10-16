@@ -20,5 +20,7 @@ public sealed class PlatformDefaults<TVault> : IVaultConfiguration<TVault> where
         .AddFeature<ModuleFeature>()
         .AddFeature<TimestampFeature>()
         .AddFeature<AuditFeature>()
-        .AddInterceptor<OutboxInterceptor>(); // not in a feature, so it can't be switched off
+        .AddInterceptor<OutboxInterceptor>() // not in a feature, so it can't be switched off
+        // A tracked policy that raised an event without changing has nothing to write: the outbox still runs for it.
+        .RunSaveWhen((IRaisesEvents x) => x.HasEvents);
 }

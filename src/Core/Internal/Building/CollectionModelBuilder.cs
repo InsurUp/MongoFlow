@@ -26,5 +26,9 @@ internal abstract class CollectionModelBuilder(VaultModelBuilderBase vault, Prop
 
     public abstract void Apply(VaultQueryFilter filter);
 
+    /// <summary>Adds <paramref name="pending"/> if the collection's documents are assignable to <typeparamref name="TTarget"/>.</summary>
+    public abstract void RunSaveWhen<TTarget>(Func<TTarget, bool> pending,
+        FeatureKey? owner);
+
     public abstract ICollectionModel Build(IMongoDatabase database);
 }

@@ -43,6 +43,18 @@ public readonly struct SaveContext
     /// </remarks>
     public IReadOnlyList<VaultOperation> Operations => _run.OperationsSeenBy(_interceptor);
 
+    /// <summary>
+    /// The documents the vault tracked when the save started, changed or not, in the order they were read, minus those
+    /// this interceptor doesn't see. The unchanged ones aren't written; the changed ones, and those a queued write replaces
+    /// or deletes, are among <see cref="Operations"/> too. Empty when the vault tracks nothing.
+    /// </summary>
+    /// <remarks>
+    /// For what an interceptor needs from documents whether or not they changed, such as domain events they hold outside
+    /// their BSON. A save with nothing to write runs its interceptors only when
+    /// <see cref="IVaultBuilder{TVault}.RunSaveWhen{TDocument}"/> says a tracked document needs them.
+    /// </remarks>
+    public IReadOnlyCollection<object> Tracked => _run.TrackedSeenBy(_interceptor);
+
     /// <summary>What the bulk write changed. Available from <see cref="VaultInterceptor.SavedAsync"/> on.</summary>
     public SaveResult? Result => _run.Result;
 

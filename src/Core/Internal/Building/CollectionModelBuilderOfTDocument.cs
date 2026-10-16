@@ -12,6 +12,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     private readonly LayeredList<QueryFilterEntry<TDocument>> _filters = new();
     private readonly HashSet<FeatureKey> _without = [];
     private readonly List<(LambdaExpression Field, FeatureKey? Owner)> _indexed = [];
+    private readonly List<(Func<TDocument, bool> Pending, FeatureKey? Owner)> _runSaveWhen = [];
 
     public CollectionModelBuilder(VaultModelBuilderBase vault, PropertyInfo property)
         : this(vault, property, keyType: null)
@@ -127,6 +128,15 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         }
     }
 
+    public override void RunSaveWhen<TTarget>(Func<TTarget, bool> pending,
+        FeatureKey? owner)
+    {
+        if (typeof(TDocument).IsAssignableTo(typeof(TTarget)))
+        {
+            _runSaveWhen.Add((document => pending((TTarget)(object)document!), owner));
+        }
+    }
+
     public override IReadOnlySet<FeatureKey> OptedOut => _without;
 
     public override ICollectionModel Build(IMongoDatabase database)
@@ -136,7 +146,8 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
             KeyType,
             database.GetCollection<TDocument>(_name.TryGet(out var name) ? name : Property.Name),
             [.. _filters.All.Where(filter => IsOn(filter.Owner))],
-            [.. _indexed.Where(indexed => IsOn(indexed.Owner)).Select(indexed => (indexed.Field, indexed.Owner?.Name ?? "a query filter"))]);
+            [.. _indexed.Where(indexed => IsOn(indexed.Owner)).Select(indexed => (indexed.Field, indexed.Owner?.Name ?? "a query filter"))],
+            [.. _runSaveWhen.Where(pending => IsOn(pending.Owner))]);
 
         EnsureIdIsRead(definition.Collection);
 
