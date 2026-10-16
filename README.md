@@ -230,7 +230,7 @@ rebuilding collections, what can and can't be queried or written, and clients an
 
 [The samples](https://github.com/InsurUp/MongoFlow/tree/main/samples/MongoFlow.Samples) are a small insurance platform
 that runs: `dotnet run --project samples/MongoFlow.Samples` starts MongoDB in Docker and walks through every feature
-above but encryption, as requests would.
+above, as requests would.
 
 ## Contributing
 

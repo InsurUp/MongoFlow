@@ -19,7 +19,9 @@ public class EncryptedQueryTests
         {
             EncryptedQuery.Equality.ToString(),
             EncryptedQuery.EqualityWith(2).ToString(),
-            EncryptedQuery.Range(0, 100, contention: 4).ToString()
+            EncryptedQuery.Range(0, 100, contention: 4).ToString(),
+            EncryptedQuery.Range(0.5m, 1.5m, precision: 2).ToString(),
+            EncryptedQuery.Range(new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc)).ToString()
         };
 
         // Assert

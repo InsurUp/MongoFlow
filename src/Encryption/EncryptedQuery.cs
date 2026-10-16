@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace MongoFlow.Encryption;
 
 /// <summary>
@@ -90,5 +92,14 @@ public sealed class EncryptedQuery
     public override string ToString() =>
         Type == "equality"
             ? $"equality (contention {Contention})"
-            : $"range from {Min} to {Max} (contention {Contention})";
+            : $"range from {Format(Min)} to {Format(Max)} (contention {Contention})";
+
+    // The same on every machine, whatever its culture.
+    private static string? Format(object? bound) =>
+        bound switch
+        {
+            DateTime date => date.ToString("O", CultureInfo.InvariantCulture),
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => bound?.ToString()
+        };
 }

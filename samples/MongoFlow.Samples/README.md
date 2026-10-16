@@ -1,6 +1,7 @@
 # MongoFlow samples
 
-A small insurance platform written against MongoFlow and MongoFlow.Identity, to show how the API reads in a real app.
+A small insurance platform written against MongoFlow, MongoFlow.Identity and MongoFlow.Encryption, to show how the API
+reads in a real app.
 It runs: it migrates every vault, then walks through the platform's services as its users' requests would, and logs
 what each step shows.
 
@@ -21,6 +22,14 @@ dotnet run --project samples/MongoFlow.Samples -- --ConnectionStrings:Mongo="mon
 ```
 
 CI runs it after the tests, so a change that breaks a sample fails the build.
+
+The KYC records are encrypted under a local master key, `Encryption:MasterKey` in base64. Without one, each run makes
+its own, which is enough for databases of its own; a server of your own with a fixed `Database:Prefix` needs the same key
+every run, or the records encrypted before can't be read:
+
+```bash
+dotnet run --project samples/MongoFlow.Samples -- --Encryption:MasterKey="$(openssl rand -base64 96 | tr -d '\n')"
+```
 
 ### Logs
 
@@ -61,19 +70,20 @@ platform's admin or an agent of one of two agencies (`SampleUsers`), as authenti
 | 9. Identity | ASP.NET Core Identity's managers on MongoFlow.Identity: an account deleted, which soft delete keeps, and restored | `AccountService`, `PlatformUserVault` |
 | 10. Audit | An interceptor writing to another vault, in the transaction of each change | `AuditTrailInterceptor`, `AuditReader` |
 | 11. Migrations | The policy vault reverted down to a version, then migrated up again | `Migrations/` |
+| 12. Encryption | KYC records an earlier version stored in plain text, rebuilt encrypted by the migrator at startup, its index kept; found by an encrypted national id and an encrypted birth date range, noted, and added; what the server holds, and the plain copy left to drop | `KycVault`, `KycService`, `LegacyKycRecords` |
 
 ## Layout
 
 | Folder | What it shows |
 |---|---|
 | `Domain/` | Tenant-owned, soft-deletable documents, plus permission and module attributes |
-| `Vaults/` | Vaults that configure themselves: a custom string key with a concurrency token and change tracking, soft delete by timestamp, a custom struct key, a composite key, and Identity's vault |
+| `Vaults/` | Vaults that configure themselves: a custom string key with a concurrency token and change tracking, soft delete by timestamp, a custom struct key, a composite key, Identity's vault, and a vault with encrypted members |
 | `Configuration/` | Two defaults, two features driven by attributes with async filters, a naming convention, and a per-vault configuration that reads options |
 | `Interceptors/` | Timestamps (typed, per collection, adding to update definitions), an audit trail (writes to another vault in the same transaction, switchable as a feature), a transactional outbox, and a write condition |
 | `Migrations/` | Indexes created through the vault's collections, a data fix through the vault, a schema change with the driver, and migrations outside a transaction |
 | `Services/` | The app's services, which the walkthrough calls |
-| `Infrastructure/` | The server for the run, the request's user, and a serializer for the strongly typed id |
-| `Program.cs` | Registration (defaults, per-vault databases, a second client, skipping defaults, Identity), logging, telemetry and migrating at startup |
+| `Infrastructure/` | The server for the run, the request's user, a serializer for the strongly typed id, and the KYC records an earlier version stored in plain text |
+| `Program.cs` | Registration (defaults, per-vault databases, a second client, skipping defaults, Identity, Queryable Encryption with a local KMS), logging, telemetry and migrating at startup |
 
 ## Gaps
 
@@ -89,3 +99,7 @@ building with `-p:DefineConstants=MISSING_API` then lists what's missing.
   name hook.
 - **Strongly typed ids** like `AgencyId` need serializers registered with the driver (`AgencyIdSerializer`), and so do
   `Guid`s, whose representation the driver asks for; MongoFlow leaves serialization to the driver.
+- **A vault that encrypts uses a client of its own,** so the audit interceptor, which saves the audit vault in each
+  change's transaction, can't join its saves: `KycVault` skips the platform's defaults and limits reads to the agency
+  itself. Giving the audit and outbox vaults the same encryption settings would let them join, at the cost of their
+  saves going a command per write.

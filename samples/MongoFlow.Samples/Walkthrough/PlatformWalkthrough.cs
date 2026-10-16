@@ -32,6 +32,7 @@ public sealed class PlatformWalkthrough(IServiceProvider services,
         await ManageAccountsAsync();
         await ReadTheAuditTrailAsync(cancellationToken);
         await MigrateBackAndForthAsync(cancellationToken);
+        await QueryEncryptedRecordsAsync(cancellationToken);
     }
 
     /// <summary>Agencies, a customer with a consent, and policies: inserts, stamped with the tenant and timestamps.</summary>
@@ -290,6 +291,45 @@ public sealed class PlatformWalkthrough(IServiceProvider services,
         var after = await migrator.GetVersionAsync<PolicyVault>(cancellationToken);
 
         log.LogInformation("   Version {Before}, then {Reverted}, then {After}", before, reverted, after);
+    }
+
+    /// <summary>
+    /// KYC records encrypted with Queryable Encryption: rebuilt from plain ones when the app started, queried by their
+    /// encrypted members, and stored encrypted.
+    /// </summary>
+    private async Task QueryEncryptedRecordsAsync(CancellationToken cancellationToken)
+    {
+        log.LogInformation("12. Encryption: KYC records an earlier version stored in plain text, rebuilt encrypted at startup");
+
+        var (ada, bornBefore1900) = await _requests.AsAsync(SampleUsers.AcmeAgent, async request =>
+        {
+            var kyc = request.GetRequiredService<KycService>();
+            var found = await kyc.FindByNationalIdAsync("10000000146", cancellationToken);
+            var born = await kyc.BornBeforeAsync(new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc), cancellationToken);
+
+            await kyc.AddNoteAsync("10000000214", "Driving licence checked", cancellationToken);
+
+            return (found, born);
+        });
+
+        log.LogInformation("   Acme finds {Name} by national id, and those born before 1900: {Names}", ada?.FullName, string.Join(", ", bornBefore1900));
+
+        // Beta records a check of its own; Acme's agent can't see it, nor Beta Acme's.
+        var (stored, unencrypted) = await _requests.AsAsync(SampleUsers.BetaAgent, async request =>
+        {
+            var kyc = request.GetRequiredService<KycService>();
+            await kyc.RecordAsync(new KycRecord
+            {
+                FullName = "Bob Dylan", NationalId = "20000000018", BirthDate = new DateTime(1941, 5, 24, 0, 0, 0, DateTimeKind.Utc)
+            }, cancellationToken);
+
+            return await kyc.AsStoredAsync(cancellationToken);
+        });
+
+        log.LogInformation("   The server holds {Name}'s national id as {Type}, and the copy from before encryption still holds {Count} records " +
+                           "in plain text: drop it once the encrypted collection is checked",
+            stored?["FullName"], stored?["NationalId"] is BsonBinaryData { SubType: (BsonBinarySubType)6 } ? "encrypted binary data" : "plain text",
+            unencrypted);
     }
 
     private static Policy NewPolicy(string number,

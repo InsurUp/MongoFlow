@@ -8,6 +8,9 @@ encrypts them in what it writes, and the values your filters compare them with, 
 MongoFlow does the encrypting itself, with the driver's explicit encryption, so it works on MongoDB Community: MongoDB's
 automatic encryption needs the crypt_shared library, which comes with Enterprise and Atlas.
 
+[The samples](../samples/MongoFlow.Samples) show it end to end, in their twelfth step: KYC records an earlier version
+stored in plain text, rebuilt encrypted at startup, then queried by their encrypted members.
+
 ## Installing
 
 ```bash
