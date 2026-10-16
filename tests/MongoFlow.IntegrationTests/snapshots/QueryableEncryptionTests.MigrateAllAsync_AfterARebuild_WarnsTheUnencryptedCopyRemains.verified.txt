@@ -1,0 +1,16 @@
+﻿[
+  {
+    Category: MongoFlow.Encryption,
+    Level: Debug,
+    EventId: 27007002,
+    Event: CollectionUpToDate,
+    Message: {database}.Customers is encrypted as declared.
+  },
+  {
+    Category: MongoFlow.Encryption,
+    Level: Warning,
+    EventId: 27007007,
+    Event: UnencryptedCopyRemains,
+    Message: Customers.unencrypted holds the documents of {database}.Customers as they were before it was encrypted, unencrypted. MongoFlow never drops it: drop it once the encrypted collection is checked.
+  }
+]

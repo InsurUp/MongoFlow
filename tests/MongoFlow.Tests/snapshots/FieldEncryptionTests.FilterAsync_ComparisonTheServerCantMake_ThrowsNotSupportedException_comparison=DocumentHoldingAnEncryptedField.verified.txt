@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: A filter of Customers compares Address, which holds or is inside Address.Street, which is encrypted: compare the encrypted member itself.
+}

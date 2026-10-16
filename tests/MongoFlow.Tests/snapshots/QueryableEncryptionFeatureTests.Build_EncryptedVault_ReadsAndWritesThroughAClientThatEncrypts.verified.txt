@@ -1,0 +1,10 @@
+﻿{
+  Encrypts: true,
+  Source: true,
+  WritesPerCommand: true,
+  Encrypted: [
+    Ssn
+  ],
+  SameSettingsShareTheClient: true,
+  OtherKeysDont: false
+}

@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: Ssn in Customers is encrypted, so a filter can't compare it in $expr: MongoFlow encrypts the values filters compare encrypted members with only in query operators.
+}

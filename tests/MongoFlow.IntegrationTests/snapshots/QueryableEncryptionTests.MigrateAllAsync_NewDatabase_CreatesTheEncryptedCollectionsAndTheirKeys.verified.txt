@@ -1,0 +1,46 @@
+﻿{
+  Schema: [
+    {
+      keyId: (data key),
+      path: Ssn,
+      bsonType: string,
+      queries: {
+        queryType: equality,
+        contention: 8
+      }
+    },
+    {
+      keyId: (data key),
+      path: Salary,
+      bsonType: int,
+      queries: {
+        queryType: range,
+        contention: 8,
+        min: 0,
+        max: 1000000,
+        sparsity: 2,
+        trimFactor: 6
+      }
+    },
+    {
+      keyId: (data key),
+      path: Notes,
+      bsonType: string
+    },
+    {
+      keyId: (data key),
+      path: Address.Street,
+      bsonType: string
+    }
+  ],
+  Keys: 4,
+  Logs: [
+    {
+      Category: MongoFlow.Encryption,
+      Level: Information,
+      EventId: 27007001,
+      Event: CollectionCreated,
+      Message: Created {database}.Customers encrypted, with a data key for each of its encrypted fields: Ssn (string, equality (contention 8)), Salary (int, range from 0 to 1000000 (contention 8)), Notes (string, without queries), Address.Street (string, without queries).
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+﻿{
+  Same: true,
+  Defaulted: true,
+  OtherBounds: false,
+  OtherType: false,
+  OtherContention: false,
+  WithoutQueries: false,
+  QueriedWhenNotDeclared: false
+}

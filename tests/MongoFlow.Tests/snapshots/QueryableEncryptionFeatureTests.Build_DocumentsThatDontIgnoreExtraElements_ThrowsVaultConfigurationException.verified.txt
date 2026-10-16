@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Strict, in Stricts, has encrypted members, so it must ignore extra elements: the server adds __safeContent__ to each encrypted document, and reading it back would fail. Mark it [BsonIgnoreExtraElements].
+}

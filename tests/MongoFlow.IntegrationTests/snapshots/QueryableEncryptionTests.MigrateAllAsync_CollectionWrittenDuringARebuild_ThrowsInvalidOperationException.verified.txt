@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: Customers isn't encrypted, while Customers.encrypting holds the documents a rebuild was copying into it: something wrote to it meanwhile, which a rebuild needs nothing to do. Move its documents into Customers.encrypting, drop it, and migrate again.
+}

@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: x => x.Ssn, stored as Ssn in Customers, can't be encrypted: it's declared encrypted twice.
+}

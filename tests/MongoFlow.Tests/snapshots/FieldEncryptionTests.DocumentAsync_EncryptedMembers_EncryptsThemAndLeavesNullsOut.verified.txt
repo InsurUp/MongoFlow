@@ -1,0 +1,28 @@
+﻿{
+  encrypted: {
+    _id: 1,
+    Name: Ada,
+    Ssn: {
+      encrypted: 111-11,
+      algorithm: Indexed,
+      queryType: null,
+      key: 1
+    },
+    Salary: {
+      encrypted: 5000,
+      algorithm: Range,
+      queryType: null,
+      key: 2
+    },
+    Address: {
+      City: London,
+      Street: {
+        encrypted: Baker Street,
+        algorithm: Unindexed,
+        queryType: null,
+        key: 4
+      }
+    }
+  },
+  InPlace: true
+}

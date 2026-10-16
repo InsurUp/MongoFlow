@@ -1,0 +1,67 @@
+﻿{
+  Ssn: {
+    $eq: {
+      encrypted: 111-11,
+      algorithm: Indexed,
+      queryType: equality,
+      key: 1
+    }
+  },
+  Name: Ada,
+  $or: [
+    {
+      Ssn: {
+        $in: [
+          {
+            encrypted: 222-22,
+            algorithm: Indexed,
+            queryType: equality,
+            key: 1
+          },
+          {
+            encrypted: 333-33,
+            algorithm: Indexed,
+            queryType: equality,
+            key: 1
+          }
+        ]
+      }
+    },
+    {
+      Ssn: {
+        $ne: {
+          encrypted: 444-44,
+          algorithm: Indexed,
+          queryType: equality,
+          key: 1
+        },
+        $exists: true
+      }
+    }
+  ],
+  $nor: [
+    {
+      Ssn: {
+        $nin: [
+          {
+            encrypted: 555-55,
+            algorithm: Indexed,
+            queryType: equality,
+            key: 1
+          }
+        ]
+      }
+    },
+    {
+      Ssn: {
+        $exists: false
+      }
+    }
+  ],
+  Address.Street: {
+    $exists: true
+  },
+  Notes: {
+    $exists: false
+  }
+}

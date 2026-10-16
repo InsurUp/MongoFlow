@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: Address.Street in Customers is encrypted, but a document holds an array along its path: an encrypted member can't be inside an array.
+}

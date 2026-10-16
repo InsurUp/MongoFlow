@@ -1,0 +1,4 @@
+﻿{
+  Type: NotSupportedException,
+  Message: An update of Customers uses $rename on Address, which reaches Address.Street, but Address.Street is encrypted: the server changes an encrypted member only with $set and $unset.
+}

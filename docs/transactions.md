@@ -35,7 +35,8 @@ public sealed class ClaimService(IPolicyVault policies,
   wasn't committed.
 - Reads made while it's open run in its session, so they see its writes.
 - Its session starts with the first vault that joins, so every vault saved in it must use the same client; one on
-  another client fails with `InvalidOperationException`.
+  another client fails with `InvalidOperationException`. A vault that [encrypts](encryption.md#clients-and-transactions)
+  uses a client of its own, which vaults with the same encryption settings share.
 - `Current` is the open transaction, if there is one. One scope has one open transaction at a time.
 - A transaction still open when its scope ends, such as one begun without `await using`, is rolled back then, so it
   doesn't hold its locks on the server until it times out.

@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: x => x.Number, stored as Number in Customers, can't be encrypted: it's the key, which writes by key match.
+}
