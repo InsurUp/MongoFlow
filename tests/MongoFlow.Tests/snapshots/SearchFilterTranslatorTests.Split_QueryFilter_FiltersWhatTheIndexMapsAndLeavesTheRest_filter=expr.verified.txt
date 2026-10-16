@@ -1,0 +1,22 @@
+﻿{
+  Filter: [
+    {
+      equals: {
+        path: TenantId,
+        value: t-1
+      }
+    }
+  ],
+  Residual: {
+    $expr: {
+      $gt: [
+        $Total,
+        $Count
+      ]
+    }
+  },
+  PostFiltered: [
+    $expr
+  ],
+  HasClauses: true
+}

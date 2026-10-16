@@ -18,5 +18,6 @@ internal interface IVaultMigrationRunner
     IMongoClient Client { get; }
 
     Task MigrateAsync(SemVersion? target,
+        MigrateOptions options,
         CancellationToken cancellationToken);
 }

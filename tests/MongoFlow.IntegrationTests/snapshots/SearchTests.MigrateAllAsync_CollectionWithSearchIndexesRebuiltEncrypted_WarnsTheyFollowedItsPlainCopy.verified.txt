@@ -1,0 +1,9 @@
+﻿[
+  {
+    Category: MongoFlow.Encryption,
+    Level: Warning,
+    EventId: 27007008,
+    Event: SearchIndexesFollowCopy,
+    Message: {database}.Patients had the search indexes [byName], which followed its documents to Patients.unencrypted: the search process keeps an index of them in plain text. Drop the indexes, or Patients.unencrypted, which drops them too; MongoDB Search can't index the encrypted collection.
+  }
+]

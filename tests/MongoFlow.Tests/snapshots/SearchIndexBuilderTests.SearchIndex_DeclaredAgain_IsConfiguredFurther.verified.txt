@@ -1,0 +1,31 @@
+﻿[
+  {
+    Name: default,
+    TypeName: search,
+    Definition: {
+      mappings: {
+        dynamic: false,
+        fields: {
+          Name: [
+            {
+              type: string
+            },
+            {
+              type: autocomplete,
+              minGrams: 2,
+              maxGrams: 7,
+              foldDiacritics: true,
+              tokenization: edgeGram
+            }
+          ],
+          TenantId: {
+            type: token
+          },
+          DeletedAt: {
+            type: date
+          }
+        }
+      }
+    }
+  }
+]

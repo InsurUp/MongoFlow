@@ -1,0 +1,54 @@
+﻿[
+  {
+    Name: default,
+    TypeName: search,
+    Definition: {
+      analyzer: lucene.turkish,
+      searchAnalyzer: lucene.standard,
+      mappings: {
+        dynamic: false,
+        fields: {
+          Name: [
+            {
+              type: string
+            },
+            {
+              type: autocomplete,
+              minGrams: 2,
+              maxGrams: 15,
+              foldDiacritics: true,
+              tokenization: edgeGram
+            },
+            {
+              type: token
+            }
+          ],
+          Supplier: {
+            type: document,
+            dynamic: false,
+            fields: {
+              city: {
+                type: token
+              },
+              Country: {
+                type: document,
+                dynamic: false,
+                fields: {
+                  Code: {
+                    type: token
+                  }
+                }
+              }
+            }
+          },
+          TenantId: {
+            type: token
+          },
+          DeletedAt: {
+            type: date
+          }
+        }
+      }
+    }
+  }
+]

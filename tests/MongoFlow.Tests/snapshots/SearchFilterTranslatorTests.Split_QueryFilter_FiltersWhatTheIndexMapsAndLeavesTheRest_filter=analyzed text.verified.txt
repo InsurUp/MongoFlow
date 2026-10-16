@@ -1,0 +1,9 @@
+﻿{
+  Residual: {
+    Customer: ada
+  },
+  PostFiltered: [
+    Customer
+  ],
+  HasClauses: false
+}

@@ -1,0 +1,14 @@
+﻿{
+  Filter: {
+    $or: [
+      {
+        TenantId: null
+      },
+      {
+        TenantId: {
+          $exists: false
+        }
+      }
+    ]
+  }
+}

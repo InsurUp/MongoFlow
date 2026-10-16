@@ -1,0 +1,123 @@
+﻿{
+  Filter: [
+    {
+      equals: {
+        path: TenantId,
+        value: t-1
+      }
+    }
+  ],
+  MustNot: [
+    {
+      equals: {
+        path: IsDeleted,
+        value: true
+      }
+    }
+  ],
+  PostFilter: {
+    Total: {
+      $gt: {
+        $numberDecimal: 10
+      }
+    }
+  },
+  CanCount: false,
+  MatchesNothing: false,
+  Applied: {
+    compound: {
+      must: [
+        {
+          text: {
+            query: ada,
+            path: Customer
+          }
+        }
+      ],
+      filter: [
+        {
+          equals: {
+            path: TenantId,
+            value: t-1
+          }
+        }
+      ],
+      mustNot: [
+        {
+          equals: {
+            path: IsDeleted,
+            value: true
+          }
+        }
+      ]
+    }
+  },
+  Facet: {
+    facet: {
+      operator: {
+        compound: {
+          must: [
+            {
+              text: {
+                query: ada,
+                path: Customer
+              }
+            }
+          ],
+          filter: [
+            {
+              equals: {
+                path: TenantId,
+                value: t-1
+              }
+            }
+          ],
+          mustNot: [
+            {
+              equals: {
+                path: IsDeleted,
+                value: true
+              }
+            }
+          ]
+        }
+      },
+      facets: {
+        customers: {
+          type: string,
+          path: Customer
+        }
+      }
+    }
+  },
+  FacetsAlone: {
+    facet: {
+      facets: {
+        customers: {
+          type: string,
+          path: Customer
+        }
+      },
+      operator: {
+        compound: {
+          filter: [
+            {
+              equals: {
+                path: TenantId,
+                value: t-1
+              }
+            }
+          ],
+          mustNot: [
+            {
+              equals: {
+                path: IsDeleted,
+                value: true
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

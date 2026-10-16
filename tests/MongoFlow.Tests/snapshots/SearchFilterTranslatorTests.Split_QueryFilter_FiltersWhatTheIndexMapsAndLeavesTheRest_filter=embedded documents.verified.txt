@@ -1,0 +1,9 @@
+﻿{
+  Residual: {
+    Lines.Sku: S-1
+  },
+  PostFiltered: [
+    Lines.Sku
+  ],
+  HasClauses: false
+}

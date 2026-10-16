@@ -1,0 +1,19 @@
+﻿{
+  Residual: {
+    TenantId: [
+      t-1
+    ],
+    Total: {
+      $in: [
+        [
+          1
+        ]
+      ]
+    }
+  },
+  PostFiltered: [
+    TenantId,
+    Total
+  ],
+  HasClauses: false
+}

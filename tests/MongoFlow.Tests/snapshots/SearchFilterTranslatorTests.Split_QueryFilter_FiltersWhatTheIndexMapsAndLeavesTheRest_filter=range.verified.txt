@@ -1,0 +1,17 @@
+﻿{
+  Filter: [
+    {
+      range: {
+        path: Total,
+        gte: 10
+      }
+    },
+    {
+      range: {
+        path: Total,
+        lt: 100
+      }
+    }
+  ],
+  HasClauses: true
+}

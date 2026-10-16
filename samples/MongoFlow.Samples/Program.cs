@@ -24,7 +24,7 @@ using OpenTelemetry.Trace;
 
 // From the repository root, with Docker running:
 //   dotnet run --project samples/MongoFlow.Samples
-// It starts MongoDB 8.2 as a replica set unless ConnectionStrings:Mongo names a server, migrates every vault, and walks
+// It starts MongoDB with MongoDB Search unless ConnectionStrings:Mongo names a server, migrates every vault, and walks
 // through the platform's services as its users' requests would; see Walkthrough/PlatformWalkthrough.cs.
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 {

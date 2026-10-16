@@ -18,4 +18,15 @@ internal static partial class QueryLog
         string collection,
         object key,
         string filter);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Query.Searching, Level = LogLevel.Trace,
+        Message = "{Method} on {Collection} in {Index}, with query filters {Filter}, filtered in the index by {Clauses} and " +
+                  "after the search by {PostFilter}.")]
+    public static partial void Searching(this ILogger logger,
+        string method,
+        string collection,
+        string index,
+        string filter,
+        string clauses,
+        string postFilter);
 }

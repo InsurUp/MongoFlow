@@ -64,6 +64,14 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     /// </summary>
     public EncryptedQueries<TDocument>? EncryptedQueries { get; private set; }
 
+    /// <summary>The collection's search indexes, as its searches need them; set while the model is built.</summary>
+    public CollectionSearch Search { get; private set; } = null!;
+
+    public IReadOnlyList<SearchIndexDeclaration> SearchIndexes => Search.Declarations;
+
+    /// <summary>Sets <see cref="Search"/>, once, while the model is built.</summary>
+    public void SearchWith(CollectionSearch search) => Search = search;
+
     /// <summary>Sets <see cref="Encryption"/>, once, while the model is built.</summary>
     public void EncryptWith(ICollectionEncryption encryption)
     {
@@ -166,6 +174,10 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     public IEnumerable<IndexedField> RenderIndexedFields() =>
         _indexedFields.Select(indexed =>
             new IndexedField(FilterDocuments.RenderField(indexed.Field, RenderArgs).FieldName, indexed.Feature));
+
+    /// <summary>The fields features filter every read on, rendered with their serializers, for the search indexes to map.</summary>
+    public IReadOnlyList<FeatureField> RenderFeatureFields() =>
+        [.. _indexedFields.Select(indexed => new FeatureField(FilterDocuments.RenderField(indexed.Field, RenderArgs), indexed.Feature))];
 
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,
         FeatureSet disabled,

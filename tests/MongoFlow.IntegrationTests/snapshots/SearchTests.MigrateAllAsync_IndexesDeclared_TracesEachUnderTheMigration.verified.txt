@@ -1,0 +1,34 @@
+﻿[
+  {
+    Name: MongoFlow.Migrate,
+    Parent: test,
+    Status: Unset,
+    Tags: {
+      mongoflow.vault: CrmVault
+    }
+  },
+  {
+    Name: MongoFlow.SearchIndex,
+    Parent: MongoFlow.Migrate,
+    Status: Unset,
+    Tags: {
+      mongoflow.search_index.change: created,
+      mongoflow.search_index.collection: Customers,
+      mongoflow.search_index.name: default,
+      mongoflow.search_index.type: search,
+      mongoflow.vault: CrmVault
+    }
+  },
+  {
+    Name: MongoFlow.SearchIndex,
+    Parent: MongoFlow.Migrate,
+    Status: Unset,
+    Tags: {
+      mongoflow.search_index.change: created,
+      mongoflow.search_index.collection: Customers,
+      mongoflow.search_index.name: vectors,
+      mongoflow.search_index.type: vectorSearch,
+      mongoflow.vault: CrmVault
+    }
+  }
+]

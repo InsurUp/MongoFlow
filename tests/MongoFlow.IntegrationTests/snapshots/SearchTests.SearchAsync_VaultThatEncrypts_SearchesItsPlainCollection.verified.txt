@@ -1,0 +1,11 @@
+﻿{
+  Found: [
+    Checked, no fever,
+    Fever since Monday
+  ],
+  Patient: {
+    Id: 1,
+    Name: Ada,
+    Ssn: 111-11
+  }
+}

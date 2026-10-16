@@ -1,0 +1,22 @@
+﻿{
+  Found: [
+    Ada Lovelace
+  ],
+  Pipeline: aggregate([{ "$search" : { "compound" : { "must" : [{ "text" : { "query" : "ada", "path" : "Name" } }], "filter" : [{ "equals" : { "path" : "AgencyId", "value" : "a-1" } }] }, "index" : "byHand" } }, { "$match" : { "IsDeleted" : { "$ne" : true } } }]),
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Debug,
+      EventId: 27008008,
+      Event: IndexListed,
+      Message: Listed the search index byHand of Customers, which the vault doesn't declare, to learn what it maps.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Warning,
+      EventId: 27008007,
+      Event: FilterFieldNotPreFiltered,
+      Message: Searches of Customers in byHand match the query filters on IsDeleted after the search: the index doesn't map it to compare exactly, such as a string as SearchField.Token(), or the filters compare it in a way a search can't, such as with a regular expression.
+    }
+  ]
+}

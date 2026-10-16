@@ -81,6 +81,31 @@ internal static class VaultActivities
         return activity;
     }
 
+    public static Activity? StartSearchIndex(string vault,
+        string collection,
+        SearchIndexDeclaration index)
+    {
+        var activity = Source.StartActivity(MongoFlowTelemetry.Activities.SearchIndex);
+        if (activity.Recording() is { } recording)
+        {
+            recording.SetTag(MongoFlowTelemetry.Tags.Vault, vault);
+            recording.SetTag(MongoFlowTelemetry.Tags.SearchIndexCollection, collection);
+            recording.SetTag(MongoFlowTelemetry.Tags.SearchIndexName, index.Name);
+            recording.SetTag(MongoFlowTelemetry.Tags.SearchIndexType, index.TypeName);
+        }
+
+        return activity;
+    }
+
+    public static void Changed(this Activity? activity,
+        SearchIndexChange change) =>
+        activity.Recording()?.SetTag(MongoFlowTelemetry.Tags.SearchIndexChange, change switch
+        {
+            SearchIndexChange.Created => "created",
+            SearchIndexChange.Updated => "updated",
+            _ => "unchanged"
+        });
+
     /// <summary>Marks the span failed, the way OpenTelemetry records an error: its status, type and an exception event.</summary>
     public static void Fail(this Activity? activity,
         Exception exception)

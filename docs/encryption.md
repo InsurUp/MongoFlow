@@ -110,7 +110,8 @@ MongoDB can't encrypt a collection in place, so a rebuild:
 3. copies the documents into it, in `_id` order and in batches, encrypting the declared members, and logs its progress;
 4. copies the indexes that don't cover an encrypted member; the others, such as a unique index on `Ssn`, are left
    behind with a warning, as the server can't index encrypted values;
-5. renames `{name}.encrypting` to `{name}.unencrypted`, which marks it done.
+5. renames `{name}.encrypting` to `{name}.unencrypted`, which marks it done. Search indexes follow it there, with a
+   warning, since they keep its documents indexed in plain text.
 
 Stop the application while it runs: nothing may write to the collection meanwhile. A rebuild that's interrupted goes on
 from where it stopped the next time the migrator runs.
@@ -209,8 +210,16 @@ for instance: it encrypts nothing, and shares the client.
 
 The client you give a vault that encrypts must not have `AutoEncryptionOptions` of its own.
 
+## MongoDB Search
+
+MongoDB Search can't index a collection with Queryable Encryption, so a search index declared on a collection with
+encrypted members fails the model, and searching one throws `NotSupportedException`. A vault that encrypts searches its
+other collections through the client that encrypts, and gets their documents back decrypted: keep what's searched in a
+collection of its own. A rebuild warns when the collection had search indexes, which follow its documents to
+`{name}.unencrypted` and keep them indexed in plain text. See [MongoDB Search](search.md#queryable-encryption).
+
 ## Logs
 
 `MongoFlow.Encryption` logs what the migrator does: a collection created or found as declared, a rebuild's start,
-progress and end at `Information`, and at `Warning` an index a rebuild left behind and an unencrypted copy still there.
-`MongoFlowLogEvents.Encryption` names the events.
+progress and end at `Information`, and at `Warning` an index a rebuild left behind, search indexes that followed the
+unencrypted copy, and an unencrypted copy still there. `MongoFlowLogEvents.Encryption` names the events.

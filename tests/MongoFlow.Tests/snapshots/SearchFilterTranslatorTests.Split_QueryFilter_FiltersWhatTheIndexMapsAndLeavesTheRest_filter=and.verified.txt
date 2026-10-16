@@ -1,0 +1,19 @@
+﻿{
+  Filter: [
+    {
+      equals: {
+        path: TenantId,
+        value: t-1
+      }
+    }
+  ],
+  MustNot: [
+    {
+      equals: {
+        path: IsDeleted,
+        value: true
+      }
+    }
+  ],
+  HasClauses: true
+}

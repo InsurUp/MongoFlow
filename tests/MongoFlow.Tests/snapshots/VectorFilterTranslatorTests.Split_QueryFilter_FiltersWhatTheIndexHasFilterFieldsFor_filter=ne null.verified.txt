@@ -1,0 +1,16 @@
+﻿{
+  Filter: {
+    $and: [
+      {
+        TenantId: {
+          $exists: true
+        }
+      },
+      {
+        TenantId: {
+          $ne: null
+        }
+      }
+    ]
+  }
+}

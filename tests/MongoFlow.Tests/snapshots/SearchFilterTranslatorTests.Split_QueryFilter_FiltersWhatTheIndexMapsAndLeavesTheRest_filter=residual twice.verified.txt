@@ -1,0 +1,18 @@
+﻿{
+  Residual: {
+    $and: [
+      {
+        Customer: ada
+      },
+      {
+        Customer: {
+          $ne: bob
+        }
+      }
+    ]
+  },
+  PostFiltered: [
+    Customer
+  ],
+  HasClauses: false
+}

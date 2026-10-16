@@ -1,0 +1,17 @@
+﻿{
+  Filter: [
+    {
+      equals: {
+        path: Count,
+        value: 9007199254740993
+      }
+    }
+  ],
+  Residual: {
+    Total: 9007199254740993
+  },
+  PostFiltered: [
+    Total
+  ],
+  HasClauses: true
+}

@@ -1,0 +1,13 @@
+﻿{
+  Filter: {
+    TenantId: {
+      $eq: t-1
+    }
+  },
+  Residual: {
+    Customer: ada
+  },
+  PostFiltered: [
+    Customer
+  ]
+}

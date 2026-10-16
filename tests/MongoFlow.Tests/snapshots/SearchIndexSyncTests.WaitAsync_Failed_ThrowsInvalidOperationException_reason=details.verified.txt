@@ -1,0 +1,4 @@
+﻿{
+  Type: InvalidOperationException,
+  Message: The search index default failed to build: [{ "hostname" : "mongot-0", "status" : "FAILED" }]
+}

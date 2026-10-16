@@ -1,0 +1,17 @@
+﻿{
+  Residual: {
+    $or: [
+      {
+        TenantId: t-1
+      },
+      {
+        Customer: ada
+      }
+    ]
+  },
+  PostFiltered: [
+    TenantId,
+    Customer
+  ],
+  HasClauses: false
+}

@@ -1,0 +1,25 @@
+﻿[
+  {
+    Name: vectors,
+    TypeName: vectorSearch,
+    Definition: {
+      fields: [
+        {
+          type: vector,
+          path: Embedding,
+          numDimensions: 8,
+          similarity: cosine,
+          quantization: binaryNoRescore
+        },
+        {
+          type: filter,
+          path: TenantId
+        },
+        {
+          type: filter,
+          path: DeletedAt
+        }
+      ]
+    }
+  }
+]

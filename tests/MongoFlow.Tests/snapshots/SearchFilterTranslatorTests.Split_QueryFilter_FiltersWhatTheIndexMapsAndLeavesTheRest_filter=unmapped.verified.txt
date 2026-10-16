@@ -1,0 +1,17 @@
+﻿{
+  Filter: [
+    {
+      range: {
+        path: Total,
+        gt: 1
+      }
+    }
+  ],
+  Residual: {
+    Unmapped: 1
+  },
+  PostFiltered: [
+    Unmapped
+  ],
+  HasClauses: true
+}

@@ -1,0 +1,11 @@
+﻿{
+  Filter: [
+    {
+      equals: {
+        path: TenantId,
+        value: t-1
+      }
+    }
+  ],
+  HasClauses: true
+}

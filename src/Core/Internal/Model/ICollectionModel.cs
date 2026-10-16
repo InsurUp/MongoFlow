@@ -30,6 +30,9 @@ internal interface ICollectionModel : IVaultCollectionInfo
     /// </summary>
     bool Touches(LambdaExpression filter);
 
+    /// <summary>The search indexes the collection declares, which the migrator creates and keeps up to date.</summary>
+    IReadOnlyList<SearchIndexDeclaration> SearchIndexes { get; }
+
     /// <summary>The fields features filter every read on, rendered with the collection's serializers.</summary>
     IEnumerable<IndexedField> RenderIndexedFields();
 

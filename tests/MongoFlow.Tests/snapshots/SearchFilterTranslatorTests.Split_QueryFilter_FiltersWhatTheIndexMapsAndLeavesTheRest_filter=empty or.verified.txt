@@ -1,0 +1,4 @@
+﻿{
+  Residual: {},
+  HasClauses: false
+}

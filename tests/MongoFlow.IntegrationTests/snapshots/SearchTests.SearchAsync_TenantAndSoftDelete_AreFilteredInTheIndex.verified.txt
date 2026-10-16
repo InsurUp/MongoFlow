@@ -1,0 +1,6 @@
+﻿{
+  Found: [
+    Ada Lovelace
+  ],
+  Pipeline: aggregate([{ "$search" : { "compound" : { "must" : [{ "text" : { "query" : "ada", "path" : "Name" } }], "filter" : [{ "equals" : { "path" : "AgencyId", "value" : "a-1" } }], "mustNot" : [{ "equals" : { "path" : "IsDeleted", "value" : true } }] } } }])
+}

@@ -1,0 +1,20 @@
+﻿{
+  Filter: {
+    TenantId: {
+      $in: [
+        t-1,
+        t-2
+      ]
+    },
+    Reference: {
+      $nin: [
+        {
+          $binary: {
+            base64: Oh8rngAAQACAAAAAAAAAAQ==,
+            subType: 04
+          }
+        }
+      ]
+    }
+  }
+}

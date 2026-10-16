@@ -1,0 +1,10 @@
+﻿{
+  Residual: {
+    TenantId: {
+      Id: 1
+    }
+  },
+  PostFiltered: [
+    TenantId
+  ]
+}

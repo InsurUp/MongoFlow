@@ -23,11 +23,12 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
     public IMongoClient Client => Model.SourceDatabase.Client;
 
     public async Task MigrateAsync(SemVersion? target,
+        MigrateOptions options,
         CancellationToken cancellationToken)
     {
         var model = Model;
         var history = History;
-        if (history is null && model.Encryption is null)
+        if (history is null && model.Setups.Count == 0)
         {
             return;
         }
@@ -36,15 +37,21 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
         try
         {
             // Encrypted collections and their keys first: migrations may write to them, and a collection encrypts only
-            // when it's created to.
-            if (model.Encryption is { } encryption)
+            // when it's created to. Search indexes after: migrations may create the collections or rename the fields
+            // they map.
+            foreach (var setup in model.Setups.Where(setup => setup.BeforeMigrations))
             {
-                await encryption.PrepareAsync(model, cancellationToken);
+                await setup.RunAsync(model, options, cancellationToken);
             }
 
             if (history is not null)
             {
                 await MigrateAsync(history, target, activity, cancellationToken);
+            }
+
+            foreach (var setup in model.Setups.Where(setup => !setup.BeforeMigrations))
+            {
+                await setup.RunAsync(model, options, cancellationToken);
             }
         }
         catch (Exception exception)

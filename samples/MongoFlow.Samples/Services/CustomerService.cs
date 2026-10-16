@@ -1,4 +1,6 @@
 using MongoDB.Bson;
+using MongoDB.Driver;
+using MongoDB.Driver.Search;
 using MongoFlow.Samples.Domain;
 using MongoFlow.Samples.Vaults;
 
@@ -31,4 +33,23 @@ public sealed class CustomerService(CustomerVault vault,
 
     public Task<Customer?> FindAsync(ObjectId customerId, CancellationToken cancellationToken) =>
         vault.Customers.GetByKeyAsync(customerId, cancellationToken);
+
+    /// <summary>The names of the customers whose name has a word starting with <paramref name="prefix"/>, best first.</summary>
+    public async Task<List<string>> SearchByNameAsync(string prefix, CancellationToken cancellationToken)
+    {
+        var search = await vault.Customers.SearchAsync(Builders<Customer>.Search.Autocomplete(x => x.FullName, prefix),
+            cancellationToken: cancellationToken);
+
+        return await search.Limit(10).Project(x => x.FullName).ToListAsync(cancellationToken);
+    }
+
+    /// <summary>How many customers the user can see have <paramref name="name"/> in their name, counted by the search alone.</summary>
+    public async Task<long> CountByNameAsync(string name, CancellationToken cancellationToken)
+    {
+        var meta = await vault.Customers.SearchMetaAsync(Builders<Customer>.Search.Text(x => x.FullName, name),
+            count: new SearchCountOptions { Type = SearchCountType.Total },
+            cancellationToken: cancellationToken);
+
+        return meta.Count.Total ?? 0;
+    }
 }

@@ -1,0 +1,58 @@
+﻿[
+  {
+    type: string
+  },
+  {
+    type: string,
+    analyzer: lucene.turkish,
+    searchAnalyzer: lucene.standard
+  },
+  {
+    type: autocomplete,
+    minGrams: 2,
+    maxGrams: 15,
+    foldDiacritics: true,
+    tokenization: edgeGram
+  },
+  {
+    type: autocomplete,
+    minGrams: 3,
+    maxGrams: 10,
+    foldDiacritics: false,
+    tokenization: nGram,
+    analyzer: lucene.keyword
+  },
+  {
+    type: autocomplete,
+    minGrams: 2,
+    maxGrams: 15,
+    foldDiacritics: true,
+    tokenization: rightEdgeGram
+  },
+  {
+    type: token
+  },
+  {
+    type: token,
+    normalizer: lowercase
+  },
+  {
+    type: number
+  },
+  {
+    type: date
+  },
+  {
+    type: boolean
+  },
+  {
+    type: objectId
+  },
+  {
+    type: uuid
+  },
+  {
+    type: geo,
+    indexShapes: true
+  }
+]

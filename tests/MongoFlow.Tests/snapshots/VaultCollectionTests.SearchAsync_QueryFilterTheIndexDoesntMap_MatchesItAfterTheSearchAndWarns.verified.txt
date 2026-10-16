@@ -1,0 +1,12 @@
+﻿{
+  Pipeline: aggregate([{ "$search" : { "compound" : { "must" : [{ "text" : { "query" : "ada", "path" : "Customer" } }], "filter" : [{ "equals" : { "path" : "TenantId", "value" : "t-1" } }], "mustNot" : [{ "equals" : { "path" : "IsDeleted", "value" : true } }] } } }, { "$match" : { "Total" : { "$gt" : { "$numberDecimal" : "10" } } } }]),
+  Log: [
+    {
+      Category: MongoFlow.Search,
+      Level: Warning,
+      EventId: 27008007,
+      Event: FilterFieldNotPreFiltered,
+      Message: Searches of Orders in default match the query filters on Total after the search: the index doesn't map it to compare exactly, such as a string as SearchField.Token(), or the filters compare it in a way a search can't, such as with a regular expression.
+    }
+  ]
+}

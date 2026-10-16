@@ -51,4 +51,12 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> AddInterceptor(VaultInterceptor interceptor,
         Action<IInterceptorBuilder>? configure = null);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> SearchIndex(string name,
+        Action<ISearchIndexBuilder<TDocument>> configure);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> VectorSearchIndex(string name,
+        Action<IVectorSearchIndexBuilder<TDocument>> configure);
 }

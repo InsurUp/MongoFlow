@@ -30,7 +30,11 @@ internal abstract class CollectionModelBuilder(VaultModelBuilderBase vault, Prop
     public abstract void RunSaveWhen<TTarget>(Func<TTarget, bool> pending,
         FeatureKey? owner);
 
-    /// <summary>Builds the collection on <paramref name="database"/>, encrypting its encrypted members with <paramref name="encryption"/>.</summary>
+    /// <summary>
+    /// Builds the collection on <paramref name="database"/>, encrypting its encrypted members with
+    /// <paramref name="encryption"/>, logging its searches with <paramref name="logs"/>.
+    /// </summary>
     public abstract ICollectionModel Build(IMongoDatabase database,
-        VaultEncryption? encryption);
+        VaultEncryption? encryption,
+        VaultLogs logs);
 }

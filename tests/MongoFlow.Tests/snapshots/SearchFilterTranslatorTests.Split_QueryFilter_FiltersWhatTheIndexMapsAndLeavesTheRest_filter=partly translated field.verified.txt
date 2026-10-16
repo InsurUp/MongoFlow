@@ -1,0 +1,22 @@
+﻿{
+  Filter: [
+    {
+      range: {
+        path: Total,
+        gt: 1
+      }
+    }
+  ],
+  Residual: {
+    Total: {
+      $mod: [
+        2,
+        0
+      ]
+    }
+  },
+  PostFiltered: [
+    Total
+  ],
+  HasClauses: true
+}

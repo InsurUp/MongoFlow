@@ -84,6 +84,9 @@ internal sealed class CollectionSetup(CollectionEncryption collection,
     {
         log.RebuildStarted(collection.Namespace.FullName, Encrypting, resumed);
 
+        // Listed before the rename, which the search process learns of a moment after it.
+        var searchIndexes = await SearchIndexesAsync(resumed ? Encrypting : _name, cancellationToken);
+
         if (!resumed)
         {
             await source.RenameCollectionAsync(_name, Encrypting, cancellationToken: cancellationToken);
@@ -125,6 +128,31 @@ internal sealed class CollectionSetup(CollectionEncryption collection,
 
         log.RebuildCompleted(collection.Namespace.FullName, copied, indexes);
         log.UnencryptedCopyRemains(Unencrypted, collection.Namespace.FullName);
+
+        if (searchIndexes.Count > 0)
+        {
+            log.SearchIndexesFollowCopy(collection.Namespace.FullName, searchIndexes, Unencrypted);
+        }
+    }
+
+    /// <summary>
+    /// The names of <paramref name="name"/>'s MongoDB Search indexes, which follow it when it's renamed; none on a server
+    /// without MongoDB Search, which refuses to list them.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> SearchIndexesAsync(string name,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var listed = await (await source.GetCollection<BsonDocument>(name).SearchIndexes.ListAsync(cancellationToken: cancellationToken))
+                .ToListAsync(cancellationToken);
+
+            return [.. listed.Select(index => index.GetValue("name", "").ToString()!)];
+        }
+        catch (MongoCommandException)
+        {
+            return [];
+        }
     }
 
     /// <summary>

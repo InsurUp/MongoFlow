@@ -1,0 +1,13 @@
+﻿{
+  Residual: {
+    $expr: {
+      $eq: [
+        $TenantId,
+        t-1
+      ]
+    }
+  },
+  PostFiltered: [
+    $expr
+  ]
+}

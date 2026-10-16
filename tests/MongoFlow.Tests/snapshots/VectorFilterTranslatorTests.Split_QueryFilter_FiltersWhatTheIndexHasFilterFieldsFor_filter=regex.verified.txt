@@ -1,0 +1,13 @@
+﻿{
+  Residual: {
+    TenantId: {
+      $regularExpression: {
+        pattern: ^t,
+        options: 
+      }
+    }
+  },
+  PostFiltered: [
+    TenantId
+  ]
+}

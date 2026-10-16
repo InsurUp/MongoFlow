@@ -1,0 +1,23 @@
+﻿[
+  {
+    Category: MongoFlow.Search,
+    Level: Warning,
+    EventId: 27008007,
+    Event: FilterFieldNotPreFiltered,
+    Message: Searches of Products in default match the query filters on Price after the search: the index doesn't map it to compare exactly, such as a string as SearchField.Token(), or the filters compare it in a way a search can't, such as with a regular expression.
+  },
+  {
+    Category: MongoFlow.Search,
+    Level: Warning,
+    EventId: 27008007,
+    Event: FilterFieldNotPreFiltered,
+    Message: Searches of Products in default match the query filters on Name after the search: the index doesn't map it to compare exactly, such as a string as SearchField.Token(), or the filters compare it in a way a search can't, such as with a regular expression.
+  },
+  {
+    Category: MongoFlow.Search,
+    Level: Warning,
+    EventId: 27008007,
+    Event: FilterFieldNotPreFiltered,
+    Message: Searches of Products in vectors match the query filters on Price after the search: the index doesn't map it to compare exactly, such as a string as SearchField.Token(), or the filters compare it in a way a search can't, such as with a regular expression.
+  }
+]
