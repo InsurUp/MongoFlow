@@ -98,5 +98,5 @@ public partial class QueryableEncryptionTests
         string keyVaultDatabase) where TVault : MongoVault =>
         vault.UseQueryableEncryption(qe => qe
             .KeyVault(keyVaultDatabase, "__keyVault")
-            .Kms("local", new Dictionary<string, object> { ["key"] = MasterKey }));
+            .Kms(new LocalKms(MasterKey)));
 }

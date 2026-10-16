@@ -8,9 +8,7 @@ namespace MongoFlow.Encryption;
 internal sealed class QueryableEncryption : VaultEncryption
 {
     private readonly CollectionNamespace _keyVault;
-    private readonly string _kmsProvider;
-    private readonly BsonDocument? _masterKey;
-    private readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, object>> _kmsProviders;
+    private readonly KmsProvider _kms;
     private readonly SharedVaultResources _shared;
     private EncryptionClients? _clients;
 
@@ -20,11 +18,8 @@ internal sealed class QueryableEncryption : VaultEncryption
         _keyVault = options.KeyVaultNamespace ?? throw new VaultConfigurationException(
             "UseQueryableEncryption needs the collection the data keys are kept in: call KeyVault, such as " +
             "KeyVault(\"encryption\", \"__keyVault\").");
-        _kmsProvider = options.KmsProvider ?? throw new VaultConfigurationException(
-            "UseQueryableEncryption needs the KMS that protects the data keys: call Kms, such as " +
-            "Kms(\"local\", new Dictionary<string, object> { [\"key\"] = masterKey }).");
-        _masterKey = options.MasterKey;
-        _kmsProviders = new Dictionary<string, IReadOnlyDictionary<string, object>> { [_kmsProvider] = options.KmsCredentials! };
+        _kms = options.KmsProvider ?? throw new VaultConfigurationException(
+            "UseQueryableEncryption needs the KMS that protects the data keys: call Kms, such as Kms(new LocalKms(masterKey)).");
         _shared = services.GetRequiredService<SharedVaultResources>();
     }
 
@@ -37,8 +32,8 @@ internal sealed class QueryableEncryption : VaultEncryption
                 "MongoFlow makes the client that encrypts from it.");
         }
 
-        _clients = _shared.GetOrAdd(new ClientsKey(source.Client, _keyVault, Fingerprint()),
-            () => EncryptionClients.Create(source.Client, _keyVault, _kmsProviders));
+        _clients = _shared.GetOrAdd(new ClientsKey(source.Client, _keyVault, _kms.Name, Fingerprint(), _kms.Tls),
+            () => EncryptionClients.Create(source.Client, _keyVault, _kms));
 
         return _clients.Encrypting.GetDatabase(source.DatabaseNamespace.DatabaseName, source.Settings);
     }
@@ -69,7 +64,7 @@ internal sealed class QueryableEncryption : VaultEncryption
 
         foreach (var collection in collections)
         {
-            await new CollectionSetup(collection, _clients!, model.SourceDatabase, model.Logs.Encryption, _kmsProvider, _masterKey)
+            await new CollectionSetup(collection, _clients!, model.SourceDatabase, model.Logs.Encryption, _kms.Name, _kms.MasterKey)
                 .RunAsync(cancellationToken);
         }
     }
@@ -95,11 +90,13 @@ internal sealed class QueryableEncryption : VaultEncryption
 
     // Vaults over one client share what encrypts only with the same key vault and KMS.
     private string Fingerprint() =>
-        string.Join(";", _kmsProviders.SelectMany(provider => provider.Value
+        string.Join(";", _kms.Credentials
             .OrderBy(setting => setting.Key, StringComparer.Ordinal)
-            .Select(setting => $"{provider.Key}.{setting.Key}={(setting.Value is byte[] bytes ? Convert.ToBase64String(bytes) : setting.Value)}")));
+            .Select(setting => $"{setting.Key}={(setting.Value is byte[] bytes ? Convert.ToBase64String(bytes) : setting.Value)}"));
 
     private sealed record ClientsKey(IMongoClient Source,
         CollectionNamespace KeyVault,
-        string Kms);
+        string Kms,
+        string Credentials,
+        SslSettings? Tls);
 }

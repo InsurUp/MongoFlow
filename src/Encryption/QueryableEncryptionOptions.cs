@@ -1,4 +1,3 @@
-using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoFlow.Encryption;
@@ -11,11 +10,7 @@ public sealed class QueryableEncryptionOptions
 {
     internal CollectionNamespace? KeyVaultNamespace { get; private set; }
 
-    internal string? KmsProvider { get; private set; }
-
-    internal IReadOnlyDictionary<string, object>? KmsCredentials { get; private set; }
-
-    internal BsonDocument? MasterKey { get; private set; }
+    internal KmsProvider? KmsProvider { get; private set; }
 
     /// <summary>
     /// The collection the data keys are kept in, such as <c>encryption.__keyVault</c>, through the client the vault was
@@ -32,25 +27,14 @@ public sealed class QueryableEncryptionOptions
     }
 
     /// <summary>
-    /// The KMS that encrypts the data keys, as the driver names it: <c>local</c>, with a 96-byte <c>key</c>, or
-    /// <c>aws</c>, <c>azure</c>, <c>gcp</c> or <c>kmip</c>, with their credentials. Data keys are created with it, under
-    /// <paramref name="masterKey"/>, the customer master key it holds, which every provider but <c>local</c> needs.
+    /// The KMS that protects the data keys, holding or reaching the master key they're created under, such as
+    /// <c>new LocalKms(masterKey)</c> or <c>AwsKms.FromEnvironment(new AwsMasterKey(region, keyArn))</c>.
     /// </summary>
-    /// <param name="provider">The KMS provider's name, such as <c>local</c> or <c>aws</c>.</param>
-    /// <param name="credentials">Its credentials, such as <c>{ ["key"] = masterKeyBytes }</c> for <c>local</c>.</param>
-    /// <param name="masterKey">
-    /// The customer master key, such as <c>{ region: "eu-central-1", key: "arn:aws:kms:..." }</c> for AWS.
-    /// </param>
-    public QueryableEncryptionOptions Kms(string provider,
-        IReadOnlyDictionary<string, object> credentials,
-        BsonDocument? masterKey = null)
+    public QueryableEncryptionOptions Kms(KmsProvider provider)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
-        ArgumentNullException.ThrowIfNull(credentials);
+        ArgumentNullException.ThrowIfNull(provider);
 
         KmsProvider = provider;
-        KmsCredentials = credentials;
-        MasterKey = masterKey;
         return this;
     }
 }

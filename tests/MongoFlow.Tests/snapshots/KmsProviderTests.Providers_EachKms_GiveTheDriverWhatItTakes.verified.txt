@@ -1,0 +1,104 @@
+﻿[
+  {
+    Name: local,
+    Credentials: {
+      key: 96 bytes
+    },
+    Tls: false
+  },
+  {
+    Name: aws,
+    Credentials: {
+      accessKeyId: AKIA,
+      secretAccessKey: secret,
+      sessionToken: token
+    },
+    MasterKey: {
+      region: eu-central-1,
+      key: arn:aws:kms:eu-central-1:111122223333:key/0000,
+      endpoint: vpce.kms.example.com
+    },
+    Tls: false
+  },
+  {
+    Name: aws,
+    Credentials: {},
+    MasterKey: {
+      region: eu-central-1,
+      key: arn:aws:kms:eu-central-1:111122223333:key/0000
+    },
+    Tls: false
+  },
+  {
+    Name: azure,
+    Credentials: {
+      clientId: client,
+      clientSecret: secret,
+      identityPlatformEndpoint: login.microsoftonline.us,
+      tenantId: tenant
+    },
+    MasterKey: {
+      keyVaultEndpoint: my-vault.vault.azure.net,
+      keyName: mongoflow,
+      keyVersion: 2
+    },
+    Tls: false
+  },
+  {
+    Name: azure,
+    Credentials: {},
+    MasterKey: {
+      keyVaultEndpoint: my-vault.vault.azure.net,
+      keyName: mongoflow
+    },
+    Tls: false
+  },
+  {
+    Name: gcp,
+    Credentials: {
+      email: mongoflow@project.iam.gserviceaccount.com,
+      endpoint: oauth.example.com,
+      privateKey: cHJpdmF0ZQ==
+    },
+    MasterKey: {
+      projectId: project,
+      location: europe-west1,
+      keyRing: ring,
+      keyName: mongoflow,
+      keyVersion: 1,
+      endpoint: kms.example.com
+    },
+    Tls: false
+  },
+  {
+    Name: gcp,
+    Credentials: {},
+    MasterKey: {
+      projectId: project,
+      location: global,
+      keyRing: ring,
+      keyName: mongoflow
+    },
+    Tls: false
+  },
+  {
+    Name: kmip,
+    Credentials: {
+      endpoint: kmip.example.com:5696
+    },
+    MasterKey: {
+      keyId: 1,
+      endpoint: other:5696,
+      delegated: true
+    },
+    Tls: true
+  },
+  {
+    Name: kmip,
+    Credentials: {
+      endpoint: kmip.example.com
+    },
+    MasterKey: {},
+    Tls: true
+  }
+]

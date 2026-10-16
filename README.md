@@ -215,7 +215,7 @@ services.AddMongoVault<CustomerVault>(vault => vault
     .UseDatabase("crm")
     .UseQueryableEncryption(qe => qe
         .KeyVault("encryption", "__keyVault")
-        .Kms("local", new Dictionary<string, object> { ["key"] = masterKey }))
+        .Kms(new LocalKms(masterKey)))
     .Collection(x => x.Customers, customers => customers
         .Encrypt(x => x.Ssn, EncryptedQuery.Equality)
         .Encrypt(x => x.Salary, EncryptedQuery.Range(0, 1_000_000))));

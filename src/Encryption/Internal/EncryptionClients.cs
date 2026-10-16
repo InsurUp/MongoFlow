@@ -31,9 +31,15 @@ internal sealed class EncryptionClients : IDisposable
 
     public static EncryptionClients Create(IMongoClient source,
         CollectionNamespace keyVault,
-        IReadOnlyDictionary<string, IReadOnlyDictionary<string, object>> kmsProviders)
+        KmsProvider kms)
     {
         RegisterAutoEncryption();
+
+        var kmsProviders = new Dictionary<string, IReadOnlyDictionary<string, object>> { [kms.Name] = kms.Credentials };
+        // Left out without TLS settings: the driver refuses them null.
+        var tlsOptions = kms.Tls is { } tls
+            ? new Optional<IReadOnlyDictionary<string, SslSettings>>(new Dictionary<string, SslSettings> { [kms.Name] = tls })
+            : default;
 
         var settings = source.Settings.Clone();
 
@@ -47,9 +53,10 @@ internal sealed class EncryptionClients : IDisposable
         settings.AutoEncryptionOptions = new AutoEncryptionOptions(keyVault,
             kmsProviders,
             keyVaultClient: new Optional<IMongoClient>(source),
+            tlsOptions: tlsOptions,
             bypassQueryAnalysis: true);
 
-        var clientEncryption = new ClientEncryption(new ClientEncryptionOptions(source, keyVault, kmsProviders));
+        var clientEncryption = new ClientEncryption(new ClientEncryptionOptions(source, keyVault, kmsProviders, tlsOptions));
 
         return new EncryptionClients(source, new MongoClient(settings), clientEncryption);
     }

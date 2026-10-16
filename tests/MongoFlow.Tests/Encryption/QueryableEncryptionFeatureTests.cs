@@ -31,7 +31,7 @@ public partial class QueryableEncryptionFeatureTests
         services.AddMongoVault<StrictVault>(vault => vault.UseDatabase(Offline.DatabaseName).UseQueryableEncryption(Encryption()));
         services.AddMongoVault<KeepingVault>(vault => vault
             .UseDatabase(Offline.DatabaseName)
-            .UseQueryableEncryption(qe => qe.KeyVault("encryption", "__keyVault").Kms("local", new Dictionary<string, object> { ["key"] = new byte[96].Select(_ => (byte)1).ToArray() })));
+            .UseQueryableEncryption(qe => qe.KeyVault("encryption", "__keyVault").Kms(new LocalKms(Enumerable.Repeat((byte)1, 96).ToArray()))));
         await using var provider = services.BuildServiceProvider();
 
         // Act
@@ -49,6 +49,40 @@ public partial class QueryableEncryptionFeatureTests
             SameSettingsShareTheClient = ReferenceEquals(customers.Client, stricts.Client),
             OtherKeysDont = ReferenceEquals(customers.Client, keepings.Client)
         });
+    }
+
+    [Test]
+    [Arguments("Local")]
+    [Arguments("Aws")]
+    [Arguments("AwsFromEnvironment")]
+    [Arguments("Azure")]
+    [Arguments("AzureFromManagedIdentity")]
+    [Arguments("Gcp")]
+    [Arguments("GcpFromEnvironment")]
+    [Arguments("Kmip")]
+    public async Task Build_EachKmsProvider_MakesAClientThatEncrypts(string provider)
+    {
+        // Arrange — the driver and libmongocrypt check each provider's settings when the client that encrypts is made.
+        KmsProvider kms = provider switch
+        {
+            "Local" => new LocalKms(MasterKey),
+            "Aws" => new AwsKms(new AwsMasterKey("eu-central-1", "arn:aws:kms:eu-central-1:111122223333:key/0"), "AKIA", "secret"),
+            "AwsFromEnvironment" => AwsKms.FromEnvironment(new AwsMasterKey("eu-central-1", "arn:aws:kms:eu-central-1:111122223333:key/0")),
+            "Azure" => new AzureKms(new AzureMasterKey("vault.vault.azure.net", "key"), "tenant", "client", "secret"),
+            "AzureFromManagedIdentity" => AzureKms.FromManagedIdentity(new AzureMasterKey("vault.vault.azure.net", "key")),
+            "Gcp" => new GcpKms(new GcpMasterKey("project", "global", "ring", "key"), "account@project.iam.gserviceaccount.com", "cHJpdmF0ZQ=="),
+            "GcpFromEnvironment" => GcpKms.FromEnvironment(new GcpMasterKey("project", "global", "ring", "key")),
+            _ => new KmipKms("kmip.example.com:5696", new SslSettings())
+        };
+        await using var host = new VaultHost<CustomerVault>(vault => vault
+            .UseQueryableEncryption(qe => qe.KeyVault("encryption", "__keyVault").Kms(kms))
+            .Collection(x => x.Customers, customers => customers.Encrypt(x => x.Ssn, EncryptedQuery.Equality)));
+
+        // Act
+        var model = host.Services.GetRequiredService<VaultModelProvider<CustomerVault>>().Model;
+
+        // Assert
+        await Assert.That(model.Client.Settings.AutoEncryptionOptions!.KmsProviders.Keys).IsEquivalentTo([kms.Name]);
     }
 
     [Test]
@@ -150,7 +184,7 @@ public partial class QueryableEncryptionFeatureTests
 
             if (missing != "Kms")
             {
-                qe.Kms("local", new Dictionary<string, object> { ["key"] = MasterKey });
+                qe.Kms(new LocalKms(MasterKey));
             }
         }));
 
@@ -185,7 +219,7 @@ public partial class QueryableEncryptionFeatureTests
     }
 
     private static Action<QueryableEncryptionOptions> Encryption() =>
-        qe => qe.KeyVault("encryption", "__keyVault").Kms("local", new Dictionary<string, object> { ["key"] = MasterKey });
+        qe => qe.KeyVault("encryption", "__keyVault").Kms(new LocalKms(MasterKey));
 
     private static object Resolve(IAsyncDisposable host) =>
         host switch

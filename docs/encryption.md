@@ -24,7 +24,7 @@ services.AddMongoVault<CustomerVault>(vault => vault
     .UseDatabase("crm")
     .UseQueryableEncryption(qe => qe
         .KeyVault("encryption", "__keyVault")
-        .Kms("local", new Dictionary<string, object> { ["key"] = masterKey }))
+        .Kms(new LocalKms(masterKey)))
     .Collection(x => x.Customers, customers => customers
         .Encrypt(x => x.Ssn, EncryptedQuery.Equality)
         .Encrypt(x => x.Salary, EncryptedQuery.Range(0, 1_000_000))
@@ -34,9 +34,8 @@ services.AddMongoVault<CustomerVault>(vault => vault
 
 - **The key vault** is the collection the data keys are kept in, through the client the vault was given: one per
   deployment, usually, shared by every encrypted collection.
-- **The KMS** protects the data keys. `local` takes a 96-byte key you keep safe, out of the database; `aws`, `azure`,
-  `gcp` and `kmip` take their credentials, and the customer master key as `masterKey`. Losing the master key loses the
-  data.
+- **The KMS** protects the data keys: it holds, or reaches, the master key they're encrypted under, which never goes
+  into MongoDB. See [Choosing a KMS](#choosing-a-kms).
 - **Each encrypted member** is declared on its collection, nested ones too. Its BSON type comes from its serializer;
   give it to `Encrypt` as `bsonType` where the serializer doesn't tell, such as an `object` member.
 
@@ -51,6 +50,35 @@ What a member allows is fixed when its collection is created: MongoDB can't chan
 `EncryptedQuery.EqualityWith(contention)` and `Range`'s `contention` set the contention factor: higher guards values
 many documents share better, and makes their queries slower. `Range` also takes `sparsity` and `trimFactor`, which trade
 the index's size against query speed. A range's bounds are of the member's type; a value outside them can't be written.
+
+## Choosing a KMS
+
+Your fields are encrypted with data keys, one per field, which the migrator creates and keeps in the key vault. The data
+keys are encrypted in turn with a master key, which the KMS holds or reaches. Whoever has the master key and the
+database can read the data; losing the master key loses it.
+
+```csharp
+// A 96-byte key you hold, kept as a secret: generate it once with
+// Convert.ToBase64String(RandomNumberGenerator.GetBytes(96)).
+qe.Kms(LocalKms.FromBase64(configuration["Encryption:MasterKey"]!));
+
+// AWS KMS, with the credentials of the environment: an EC2 or ECS role, or environment variables.
+qe.Kms(AwsKms.FromEnvironment(new AwsMasterKey("eu-central-1", "arn:aws:kms:eu-central-1:111122223333:key/...")));
+
+// Azure Key Vault, with the managed identity of the Azure host, or an app registration's secret.
+qe.Kms(AzureKms.FromManagedIdentity(new AzureMasterKey("my-vault.vault.azure.net", "mongoflow")));
+qe.Kms(new AzureKms(new AzureMasterKey("my-vault.vault.azure.net", "mongoflow"), tenantId, clientId, clientSecret));
+
+// Google Cloud KMS, with the host's service account, or a service account's key.
+qe.Kms(GcpKms.FromEnvironment(new GcpMasterKey("my-project", "europe-west1", "my-ring", "mongoflow")));
+
+// A KMIP server, such as HashiCorp Vault, authenticated with a client certificate.
+qe.Kms(new KmipKms("kmip.example.com:5696", new SslSettings { ClientCertificates = [certificate] }));
+```
+
+With a cloud KMS, the master key never leaves it: the app only has credentials allowed to use it, which can be audited and
+revoked. Each provider takes `Tls`, for a certificate authority of your own. Every instance of the app needs the same
+KMS. MongoDB Community works with all of them.
 
 ## Setting up the collections
 
