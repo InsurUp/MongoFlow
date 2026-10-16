@@ -12,6 +12,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="10.0.12" />
     <PackageVersion Include="MongoDB.Driver" Version="3.12.0" />
+    <PackageVersion Include="MongoDB.Driver.Encryption" Version="3.12.0" />
     <PackageVersion Include="Prest" Version="0.2.1" />
     <PackageVersion Include="Semver" Version="3.0.0" />
   </ItemGroup>

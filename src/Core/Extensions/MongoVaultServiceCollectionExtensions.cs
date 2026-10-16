@@ -135,6 +135,7 @@ public static class MongoVaultServiceCollectionExtensions
         services.TryAddScoped<IVaultTransactionManager>(provider => provider.GetRequiredService<VaultTransactionManager>());
         services.TryAddSingleton<IVaultMigrator, VaultMigrator>();
         services.TryAddSingleton(provider => new VaultMetrics(provider.GetService<IMeterFactory>()));
+        services.TryAddSingleton<SharedVaultResources>();
 
         return registration;
     }

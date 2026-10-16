@@ -4,7 +4,9 @@ namespace MongoFlow;
 
 /// <summary>
 /// Applies vaults' migrations. Registered as a singleton by <c>AddMongoVault</c>. Each migration runs in a DI scope of
-/// its own, in a transaction unless it opts out, and is recorded in the same transaction.
+/// its own, in a transaction unless it opts out, and is recorded in the same transaction. A vault that encrypts, with
+/// MongoFlow.Encryption, has its encrypted collections set up first: created with their data keys, or rebuilt encrypted
+/// when they hold documents already.
 /// </summary>
 /// <remarks>
 /// Run it from one instance of the application, such as at startup before it serves requests. Instances migrating at once

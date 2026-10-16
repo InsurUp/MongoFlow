@@ -36,7 +36,7 @@ internal static class IndexCheck
                     continue;
                 }
 
-                var cursor = await model.Database.GetCollection<BsonDocument>(collection.Namespace.CollectionName).Indexes.ListAsync();
+                var cursor = await model.SourceDatabase.GetCollection<BsonDocument>(collection.Namespace.CollectionName).Indexes.ListAsync();
                 var indexes = await cursor.ToListAsync();
 
                 if (indexes.Count == 0)

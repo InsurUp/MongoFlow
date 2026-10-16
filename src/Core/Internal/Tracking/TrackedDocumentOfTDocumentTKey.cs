@@ -16,7 +16,8 @@ internal sealed class TrackedDocument<TDocument, TKey>(KeyedCollectionModel<TDoc
 
     public override FeatureSet Disabled => disabled;
 
-    public override BsonSnapshot Serialize() => BsonSnapshot.Of(model.MongoCollection.DocumentSerializer, document);
+    public override BsonSnapshot Serialize() =>
+        BsonSnapshot.Of(model.MongoCollection.DocumentSerializer, document, sensitive: model.Encryption is not null);
 
     public override bool RunsSave() => model.RunsSaveFor(document, disabled);
 
@@ -25,7 +26,8 @@ internal sealed class TrackedDocument<TDocument, TKey>(KeyedCollectionModel<TDoc
         var current = Serialize();
         try
         {
-            if (BsonDiff.Compare(Snapshot.Span, current.Span) is not { } changes)
+            // An encrypted field is set whole: the server refuses an update inside one.
+            if (BsonDiff.Compare(Snapshot.Span, current.Span, model.Encryption?.Paths) is not { } changes)
             {
                 return null;
             }

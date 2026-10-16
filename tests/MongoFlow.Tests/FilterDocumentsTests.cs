@@ -9,7 +9,9 @@ namespace MongoFlow.Tests;
 /// <item>null filters drop out, nothing left means no filter, and a lone filter is returned as it is;</item>
 /// <item>filters on different fields are joined side by side, which the server matches faster than <c>$and</c>;</item>
 /// <item>filters that constrain the same field are joined with <c>$and</c>, so neither overrides the other;</item>
-/// <item>the filters themselves are left unchanged, since a save shares its query filters between operations.</item>
+/// <item>the filters themselves are left unchanged, since a save shares its query filters between operations;</item>
+/// <item><see cref="FilterDocuments.Touches"/> finds a field a filter compares that reaches a path, at its top level, in
+/// <c>$and</c>, <c>$or</c> and <c>$nor</c>, or referred to in <c>$expr</c>.</item>
 /// </list>
 /// </summary>
 public class FilterDocumentsTests
@@ -76,5 +78,25 @@ public class FilterDocumentsTests
 
         // Assert
         await Assert.That(queryFilter.ToJson()).IsEqualTo(before);
+    }
+
+    [Test]
+    [Arguments("{ Ssn: '1' }", true)]
+    [Arguments("{ 'Address.Street': 'Baker Street' }", true)]
+    [Arguments("{ Address: { Street: 'Baker Street' } }", true)]
+    [Arguments("{ $or: [{ Name: 'Ada' }, { $and: [{ Ssn: '1' }] }] }", true)]
+    [Arguments("{ $nor: [{ Ssn: { $exists: true } }] }", true)]
+    [Arguments("{ $expr: { $eq: ['$Ssn', '1'] } }", true)]
+    [Arguments("{ $expr: { $eq: ['$$ROOT', '$Name'] } }", false)]
+    [Arguments("{ Name: 'Ada', 'Address.City': 'London', $comment: 'Ssn' }", false)]
+    [Arguments("{ $and: 'not clauses' }", false)]
+    public async Task Touches_Filter_FindsTheFieldsThatReachAPath(string filter,
+        bool touches)
+    {
+        // Act
+        var touched = FilterDocuments.Touches(BsonDocument.Parse(filter), ["Ssn", "Address.Street"]);
+
+        // Assert
+        await Assert.That(touched).IsEqualTo(touches);
     }
 }

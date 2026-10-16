@@ -23,15 +23,16 @@ public static class MongoFlowTelemetry
     public static class Activities
     {
         /// <summary>
-        /// A save that has writes queued: its interceptors, its bulk write and, in a transaction of its own, the commit.
+        /// A save that has writes queued: its interceptors, its writes and, in a transaction of its own, the commit.
         /// Tagged with <see cref="Tags.Vault"/>, <see cref="Tags.SaveTransaction"/>, <see cref="Tags.OperationCount"/>
         /// and, once written, what it changed.
         /// </summary>
         public const string Save = "MongoFlow.Save";
 
         /// <summary>
-        /// One vault migrated to a target version by <c>IVaultMigrator</c>, tagged with <see cref="Tags.Vault"/>,
-        /// <see cref="Tags.MigrationCurrent"/> and <see cref="Tags.MigrationTarget"/>.
+        /// One vault migrated to a target version by <c>IVaultMigrator</c>, after its encrypted collections are set up if it
+        /// encrypts, tagged with <see cref="Tags.Vault"/>, <see cref="Tags.MigrationCurrent"/> and
+        /// <see cref="Tags.MigrationTarget"/>.
         /// </summary>
         public const string Migrate = "MongoFlow.Migrate";
 

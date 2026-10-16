@@ -21,7 +21,8 @@ public interface IMongoVault
 {
     /// <summary>
     /// Writes every queued operation, in order, as one client bulk write, after an update for each tracked document that
-    /// changed. It runs in the scope's open transaction if there is one, and in its own otherwise. Nothing is written if
+    /// changed; through a client that encrypts, which the driver refuses client bulk writes, as collection commands, in the
+    /// same order. It runs in the scope's open transaction if there is one, and in its own otherwise. Nothing is written if
     /// any operation fails: in an open transaction, a save that fails after writing rolls the transaction back. Queued
     /// operations are discarded either way; tracked changes stay pending until a save that writes them commits, or
     /// <see cref="Reset"/> forgets them. With nothing to write, it returns <see cref="SaveResult.Empty"/> without a

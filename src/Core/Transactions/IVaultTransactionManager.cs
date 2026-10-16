@@ -6,7 +6,7 @@ namespace MongoFlow;
 /// run one after another, not in parallel.
 /// </summary>
 /// <remarks>
-/// While a transaction is open, every vault saved in the scope joins it: its bulk write runs in the transaction's session,
+/// While a transaction is open, every vault saved in the scope joins it: its writes run in the transaction's session,
 /// and only the transaction's owner commits. A save with no open transaction starts its own and exposes it as
 /// <see cref="Current"/> while its interceptors run, so saves they make join it.
 /// </remarks>

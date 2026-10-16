@@ -90,6 +90,11 @@
     Id: 27003011
   },
   {
+    Group: Save,
+    Event: WritingOneAtATime,
+    Id: 27003012
+  },
+  {
     Group: Transaction,
     Event: Began,
     Id: 27004001
@@ -148,5 +153,40 @@
     Group: Migrations,
     Event: HistoryHasDuplicates,
     Id: 27006005
+  },
+  {
+    Group: Encryption,
+    Event: CollectionCreated,
+    Id: 27007001
+  },
+  {
+    Group: Encryption,
+    Event: CollectionUpToDate,
+    Id: 27007002
+  },
+  {
+    Group: Encryption,
+    Event: RebuildStarted,
+    Id: 27007003
+  },
+  {
+    Group: Encryption,
+    Event: RebuildProgress,
+    Id: 27007004
+  },
+  {
+    Group: Encryption,
+    Event: RebuildCompleted,
+    Id: 27007005
+  },
+  {
+    Group: Encryption,
+    Event: IndexSkipped,
+    Id: 27007006
+  },
+  {
+    Group: Encryption,
+    Event: UnencryptedCopyRemains,
+    Id: 27007007
   }
 ]

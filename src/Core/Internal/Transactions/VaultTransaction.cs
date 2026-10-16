@@ -66,7 +66,10 @@ internal sealed class VaultTransaction(VaultTransactionManager owner,
 
         if (!ReferenceEquals(_client, client))
         {
-            throw new InvalidOperationException("A vault on a different client can't join this transaction.");
+            throw new InvalidOperationException(
+                "A vault on a different client can't join this transaction. A vault that encrypts uses a client of its own, " +
+                "which vaults with the same encryption settings share: give the other vault the same settings to save both " +
+                "in one transaction.");
         }
 
         return _session;

@@ -5,7 +5,8 @@ namespace MongoFlow;
 
 /// <summary>A write queued on a vault collection. Nothing is written until the vault is saved.</summary>
 /// <remarks>
-/// A save sends every queued operation, in order, as one ordered client bulk write inside a transaction. Operations
+/// A save sends every queued operation, in order, as one ordered client bulk write inside a transaction, or, through a
+/// client that encrypts, as collection commands in that order. Operations
 /// that target a key or a filter also get the collection's query filters, so a write can't reach a document a query
 /// couldn't see.
 /// </remarks>
@@ -86,7 +87,7 @@ public abstract class VaultOperation
     /// </remarks>
     public virtual BsonValue? RenderUpdate() => null;
 
-    /// <summary>What the operation changed. Available after the bulk write.</summary>
+    /// <summary>What the operation changed. Available once the save has written.</summary>
     public OperationResult? Result { get; internal set; }
 
     /// <summary>The features switched off on the collection view the operation was queued through.</summary>
@@ -107,6 +108,20 @@ public abstract class VaultOperation
     /// <summary>The model this operation adds to the save's bulk write.</summary>
     internal abstract ValueTask<BulkWriteModel> CreateWriteModelAsync(SaveRun run,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Writes the operation with a collection command, in the save's session, for a client that encrypts, and puts what it
+    /// changed in <paramref name="results"/> at <paramref name="index"/>, its place in the save. Returns how many of the
+    /// save's operations it wrote: an insert writes the inserts into its collection that follow it too.
+    /// </summary>
+    internal abstract ValueTask<int> WriteAsync(SaveRun run,
+        int index,
+        OperationResult[] results,
+        CancellationToken cancellationToken);
+
+    /// <summary>Whether a unique index refused the write.</summary>
+    private protected static bool IsDuplicateKey(MongoWriteException exception) =>
+        exception.WriteError?.Category == ServerErrorCategory.DuplicateKey;
 
     private protected abstract object? GetDocument();
 }

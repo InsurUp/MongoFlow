@@ -20,10 +20,14 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
             ? model.Database.GetCollection<MigrationRecord>(migrations.CollectionName)
             : null;
 
+    public IMongoClient Client => Model.SourceDatabase.Client;
+
     public async Task MigrateAsync(SemVersion? target,
         CancellationToken cancellationToken)
     {
-        if (History is not { } history)
+        var model = Model;
+        var history = History;
+        if (history is null && model.Encryption is null)
         {
             return;
         }
@@ -31,7 +35,17 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
         using var activity = VaultActivities.StartMigrate(typeof(TVault).Name);
         try
         {
-            await MigrateAsync(history, target, activity, cancellationToken);
+            // Encrypted collections and their keys first: migrations may write to them, and a collection encrypts only
+            // when it's created to.
+            if (model.Encryption is { } encryption)
+            {
+                await encryption.PrepareAsync(model, cancellationToken);
+            }
+
+            if (history is not null)
+            {
+                await MigrateAsync(history, target, activity, cancellationToken);
+            }
         }
         catch (Exception exception)
         {

@@ -1,0 +1,26 @@
+﻿{
+  Replaced: {
+    Kind: Replace,
+    Name: MongoWriteException
+  },
+  Updated: {
+    Kind: Update,
+    Name: MongoWriteException
+  },
+  Stored: [
+    {
+      _id: 1,
+      Customer: ada,
+      Total: {
+        $numberDecimal: 0
+      }
+    },
+    {
+      _id: 2,
+      Customer: bob,
+      Total: {
+        $numberDecimal: 0
+      }
+    }
+  ]
+}

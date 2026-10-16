@@ -74,14 +74,48 @@ public abstract class VaultOperation<TDocument> : VaultOperation
     {
         var filter = await MatchAsync(run, null, condition, cancellationToken);
 
-        return await TypedModel.MongoCollection.Find(run.Session, filter).Limit(1).AnyAsync(cancellationToken);
+        return await TypedModel.MongoCollection.Find(run.Session, new BsonDocumentFilterDefinition<TDocument>(filter))
+            .Limit(1)
+            .AnyAsync(cancellationToken);
     }
 
     /// <summary>What the write matches: its key, or <paramref name="filter"/>, with its query filters and condition.</summary>
-    private protected ValueTask<FilterDefinition<TDocument>> WriteFilterAsync(SaveRun run,
+    private protected async ValueTask<FilterDefinition<TDocument>> WriteFilterAsync(SaveRun run,
+        FilterDefinition<TDocument>? filter,
+        CancellationToken cancellationToken) =>
+        new BsonDocumentFilterDefinition<TDocument>(await MatchAsync(run, filter, Condition, cancellationToken));
+
+    /// <summary>
+    /// <see cref="WriteFilterAsync"/> as BSON, with the values it compares encrypted members with encrypted, for a
+    /// collection command.
+    /// </summary>
+    private protected ValueTask<BsonDocument> WriteFilterDocumentAsync(SaveRun run,
         FilterDefinition<TDocument>? filter,
         CancellationToken cancellationToken) =>
         MatchAsync(run, filter, Condition, cancellationToken);
+
+    /// <summary>
+    /// The <c>_id</c> of each document <paramref name="filter"/> matches, read in the save's session: how a set-based write
+    /// reaches documents one at a time on a collection whose documents the server changes only one at a time. Logged, as
+    /// it costs a round trip per document.
+    /// </summary>
+    private protected async Task<List<BsonValue>> MatchingIdsAsync(SaveRun run,
+        BsonDocument filter,
+        CancellationToken cancellationToken)
+    {
+        var found = await TypedModel.BsonCollection
+            .Find(run.Session, filter)
+            .Project(new BsonDocument("_id", 1))
+            .ToListAsync(cancellationToken);
+
+        run.Runtime.Model.Logs.Save.WritingOneAtATime(Kind, Namespace.CollectionName, found.Count);
+
+        return found.ConvertAll(document => document["_id"]);
+    }
+
+    /// <summary>A filter of the document with <paramref name="id"/>.</summary>
+    private protected static FilterDefinition<TDocument> ById(BsonValue id) =>
+        new BsonDocumentFilterDefinition<TDocument>(new BsonDocument("_id", id));
 
     internal override TrackedDocument? TrackWritten() => Tracker!.Snapshot(Document!);
 
@@ -89,10 +123,10 @@ public abstract class VaultOperation<TDocument> : VaultOperation
 
     /// <summary>
     /// The operation's key or <paramref name="filter"/>, joined with the query filters it was queued under and
-    /// <paramref name="condition"/>. A key is matched as BSON and the query filters are rendered once per save, so a write
-    /// by key needs no LINQ translation.
+    /// <paramref name="condition"/>, with the values it compares encrypted members with encrypted. A key is matched as BSON
+    /// and the query filters are rendered once per save, so a write by key needs no LINQ translation.
     /// </summary>
-    private async ValueTask<FilterDefinition<TDocument>> MatchAsync(SaveRun run,
+    private async ValueTask<BsonDocument> MatchAsync(SaveRun run,
         FilterDefinition<TDocument>? filter,
         BsonDocument? condition,
         CancellationToken cancellationToken)
@@ -100,7 +134,8 @@ public abstract class VaultOperation<TDocument> : VaultOperation
         // An operation targets a key, or is set-based and has a filter.
         var target = Target?.Match() ?? filter!.Render(TypedModel.RenderArgs);
         var queryFilter = await run.QueryFilterAsync(TypedModel, DisabledFeatures, cancellationToken);
+        var match = FilterDocuments.And(target, queryFilter, condition)!;
 
-        return new BsonDocumentFilterDefinition<TDocument>(FilterDocuments.And(target, queryFilter, condition)!);
+        return TypedModel.Encryption is { } encryption ? await encryption.EncryptFilterAsync(match, cancellationToken) : match;
     }
 }

@@ -26,7 +26,7 @@ public abstract class VaultInterceptor
         ValueTask.CompletedTask;
 
     /// <summary>
-    /// After the bulk write, before the commit. Results are available, and saves of other vaults made here join the
+    /// After the save's writes, before the commit. Results are available, and saves of other vaults made here join the
     /// same transaction.
     /// </summary>
     public virtual ValueTask SavedAsync(SaveContext context, CancellationToken cancellationToken) =>

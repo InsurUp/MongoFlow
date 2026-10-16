@@ -65,4 +65,52 @@ public sealed class UpdateOperation<TDocument> : VaultOperation<TDocument>
             ? new BulkWriteUpdateManyModel<TDocument>(Namespace, filter, Update)
             : new BulkWriteUpdateOneModel<TDocument>(Namespace, filter, Update);
     }
+
+    internal override async ValueTask<int> WriteAsync(SaveRun run,
+        int index,
+        OperationResult[] results,
+        CancellationToken cancellationToken)
+    {
+        var filter = new BsonDocumentFilterDefinition<TDocument>(await WriteFilterDocumentAsync(run, Filter, cancellationToken));
+        var collection = TypedModel.MongoCollection;
+
+        try
+        {
+            if (IsSetBased && TypedModel.Encryption is { SingleDocumentWrites: true })
+            {
+                long matched = 0;
+                long modified = 0;
+
+                foreach (var id in await MatchingIdsAsync(run, filter.Document, cancellationToken))
+                {
+                    // Each document gets its own encrypted values: the server refuses one sent twice.
+                    var each = await collection.UpdateOneAsync(run.Session, ById(id), await SentUpdateAsync(cancellationToken),
+                        cancellationToken: cancellationToken);
+                    matched += each.MatchedCount;
+                    modified += each.ModifiedCount;
+                }
+
+                results[index] = OperationResult.Of(0, matched, modified, 0);
+                return 1;
+            }
+
+            var update = await SentUpdateAsync(cancellationToken);
+            var written = IsSetBased
+                ? await collection.UpdateManyAsync(run.Session, filter, update, cancellationToken: cancellationToken)
+                : await collection.UpdateOneAsync(run.Session, filter, update, cancellationToken: cancellationToken);
+
+            results[index] = OperationResult.Of(0, written.MatchedCount, written.ModifiedCount, 0);
+            return 1;
+        }
+        catch (MongoWriteException exception) when (IsDuplicateKey(exception))
+        {
+            throw new DuplicateKeyException(this, exception);
+        }
+    }
+
+    /// <summary><see cref="Update"/> as it's sent: with the values it sets encrypted members to encrypted.</summary>
+    private async ValueTask<UpdateDefinition<TDocument>> SentUpdateAsync(CancellationToken cancellationToken) =>
+        TypedModel.Encryption is { } encryption
+            ? UpdateDocuments.Of<TDocument>(await encryption.EncryptUpdateAsync(RenderUpdate(), cancellationToken))
+            : Update;
 }

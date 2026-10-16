@@ -20,15 +20,17 @@ internal sealed class VaultQueryable<TDocument, TElement>(IQueryable<TElement> q
     public IQueryProvider Provider => provider;
 
     public IEnumerator<TElement> GetEnumerator() =>
-        TrackerOfDocuments() is { } tracker ? Tracked(query.GetEnumerator(), tracker) : query.GetEnumerator();
+        TrackerOfDocuments() is { } tracker
+            ? Tracked(provider.Encrypted(query).GetEnumerator(), tracker)
+            : provider.Encrypted(query).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public IAsyncCursor<TElement> ToCursor(CancellationToken cancellationToken = default) =>
-        Tracked(((IAsyncCursorSource<TElement>)query).ToCursor(cancellationToken));
+        Tracked(((IAsyncCursorSource<TElement>)provider.Encrypted(query)).ToCursor(cancellationToken));
 
     public async Task<IAsyncCursor<TElement>> ToCursorAsync(CancellationToken cancellationToken = default) =>
-        Tracked(await ((IAsyncCursorSource<TElement>)query).ToCursorAsync(cancellationToken));
+        Tracked(await ((IAsyncCursorSource<TElement>)provider.Encrypted(query)).ToCursorAsync(cancellationToken));
 
     public override string? ToString() => query.ToString();
 

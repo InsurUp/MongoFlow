@@ -89,6 +89,14 @@ internal static class VaultJoins
                 $"{collection.Namespace.FullName}: a $lookup only reaches collections of its own database.");
         }
 
+        if (filters.FirstOrDefault(collection.Touches) is { } encrypted)
+        {
+            throw new NotSupportedException(
+                $"A join on {collection.Namespace.CollectionName} filters it with {encrypted}, which compares an encrypted " +
+                "member: inside a $lookup, MongoFlow can't encrypt the values it's compared with, which would match nothing. " +
+                "Filter the joined collection on members that aren't encrypted, or read it with FindAsync.");
+        }
+
         // Without filters, it's the whole collection, which the driver joins itself.
         return filters.Count == 0 ? expression : Lookup(join, collection.MongoCollectionConstant, filters);
     }

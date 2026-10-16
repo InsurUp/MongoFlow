@@ -53,4 +53,32 @@ public sealed class DeleteOperation<TDocument> : VaultOperation<TDocument>
             ? new BulkWriteDeleteManyModel<TDocument>(Namespace, filter)
             : new BulkWriteDeleteOneModel<TDocument>(Namespace, filter);
     }
+
+    internal override async ValueTask<int> WriteAsync(SaveRun run,
+        int index,
+        OperationResult[] results,
+        CancellationToken cancellationToken)
+    {
+        var filter = new BsonDocumentFilterDefinition<TDocument>(await WriteFilterDocumentAsync(run, Filter, cancellationToken));
+        var collection = TypedModel.MongoCollection;
+
+        if (IsSetBased && TypedModel.Encryption is { SingleDocumentWrites: true })
+        {
+            long deleted = 0;
+            foreach (var id in await MatchingIdsAsync(run, filter.Document, cancellationToken))
+            {
+                deleted += (await collection.DeleteOneAsync(run.Session, ById(id), cancellationToken: cancellationToken)).DeletedCount;
+            }
+
+            results[index] = OperationResult.Of(0, 0, 0, deleted);
+            return 1;
+        }
+
+        var written = IsSetBased
+            ? await collection.DeleteManyAsync(run.Session, filter, cancellationToken: cancellationToken)
+            : await collection.DeleteOneAsync(run.Session, filter, cancellationToken: cancellationToken);
+
+        results[index] = OperationResult.Of(0, 0, 0, written.DeletedCount);
+        return 1;
+    }
 }

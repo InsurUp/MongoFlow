@@ -92,6 +92,12 @@ public static class MongoFlowLogEvents
 
         /// <summary><c>Error</c>: an interceptor's <c>CommittedAsync</c> threw; the save is committed, so it's swallowed.</summary>
         public const int CommittedHookThrew = 27_003_011;
+
+        /// <summary>
+        /// <c>Debug</c>: a set-based update or delete of a collection with encrypted members is written one document at a
+        /// time, as the server changes encrypted documents only one at a time; with how many it matched.
+        /// </summary>
+        public const int WritingOneAtATime = 27_003_012;
     }
 
     /// <summary>
@@ -158,5 +164,45 @@ public static class MongoFlowLogEvents
         /// earlier versions, so its unique index can't be built and doesn't guard against that.
         /// </summary>
         public const int HistoryHasDuplicates = 27_006_005;
+    }
+
+    /// <summary>
+    /// Encrypted collections and their keys, set up by <c>IVaultMigrator</c> before a vault's migrations, logged by
+    /// MongoFlow.Encryption. What changes the database logs at <c>Information</c>.
+    /// </summary>
+    public static class Encryption
+    {
+        /// <summary>The logger category.</summary>
+        public const string Category = "MongoFlow.Encryption";
+
+        /// <summary><c>Information</c>: an encrypted collection was created, with a data key for each encrypted field.</summary>
+        public const int CollectionCreated = 27_007_001;
+
+        /// <summary><c>Debug</c>: a collection is encrypted as the vault declares it already.</summary>
+        public const int CollectionUpToDate = 27_007_002;
+
+        /// <summary>
+        /// <c>Information</c>: a collection that wasn't encrypted is rebuilt as an encrypted one, its documents copied
+        /// into it; or a rebuild that was interrupted goes on.
+        /// </summary>
+        public const int RebuildStarted = 27_007_003;
+
+        /// <summary><c>Information</c>: a rebuild copied another batch of documents, with how many so far.</summary>
+        public const int RebuildProgress = 27_007_004;
+
+        /// <summary><c>Information</c>: a rebuild copied every document and the indexes it could.</summary>
+        public const int RebuildCompleted = 27_007_005;
+
+        /// <summary>
+        /// <c>Warning</c>: an index of a rebuilt collection wasn't copied, as it covers an encrypted field, which the server
+        /// can't index.
+        /// </summary>
+        public const int IndexSkipped = 27_007_006;
+
+        /// <summary>
+        /// <c>Warning</c>: the copy a rebuild kept of a collection, unencrypted, is still there. MongoFlow never drops it:
+        /// drop it once the encrypted collection is checked.
+        /// </summary>
+        public const int UnencryptedCopyRemains = 27_007_007;
     }
 }

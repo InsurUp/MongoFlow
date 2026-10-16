@@ -21,6 +21,15 @@ internal interface ICollectionModel : IVaultCollectionInfo
     /// <summary>The element names of the key, or <see langword="null"/> for a keyless collection.</summary>
     IReadOnlyList<string>? KeyFields { get; }
 
+    /// <summary>How the collection's encrypted members are written and queried, or <see langword="null"/> when it has none.</summary>
+    ICollectionEncryption? Encryption { get; }
+
+    /// <summary>
+    /// Whether <paramref name="filter"/>, a filter of the collection's documents, compares one of its encrypted members,
+    /// which only a filter MongoFlow encrypts can.
+    /// </summary>
+    bool Touches(LambdaExpression filter);
+
     /// <summary>The fields features filter every read on, rendered with the collection's serializers.</summary>
     IEnumerable<IndexedField> RenderIndexedFields();
 

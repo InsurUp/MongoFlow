@@ -76,6 +76,61 @@ internal static class FilterDocuments
         return joined ?? first;
     }
 
+    /// <summary>
+    /// Whether <paramref name="filter"/> compares a field that reaches one of <paramref name="paths"/>: the field itself, a
+    /// field inside it, or a document that holds it, at its top level, under <c>$and</c>, <c>$or</c> and <c>$nor</c>, or
+    /// referred to in <c>$expr</c>.
+    /// </summary>
+    public static bool Touches(BsonDocument filter,
+        IReadOnlyList<string> paths)
+    {
+        for (var i = 0; i < filter.ElementCount; i++)
+        {
+            var (name, value) = (filter.GetElement(i).Name, filter.GetElement(i).Value);
+
+            var touches = name switch
+            {
+                "$and" or "$or" or "$nor" => value is BsonArray clauses &&
+                                             clauses.Any(clause => clause is BsonDocument document && Touches(document, paths)),
+                "$expr" => RefersTo(value, paths),
+                _ when name.StartsWith('$') => false,
+                _ => Reaches(name, paths)
+            };
+
+            if (touches)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Whether an aggregation expression refers to a field, as "$path", that reaches one of the paths.
+    private static bool RefersTo(BsonValue expression,
+        IReadOnlyList<string> paths) =>
+        expression switch
+        {
+            BsonString { Value: ['$', not '$', ..] field } => Reaches(field[1..], paths),
+            BsonDocument document => document.Values.Any(value => RefersTo(value, paths)),
+            BsonArray array => array.Any(value => RefersTo(value, paths)),
+            _ => false
+        };
+
+    private static bool Reaches(string field,
+        IReadOnlyList<string> paths)
+    {
+        foreach (var path in paths)
+        {
+            if (ElementPaths.Reaches(field, path))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static BsonDocument AndEach(ReadOnlySpan<BsonDocument?> filters)
     {
         var all = new BsonArray();

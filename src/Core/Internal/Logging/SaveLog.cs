@@ -80,6 +80,14 @@ internal static partial class SaveLog
     public static partial void BulkWritesSupported(this ILogger logger,
         int wireVersion);
 
+    [LoggerMessage(EventId = MongoFlowLogEvents.Save.WritingOneAtATime, Level = LogLevel.Debug,
+        Message = "Writing a set-based {Kind} to {Collection} one document at a time, {Count} of them: the server changes " +
+                  "its encrypted documents only one at a time.")]
+    public static partial void WritingOneAtATime(this ILogger logger,
+        OperationKind kind,
+        string collection,
+        int count);
+
     [LoggerMessage(EventId = MongoFlowLogEvents.Save.ChangesDetected, Level = LogLevel.Debug,
         Message = "Found {Changed} changed of {Tracked} tracked documents in {Vault}.")]
     public static partial void ChangesDetected(this ILogger logger,

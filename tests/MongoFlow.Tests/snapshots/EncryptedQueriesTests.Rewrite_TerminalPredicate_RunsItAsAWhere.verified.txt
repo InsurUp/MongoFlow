@@ -1,0 +1,4 @@
+﻿{
+  Name: FirstOrDefault,
+  Source: AppendStage
+}

@@ -44,6 +44,7 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
         }
 
         var session = await Runtime.GetSessionAsync(cancellationToken);
+        filter = await model.ReadFilterAsync(filter, cancellationToken);
         var find = session is null ? model.MongoCollection.Find(filter) : model.MongoCollection.Find(session, filter);
 
         return await Tracked(find).FirstOrDefaultAsync(cancellationToken);
@@ -111,7 +112,7 @@ internal sealed class KeyedVaultCollection<TDocument, TKey>(
     public TrackedDocument? Snapshot(TDocument document) =>
         model.Key.Get(document) is { } key
             ? new TrackedDocument<TDocument, TKey>(model, Disabled, document, key,
-                BsonSnapshot.Of(model.MongoCollection.DocumentSerializer, document))
+                BsonSnapshot.Of(model.MongoCollection.DocumentSerializer, document, sensitive: model.Encryption is not null))
             : null;
 
     protected override IDocumentTracker<TDocument>? Tracker => tracking ? this : null;

@@ -32,6 +32,7 @@ internal sealed class ConcurrencyTokenFeature<TVersioned, TToken> : IVaultFeatur
             // update; first after it, so it rejects a write that matched nothing before other interceptors see it.
             collection.AddInterceptor(new ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>(_token, _get, _set),
                 interceptor => ((InterceptorRegistration)interceptor).RunsLast = true);
+            ((CollectionModelBuilder<TDocument>)collection).ReserveField(_token);
         }
     }
 }
