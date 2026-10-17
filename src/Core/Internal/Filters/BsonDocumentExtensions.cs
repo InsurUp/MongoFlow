@@ -9,4 +9,10 @@ internal static class BsonDocumentExtensions
         string name,
         string? value) =>
         value is null ? document : document.Add(name, value);
+
+    /// <inheritdoc cref="AddIfNotNull(BsonDocument, string, string?)"/>
+    public static BsonDocument AddIfNotNull(this BsonDocument document,
+        string name,
+        BsonValue? value) =>
+        value is null ? document : document.Add(name, value);
 }

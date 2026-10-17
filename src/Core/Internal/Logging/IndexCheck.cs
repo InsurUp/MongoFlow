@@ -7,7 +7,8 @@ namespace MongoFlow;
 /// <summary>
 /// Warns, once per model, about collections missing the indexes their key and features rely on: a key other than
 /// <c>_id</c> needs a unique index covering it, and a field a feature filters every read on needs to be in an index.
-/// MongoFlow doesn't create indexes; it only says which are missing.
+/// MongoFlow creates only the indexes a vault declares, which count as there, as the migrator creates them; it only says
+/// which are missing.
 /// </summary>
 internal static class IndexCheck
 {
@@ -36,14 +37,25 @@ internal static class IndexCheck
                     continue;
                 }
 
-                var cursor = await model.SourceDatabase.GetCollection<BsonDocument>(collection.Namespace.CollectionName).Indexes.ListAsync();
-                var indexes = await cursor.ToListAsync();
+                // What the collection declares counts, hidden indexes aside, which queries don't use: a collection it covers
+                // isn't listed, so the check doesn't race the migrator creating them.
+                var declared = collection.Indexes.Where(index => !index.Hidden).Select(index => index.Listed).ToList();
+                if ((key is null || declared.Any(index => IsUniqueOn(index, key))) &&
+                    fields.All(field => declared.Any(index => Includes(index, field.Field))))
+                {
+                    continue;
+                }
 
-                if (indexes.Count == 0)
+                var cursor = await model.SourceDatabase.GetCollection<BsonDocument>(collection.Namespace.CollectionName).Indexes.ListAsync();
+                var listed = await cursor.ToListAsync();
+
+                if (listed.Count == 0 && declared.Count == 0)
                 {
                     log.IndexCheckSkipped(name);
                     continue;
                 }
+
+                List<BsonDocument> indexes = [.. listed, .. declared];
 
                 if (key is not null)
                 {
@@ -77,11 +89,15 @@ internal static class IndexCheck
         {
             log.KeyIndexMissing(collection, key);
         }
-        else if (!covering.Any(index => index.GetValue("unique", false).ToBoolean() && Fields(index).Count() == key.Count))
+        else if (!covering.Any(index => IsUniqueOn(index, key)))
         {
             log.KeyIndexNotUnique(collection, key, covering[0].GetValue("name", "").ToString()!);
         }
     }
+
+    private static bool IsUniqueOn(BsonDocument index,
+        IReadOnlyList<string> key) =>
+        index.GetValue("unique", false).ToBoolean() && Fields(index).Order().SequenceEqual(key.Order());
 
     // A wildcard index covers every field.
     private static bool Includes(BsonDocument index,

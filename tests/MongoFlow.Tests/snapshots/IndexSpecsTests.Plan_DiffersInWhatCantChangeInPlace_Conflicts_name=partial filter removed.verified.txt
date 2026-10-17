@@ -1,0 +1,6 @@
+﻿{
+  Action: Conflict,
+  Conflicts: [
+    it has the partial filter { "s" : "active" }, and is declared without one
+  ]
+}

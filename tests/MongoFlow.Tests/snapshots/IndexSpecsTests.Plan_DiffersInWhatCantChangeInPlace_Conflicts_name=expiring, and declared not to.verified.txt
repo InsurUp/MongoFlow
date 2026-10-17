@@ -1,0 +1,6 @@
+﻿{
+  Action: Conflict,
+  Conflicts: [
+    it expires documents after 3600 s, and is declared not to, which MongoDB can't change in place
+  ]
+}

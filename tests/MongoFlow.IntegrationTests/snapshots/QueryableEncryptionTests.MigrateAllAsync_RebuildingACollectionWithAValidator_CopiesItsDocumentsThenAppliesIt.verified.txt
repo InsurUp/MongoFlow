@@ -1,0 +1,21 @@
+﻿{
+  Copied: 2,
+  Options: {
+    validator: {
+      Version: {
+        $gte: 0
+      }
+    },
+    validationLevel: strict,
+    validationAction: error
+  },
+  Logs: [
+    {
+      Category: MongoFlow.Collections,
+      Level: Information,
+      EventId: 27009002,
+      Event: CollectionUpdated,
+      Message: Changed {database}.Customers in place: { "validator" : { "Version" : { "$gte" : 0 } } }.
+    }
+  ]
+}

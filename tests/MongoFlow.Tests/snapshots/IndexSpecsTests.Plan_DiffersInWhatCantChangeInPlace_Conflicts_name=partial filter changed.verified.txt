@@ -1,0 +1,6 @@
+﻿{
+  Action: Conflict,
+  Conflicts: [
+    its partial filter is { "s" : "active" }, not { "s" : "closed" }
+  ]
+}

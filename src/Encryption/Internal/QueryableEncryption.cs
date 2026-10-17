@@ -50,11 +50,7 @@ internal sealed class QueryableEncryption : VaultEncryption
     public override async Task PrepareAsync(VaultModel model,
         CancellationToken cancellationToken)
     {
-        var collections = model.Collections
-            .Select(collection => collection.Encryption)
-            .OfType<CollectionEncryption>()
-            .ToList();
-
+        var collections = model.Collections.Where(collection => collection.Encryption is CollectionEncryption).ToList();
         if (collections.Count == 0)
         {
             return;
@@ -64,10 +60,29 @@ internal sealed class QueryableEncryption : VaultEncryption
 
         foreach (var collection in collections)
         {
-            await new CollectionSetup(collection, _clients!, model.SourceDatabase, model.Logs.Encryption, _kms.Name, _kms.MasterKey)
-                .RunAsync(cancellationToken);
+            await SetUpAsync(model, collection, cancellationToken);
         }
     }
+
+    public override async Task PrepareCollectionAsync(VaultModel model,
+        ICollectionModel collection,
+        CancellationToken cancellationToken)
+    {
+        await EnsureKeyVaultIndexAsync(cancellationToken);
+        await SetUpAsync(model, collection, cancellationToken);
+    }
+
+    private Task SetUpAsync(VaultModel model,
+        ICollectionModel collection,
+        CancellationToken cancellationToken) =>
+        new CollectionSetup((CollectionEncryption)collection.Encryption!,
+                collection.Settings,
+                _clients!,
+                model.SourceDatabase,
+                model.Logs.Encryption,
+                _kms.Name,
+                _kms.MasterKey)
+            .RunAsync(cancellationToken);
 
     /// <summary>
     /// The unique index on the data keys' alternate names MongoDB recommends for a key vault, so two keys can't share a

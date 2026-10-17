@@ -72,6 +72,16 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     /// <summary>Sets <see cref="Search"/>, once, while the model is built.</summary>
     public void SearchWith(CollectionSearch search) => Search = search;
 
+    public IReadOnlyList<IndexDeclaration> Indexes { get; private set; } = [];
+
+    public CollectionSettings? Settings { get; private set; }
+
+    /// <summary>Sets <see cref="Indexes"/>, once, while the model is built.</summary>
+    public void IndexesWith(IReadOnlyList<IndexDeclaration> indexes) => Indexes = indexes;
+
+    /// <summary>Sets <see cref="Settings"/>, once, while the model is built.</summary>
+    public void SettingsWith(CollectionSettings? settings) => Settings = settings;
+
     /// <summary>Sets <see cref="Encryption"/>, once, while the model is built.</summary>
     public void EncryptWith(ICollectionEncryption encryption)
     {

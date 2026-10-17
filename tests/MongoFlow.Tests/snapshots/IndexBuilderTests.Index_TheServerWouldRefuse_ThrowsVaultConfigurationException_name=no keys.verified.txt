@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Invoices declares an index, but it has no keys.
+}

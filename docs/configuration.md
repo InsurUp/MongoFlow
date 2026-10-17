@@ -79,8 +79,8 @@ var token = await vault.Tokens.GetByKeyAsync(new TokenKey(userId, "google"));
 
 A key is matched as stored, so a key that converts its member, such as `x => (object)x.Id`, fails at startup.
 
-Lookups by key expect one document, so a key other than `_id` needs a unique index. MongoFlow doesn't create indexes:
-create them in a [migration](migrations.md). It logs a warning for a key no unique index covers; see
+Lookups by key expect one document, so a key other than `_id` needs a unique index, which MongoFlow doesn't declare for
+you: declare one, as [below](#indexes). It logs a warning for a key no unique index covers; see
 [observability](observability.md). The server still gives each document an `_id`, so a document type keyed by other
 members needs an `Id` member or `[BsonIgnoreExtraElements]`, as a keyless one does.
 
@@ -90,12 +90,83 @@ A collection without a key can be read, added to and changed with `UpdateMany` a
 operations; calling one is a compile error. The server still gives each document an `_id`, so a keyless document type
 must ignore it on reads, with `[BsonIgnoreExtraElements]` or an `Id` member. That's checked at startup.
 
+### Indexes
+
+A collection declares its indexes, which `IVaultMigrator.MigrateAllAsync` creates after the vault's
+[migrations](migrations.md#what-migrating-does), and keeps as declared. Keys come from the driver's builder, so they're
+typed and named as the collection stores them:
+
+```csharp
+vault.Collection(x => x.Policies, policies => policies
+    .Key(p => p.PolicyNumber)
+    .Index(keys => keys.Ascending(p => p.PolicyNumber), index => index.Unique())
+    .Index(keys => keys.Ascending(p => p.AgencyId).Descending(p => p.StartsAt))
+    .Index(keys => keys.Ascending(p => p.EndsAt), index => index
+        .Name("active_by_end")
+        .Partial(p => p.Status == PolicyStatus.Active)
+        .ExpireAfter(TimeSpan.FromDays(30)))
+    .Index(keys => keys.Text(p => p.Notes)));
+```
+
+| `IIndexBuilder<T>` | |
+|---|---|
+| `Name(name)` | Its name; without it, it's named as the server names one, such as `AgencyId_1_StartsAt_-1` |
+| `Unique()` | No two documents with the same values for its keys |
+| `Sparse()` | Documents without its keys left out |
+| `Partial(filter)` | Only the documents the filter matches, a unique index unique among them alone |
+| `ExpireAfter(time)` | A TTL index: documents deleted once the date in its one field is older |
+| `Hidden()` | Kept up to date but not used by queries, to see what dropping it would do |
+| `Collation(collation)` | How it compares strings, rather than as the collection does |
+
+An index is known by its name. On each run the migrator compares what it declares with what the server lists:
+
+- **none of the name:** it's created;
+- **one defined as declared:** nothing to do;
+- **one whose expiry, or whether it's hidden, differs:** changed in place;
+- **one that differs in anything else,** such as its keys or whether it's unique, or one on the same keys and options
+  under another name: MongoDB can't change it in place, so the migrator fails, naming each, before it changes any
+  index. Recreate it in a migration, with
+  [`context.Collection(...).RecreateIndexAsync`](migrations.md#declarations-in-a-migration).
+
+An index the vault doesn't declare is left as it is: drop it in a migration. Building an index blocks the migrator until
+it's built. A vault's own declaration takes the place of a default configuration's of the same name, and a feature's
+indexes are left out of a collection that's `Without` it. The server refuses `!= null` in a partial filter, which renders
+`$ne`: use `Builders<T>.Filter.Exists`. An index on an encrypted member, or a partial filter comparing one, fails at
+startup: the server only sees its value encrypted.
+
+### Collection settings
+
+A collection declares what it's created with, which the migrator creates it with before the vault's migrations, so a
+migration's first write doesn't create it without them:
+
+```csharp
+vault.Collection(x => x.Payments, payments => payments.Settings(settings => settings
+    .Collation(new Collation("tr", strength: CollationStrength.Secondary))
+    .Validator(p => p.Amount > 0, DocumentValidationLevel.Strict, DocumentValidationAction.Error)
+    .ChangeStreamPreAndPostImages()
+    .Clustered(expireAfter: TimeSpan.FromDays(365))));
+```
+
+| `ICollectionSettingsBuilder<T>` | | On a collection that exists |
+|---|---|---|
+| `Collation(collation)` | How its queries and indexes compare strings, key lookups included | Fails when it differs |
+| `Validator(rule, level, action)` | What every document written must match, also as `Builders<T>.Filter.JsonSchema(...)` | Changed in place |
+| `ChangeStreamPreAndPostImages()` | Change streams can show documents as they were before a change, and after | Changed in place |
+| `Clustered(expireAfter)` | Documents stored ordered by `_id`, expiring by it if given | Fails unless clustered; expiry changed in place |
+
+A setting it doesn't declare is left as the server has it. Its indexes have its collation unless they declare their own.
+MongoDB sets a collection's collation and clustering when it's created, so one that differs fails the migrator: rebuild
+it in a migration, creating it anew with [`context.Collection(...).CreateAsync`](migrations.md#declarations-in-a-migration).
+Capped and time series collections can't be declared: the server refuses writes to them in a transaction, which every
+save is in. A collection with encrypted members is created encrypted with its settings; see
+[Queryable Encryption](encryption.md#setting-up-the-collections).
+
 ## Where configuration lives
 
 | Where | For |
 |---|---|
 | The registration delegate | What depends on the environment, such as the database |
-| The vault's own `Configure` (`IConfigurableVault<TSelf>`) | The vault's shape: keys, names, features, migrations |
+| The vault's own `Configure` (`IConfigurableVault<TSelf>`) | The vault's shape: keys, names, indexes, features, migrations |
 | An `IVaultConfiguration<TVault>` | Setup that needs services, such as options, or that several apps share |
 | A default configuration | Rules for every vault, such as the platform's features or a naming convention |
 

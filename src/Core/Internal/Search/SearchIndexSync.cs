@@ -14,7 +14,7 @@ internal static class SearchIndexSync
     /// <c>$listSearchIndexes</c> shows it, is defined otherwise.
     /// </summary>
     /// <exception cref="InvalidOperationException">The index is of the other type, which can't be changed.</exception>
-    public static async Task<SearchIndexChange> CreateOrUpdateAsync(IMongoSearchIndexManager indexes,
+    public static async Task<IndexChange> CreateOrUpdateAsync(IMongoSearchIndexManager indexes,
         string name,
         BsonDocument definition,
         SearchIndexType type,
@@ -26,7 +26,7 @@ internal static class SearchIndexSync
             try
             {
                 await indexes.CreateOneAsync(new CreateSearchIndexModel(name, type, definition), cancellationToken);
-                return SearchIndexChange.Created;
+                return IndexChange.Created;
             }
             catch (MongoCommandException exception) when (exception.Code == IndexAlreadyExists)
             {
@@ -50,11 +50,11 @@ internal static class SearchIndexSync
 
         if (SearchIndexDefinitions.Matches(definition, listed.GetValue("latestDefinition", BsonNull.Value) as BsonDocument ?? [], type))
         {
-            return SearchIndexChange.Unchanged;
+            return IndexChange.Unchanged;
         }
 
         await indexes.UpdateAsync(name, definition, cancellationToken);
-        return SearchIndexChange.Updated;
+        return IndexChange.Updated;
     }
 
     /// <summary>Whether <paramref name="listed"/>, as <c>$listSearchIndexes</c> shows an index, is built and queryable.</summary>

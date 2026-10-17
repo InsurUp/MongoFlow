@@ -33,6 +33,15 @@ internal interface ICollectionModel : IVaultCollectionInfo
     /// <summary>The search indexes the collection declares, which the migrator creates and keeps up to date.</summary>
     IReadOnlyList<SearchIndexDeclaration> SearchIndexes { get; }
 
+    /// <summary>The indexes the collection declares, which the migrator creates after the vault's migrations.</summary>
+    IReadOnlyList<IndexDeclaration> Indexes { get; }
+
+    /// <summary>
+    /// What the collection declares it's created with, which the migrator creates it with before the vault's migrations, or
+    /// <see langword="null"/> when it declares nothing.
+    /// </summary>
+    CollectionSettings? Settings { get; }
+
     /// <summary>The fields features filter every read on, rendered with the collection's serializers.</summary>
     IEnumerable<IndexedField> RenderIndexedFields();
 

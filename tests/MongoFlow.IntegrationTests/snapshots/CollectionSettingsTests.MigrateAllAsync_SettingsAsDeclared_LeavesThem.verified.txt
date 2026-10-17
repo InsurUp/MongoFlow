@@ -1,0 +1,16 @@
+﻿[
+  {
+    Category: MongoFlow.Collections,
+    Level: Debug,
+    EventId: 27009003,
+    Event: CollectionUpToDate,
+    Message: {database}.Payments has the settings it declares.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002009,
+    Event: IndexUpToDate,
+    Message: The index Payer_1 of {database}.Payments is defined as declared.
+  }
+]

@@ -1,0 +1,9 @@
+﻿{
+  Changes: {
+    validator: {
+      total: {
+        $gte: 0
+      }
+    }
+  }
+}

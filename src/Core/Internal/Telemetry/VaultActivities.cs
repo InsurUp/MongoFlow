@@ -89,22 +89,63 @@ internal static class VaultActivities
         if (activity.Recording() is { } recording)
         {
             recording.SetTag(MongoFlowTelemetry.Tags.Vault, vault);
-            recording.SetTag(MongoFlowTelemetry.Tags.SearchIndexCollection, collection);
-            recording.SetTag(MongoFlowTelemetry.Tags.SearchIndexName, index.Name);
+            recording.SetTag(MongoFlowTelemetry.Tags.Collection, collection);
+            recording.SetTag(MongoFlowTelemetry.Tags.IndexName, index.Name);
             recording.SetTag(MongoFlowTelemetry.Tags.SearchIndexType, index.TypeName);
         }
 
         return activity;
     }
 
-    public static void Changed(this Activity? activity,
-        SearchIndexChange change) =>
-        activity.Recording()?.SetTag(MongoFlowTelemetry.Tags.SearchIndexChange, change switch
+    public static Activity? StartCollection(string vault,
+        string collection)
+    {
+        var activity = Source.StartActivity(MongoFlowTelemetry.Activities.Collection);
+        if (activity.Recording() is { } recording)
         {
-            SearchIndexChange.Created => "created",
-            SearchIndexChange.Updated => "updated",
+            recording.SetTag(MongoFlowTelemetry.Tags.Vault, vault);
+            recording.SetTag(MongoFlowTelemetry.Tags.Collection, collection);
+        }
+
+        return activity;
+    }
+
+    public static Activity? StartIndex(string vault,
+        string collection,
+        string index)
+    {
+        var activity = Source.StartActivity(MongoFlowTelemetry.Activities.Index);
+        if (activity.Recording() is { } recording)
+        {
+            recording.SetTag(MongoFlowTelemetry.Tags.Vault, vault);
+            recording.SetTag(MongoFlowTelemetry.Tags.Collection, collection);
+            recording.SetTag(MongoFlowTelemetry.Tags.IndexName, index);
+        }
+
+        return activity;
+    }
+
+    public static void Changed(this Activity? activity,
+        IndexChange change) =>
+        activity.Changed(change switch
+        {
+            IndexChange.Created => SetupAction.Create,
+            IndexChange.Updated => SetupAction.Update,
+            _ => SetupAction.Unchanged
+        });
+
+    public static void Changed(this Activity? activity,
+        SetupAction action) =>
+        activity.Recording()?.SetTag(MongoFlowTelemetry.Tags.Change, action switch
+        {
+            SetupAction.Create => "created",
+            SetupAction.Update => "updated",
             _ => "unchanged"
         });
+
+    /// <summary>Tags the span with an index a migration dropped and created anew.</summary>
+    public static void Recreated(this Activity? activity) =>
+        activity.Recording()?.SetTag(MongoFlowTelemetry.Tags.Change, "recreated");
 
     /// <summary>Marks the span failed, the way OpenTelemetry records an error: its status, type and an exception event.</summary>
     public static void Fail(this Activity? activity,

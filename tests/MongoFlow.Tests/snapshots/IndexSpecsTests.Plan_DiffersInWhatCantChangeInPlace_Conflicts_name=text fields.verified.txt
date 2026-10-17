@@ -1,0 +1,6 @@
+﻿{
+  Action: Conflict,
+  Conflicts: [
+    it weighs its text as { "t" : 1, "u" : 1 }, not { "t" : 1 }
+  ]
+}

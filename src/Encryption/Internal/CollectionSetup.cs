@@ -13,9 +13,12 @@ namespace MongoFlow.Encryption;
 /// A rebuild renames the collection to <c>{name}.encrypting</c>, creates the encrypted collection under the name, copies the
 /// documents into it, encrypted, and the indexes that don't cover an encrypted field, then renames the copy to
 /// <c>{name}.unencrypted</c>, which is how a later run knows it's done. One interrupted goes on from where it stopped. The
-/// unencrypted copy is never dropped: it holds the data as it was.
+/// unencrypted copy is never dropped: it holds the data as it was. The collection is created with the settings it declares,
+/// but for a rebuild without its validator, which the migrator adds once the documents are copied, as old ones may not
+/// pass it.
 /// </remarks>
 internal sealed class CollectionSetup(CollectionEncryption collection,
+    CollectionSettings? settings,
     EncryptionClients clients,
     IMongoDatabase source,
     ILogger log,
@@ -45,7 +48,7 @@ internal sealed class CollectionSetup(CollectionEncryption collection,
         switch (current)
         {
             case null:
-                await CreateAsync(cancellationToken);
+                await CreateAsync(rebuilding: false, cancellationToken);
                 break;
 
             case { EncryptedFields: { } encryptedFields }:
@@ -65,10 +68,12 @@ internal sealed class CollectionSetup(CollectionEncryption collection,
         }
     }
 
-    private async Task CreateAsync(CancellationToken cancellationToken)
+    private async Task CreateAsync(bool rebuilding,
+        CancellationToken cancellationToken)
     {
         await clients.ClientEncryption.CreateEncryptedCollectionAsync(source,
             _name,
+            settings?.CreateOptions(collection.Schema, validator: !rebuilding) ??
             new CreateCollectionOptions { EncryptedFields = collection.Schema },
             kmsProvider,
             masterKey!,
@@ -96,7 +101,7 @@ internal sealed class CollectionSetup(CollectionEncryption collection,
         switch (current)
         {
             case null:
-                await CreateAsync(cancellationToken);
+                await CreateAsync(rebuilding: true, cancellationToken);
                 break;
 
             case { EncryptedFields: { } encryptedFields }:

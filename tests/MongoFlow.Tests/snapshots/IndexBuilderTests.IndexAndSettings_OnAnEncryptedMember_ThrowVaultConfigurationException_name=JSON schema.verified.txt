@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Invoices declares a validator that checks an encrypted member, whose value the server only sees encrypted: { "$jsonSchema" : { "properties" : { "TaxNumber" : { "bsonType" : "string" } } } }. Validate the members that aren't encrypted.
+}

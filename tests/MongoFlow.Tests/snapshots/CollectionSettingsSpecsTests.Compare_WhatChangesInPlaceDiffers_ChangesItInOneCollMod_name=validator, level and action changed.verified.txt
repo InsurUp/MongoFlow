@@ -1,0 +1,11 @@
+﻿{
+  Changes: {
+    validator: {
+      total: {
+        $gte: 0
+      }
+    },
+    validationLevel: moderate,
+    validationAction: warn
+  }
+}

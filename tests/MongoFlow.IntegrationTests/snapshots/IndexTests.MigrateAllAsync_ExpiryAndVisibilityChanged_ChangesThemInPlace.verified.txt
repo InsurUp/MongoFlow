@@ -1,0 +1,27 @@
+﻿{
+  Indexes: [
+    {
+      key: {
+        _id: 1
+      },
+      name: _id_
+    },
+    {
+      key: {
+        ExpiresAt: 1
+      },
+      name: ExpiresAt_1,
+      hidden: true,
+      expireAfterSeconds: 7200
+    }
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002008,
+      Event: IndexUpdated,
+      Message: Changed the index ExpiresAt_1 of {database}.Orders in place: { "name" : "ExpiresAt_1", "expireAfterSeconds" : 7200, "hidden" : true }.
+    }
+  ]
+}

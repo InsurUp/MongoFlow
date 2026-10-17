@@ -263,6 +263,16 @@ internal sealed class VaultModelBuilder<TVault> : VaultModelBuilderBase, IVaultB
             setups.Add(encryption);
         }
 
+        if (collections.Any(collection => collection.Settings is not null))
+        {
+            setups.Add(new CollectionSettingsSetup());
+        }
+
+        if (collections.Any(collection => collection.Indexes.Count > 0))
+        {
+            setups.Add(new IndexSetup());
+        }
+
         if (collections.Any(collection => collection.SearchIndexes.Count > 0))
         {
             setups.Add(new SearchIndexSetup(Services.GetService<TimeProvider>() ?? TimeProvider.System));

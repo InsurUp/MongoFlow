@@ -1,0 +1,51 @@
+﻿[
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002009,
+    Event: IndexUpToDate,
+    Message: The index Number_1 of {database}.Orders is defined as declared.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002009,
+    Event: IndexUpToDate,
+    Message: The index Customer_1_PlacedAt_-1 of {database}.Orders is defined as declared.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002009,
+    Event: IndexUpToDate,
+    Message: The index expiring of {database}.Orders is defined as declared.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002009,
+    Event: IndexUpToDate,
+    Message: The index Notes_text_Customer_1 of {database}.Orders is defined as declared.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002009,
+    Event: IndexUpToDate,
+    Message: The index Customer_hashed of {database}.Orders is defined as declared.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002009,
+    Event: IndexUpToDate,
+    Message: The index by_customer_tr of {database}.Orders is defined as declared.
+  },
+  {
+    Category: MongoFlow.Indexes,
+    Level: Debug,
+    EventId: 27002009,
+    Event: IndexUpToDate,
+    Message: The index Notes_1 of {database}.Orders is defined as declared.
+  }
+]

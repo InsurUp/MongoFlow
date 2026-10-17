@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
@@ -17,6 +18,8 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     private readonly List<(LambdaExpression Member, object Options)> _encrypted = [];
     private readonly Dictionary<string, SearchIndexBuilder<TDocument>> _searchIndexes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, VectorSearchIndexBuilder<TDocument>> _vectorSearchIndexes = new(StringComparer.Ordinal);
+    private readonly List<(Layer Layer, FeatureKey? Owner, IndexKeysDefinition<TDocument> Keys, IndexBuilder<TDocument> Index)> _indexes = [];
+    private readonly CollectionSettingsBuilder<TDocument> _settings;
 
     public CollectionModelBuilder(VaultModelBuilderBase vault, PropertyInfo property)
         : this(vault, property, keyType: null)
@@ -26,6 +29,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     protected CollectionModelBuilder(VaultModelBuilderBase vault, PropertyInfo property, Type? keyType)
         : base(vault, property, typeof(TDocument), keyType)
     {
+        _settings = new CollectionSettingsBuilder<TDocument>(vault);
     }
 
     public IVaultCollectionBuilder<TDocument> Name(string name)
@@ -137,6 +141,26 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
         return this;
     }
 
+    public IVaultCollectionBuilder<TDocument> Index(Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
+        Action<IIndexBuilder<TDocument>>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(keys);
+
+        var index = new IndexBuilder<TDocument>();
+        configure?.Invoke(index);
+
+        _indexes.Add((Vault.Layer, Vault.Owner, IndexBuilder<TDocument>.Keys(keys), index));
+        return this;
+    }
+
+    public IVaultCollectionBuilder<TDocument> Settings(Action<ICollectionSettingsBuilder<TDocument>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(_settings);
+        return this;
+    }
+
     /// <summary>
     /// Notes that every read filters on <paramref name="member"/>, such as <c>(ISoftDeletable x) =&gt; x.IsDeleted</c>, so
     /// an index should include it; the index check warns when none does. For built-in features, which also reserve it.
@@ -203,6 +227,8 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
             model.EncryptWith(EncryptionOf(model, encryption));
         }
 
+        model.SettingsWith(SettingsOf(model));
+        model.IndexesWith(IndexesOf(model));
         model.SearchWith(SearchOf(model, logs));
 
         return Model = model;
@@ -286,6 +312,97 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
 
         return encryption.ForCollection(model, members);
     }
+
+    /// <summary>The collection's declared settings, rendered, once they're checked.</summary>
+    /// <exception cref="VaultConfigurationException">The validator compares an encrypted member.</exception>
+    private CollectionSettings? SettingsOf(CollectionModel<TDocument> model)
+    {
+        var settings = _settings.Build(model.RenderArgs);
+        if (settings?.Validator is { } validator && model.Encryption is { Paths: var encrypted } &&
+            (FilterDocuments.Touches(validator, encrypted) ||
+             SchemaPaths(validator).Any(path => encrypted.Any(field => ElementPaths.Reaches(path, field)))))
+        {
+            throw new VaultConfigurationException(
+                $"{PropertyName} declares a validator that checks an encrypted member, whose value the server only sees " +
+                $"encrypted: {validator.ToJson()}. Validate the members that aren't encrypted.");
+        }
+
+        return settings;
+    }
+
+    /// <summary>
+    /// The collection's declared indexes, rendered: a vault's own taking the place of a default configuration's of the same
+    /// name, those of features the collection is without left out, once they're checked.
+    /// </summary>
+    /// <exception cref="VaultConfigurationException">An index can't be declared as it is.</exception>
+    private List<IndexDeclaration> IndexesOf(CollectionModel<TDocument> model)
+    {
+        var encrypted = model.Encryption?.Paths ?? [];
+        var declared = _indexes
+            .Where(index => IsOn(index.Owner))
+            .OrderBy(index => index.Layer)
+            .Select(index => (index.Layer, Declaration: index.Index.Build(index.Keys, model.RenderArgs)))
+            .ToList();
+
+        foreach (var (_, index) in declared)
+        {
+            var reason = IndexSpecs.Invalid(index);
+            if (reason is null && encrypted.Count > 0)
+            {
+                var path = IndexSpecs.Paths(index)
+                    .FirstOrDefault(path => path == "$**" || encrypted.Any(field => ElementPaths.Reaches(path, field)));
+                reason = path is not null
+                    ? path == "$**"
+                        ? "it indexes every field, the encrypted ones among them, and the server can't index an encrypted member"
+                        : $"it indexes {path}, which is encrypted or holds what is, and the server can't index an encrypted member"
+                    : index.Partial is { } partial && FilterDocuments.Touches(partial, encrypted)
+                        ? $"its partial filter compares an encrypted member, which the server only sees encrypted: {partial.ToJson()}"
+                        : null;
+            }
+
+            if (reason is not null)
+            {
+                throw new VaultConfigurationException($"{PropertyName} declares {IndexSpecs.Described(index)}, but {reason}.");
+            }
+        }
+
+        var indexes = declared
+            .GroupBy(index => index.Declaration.Name, StringComparer.Ordinal)
+            .Select(named => named.Where(index => index.Layer == named.Max(other => other.Layer)).ToList())
+            .Select(named => named.Count == 1
+                ? named[0].Declaration
+                : throw new VaultConfigurationException(
+                    $"{PropertyName} declares the index {named[0].Declaration.Name} more than once. Name one otherwise, " +
+                    "with Name, or declare it once."))
+            .ToList();
+
+        var collation = StoredSpecs.Collation(model.Settings?.Collation);
+        for (var i = 0; i < indexes.Count; i++)
+        {
+            if (indexes.Skip(i + 1).FirstOrDefault(other => IndexSpecs.Equivalent(indexes[i], other.Listed, collation)) is { } same)
+            {
+                throw new VaultConfigurationException(
+                    $"{PropertyName} declares the indexes {indexes[i].Name} and {same.Name} on the same keys, with the same " +
+                    "options, which MongoDB keeps one index of. Declare one of them.");
+            }
+        }
+
+        return indexes;
+    }
+
+    /// <summary>The paths a <c>$jsonSchema</c> validator's properties describe, at any depth.</summary>
+    private static IEnumerable<string> SchemaPaths(BsonDocument validator) =>
+        validator.GetValue("$jsonSchema", BsonNull.Value) is BsonDocument schema ? SchemaPaths(schema, prefix: null) : [];
+
+    private static IEnumerable<string> SchemaPaths(BsonDocument schema,
+        string? prefix) =>
+        schema.GetValue("properties", BsonNull.Value) is BsonDocument properties
+            ? properties.Elements.SelectMany(property =>
+            {
+                var path = prefix is null ? property.Name : $"{prefix}.{property.Name}";
+                return property.Value is BsonDocument nested ? SchemaPaths(nested, path).Prepend(path) : [path];
+            })
+            : [];
 
     /// <summary>The collection's searches: its declared indexes rendered, with the fields its features filter on mapped.</summary>
     /// <exception cref="VaultConfigurationException">An index can't be declared as it is.</exception>

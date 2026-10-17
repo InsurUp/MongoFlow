@@ -79,13 +79,13 @@ platform's admin or an agent of one of two agencies (`SampleUsers`), as authenti
 | Folder | What it shows |
 |---|---|
 | `Domain/` | Tenant-owned, soft-deletable documents, plus permission and module attributes |
-| `Vaults/` | Vaults that configure themselves: a custom string key with a concurrency token and change tracking, soft delete by timestamp, a custom struct key, a composite key, Identity's vault, and a vault with encrypted members |
+| `Vaults/` | Vaults that configure themselves: a custom string key with its indexes, a concurrency token and change tracking, soft delete by timestamp, a custom struct key, a composite key, Identity's vault, and a vault with encrypted members |
 | `Configuration/` | Two defaults, two features driven by attributes with async filters, a naming convention, and a per-vault configuration that reads options |
 | `Interceptors/` | Timestamps (typed, per collection, adding to update definitions), an audit trail (writes to another vault in the same transaction, switchable as a feature), a transactional outbox, and a write condition |
-| `Migrations/` | Indexes created through the vault's collections, a data fix through the vault, a schema change with the driver, and migrations outside a transaction |
+| `Migrations/` | The indexes a vault declares, applied before the migrations after it, a data fix through the vault, a schema change with the driver, and migrations outside a transaction |
 | `Services/` | The app's services, which the walkthrough calls |
 | `Infrastructure/` | The server for the run, with MongoDB Search, the request's user, a serializer for the strongly typed id, and the KYC records an earlier version stored in plain text |
-| `Program.cs` | Registration (defaults, per-vault databases, a second client, skipping defaults, Identity, Queryable Encryption with a local KMS), logging, telemetry and migrating at startup, which sets up the search index too |
+| `Program.cs` | Registration (defaults, per-vault databases, a second client, skipping defaults, Identity, Queryable Encryption with a local KMS), logging, telemetry and migrating at startup, which sets up the declared indexes and the search index too |
 
 ## Gaps
 

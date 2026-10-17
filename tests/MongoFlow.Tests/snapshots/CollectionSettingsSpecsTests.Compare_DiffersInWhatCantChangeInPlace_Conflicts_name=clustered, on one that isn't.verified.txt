@@ -1,0 +1,5 @@
+﻿{
+  Conflicts: [
+    it isn't clustered, and is declared clustered
+  ]
+}

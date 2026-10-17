@@ -1,0 +1,26 @@
+﻿{
+  Indexes: [
+    {
+      Name: by_customer,
+      Listed: {
+        key: {
+          Customer: 1,
+          IssuedAt: 1
+        },
+        name: by_customer
+      }
+    }
+  ],
+  Settings: {
+    Collation: {
+      Locale: tr
+    },
+    ValidationLevel: Strict,
+    ValidationAction: Error,
+    ChangeStreamPreAndPostImages: true,
+    Clustered: false,
+    Definition: collation { "locale" : "tr" }, change stream images,
+    Level: strict,
+    Action: error
+  }
+}

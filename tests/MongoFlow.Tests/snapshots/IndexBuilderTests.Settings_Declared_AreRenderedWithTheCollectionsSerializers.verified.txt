@@ -1,0 +1,24 @@
+﻿{
+  Collation: {
+    Locale: tr,
+    Strength: Secondary
+  },
+  Validator: {
+    Total: {
+      $gte: {
+        $numberDecimal: 0
+      }
+    },
+    Status: {
+      $ne: Draft
+    }
+  },
+  ValidationLevel: Moderate,
+  ValidationAction: Warn,
+  ChangeStreamPreAndPostImages: true,
+  Clustered: true,
+  ExpireAfter: 365.00:00:00,
+  Definition: collation { "locale" : "tr", "strength" : 2 }, validator { "Total" : { "$gte" : { "$numberDecimal" : "0" } }, "Status" : { "$ne" : "Draft" } } (moderate, warn), change stream images, clustered, expiring after 31536000 s,
+  Level: moderate,
+  Action: warn
+}

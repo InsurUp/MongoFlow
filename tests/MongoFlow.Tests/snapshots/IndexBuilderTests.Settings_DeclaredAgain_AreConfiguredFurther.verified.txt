@@ -1,0 +1,12 @@
+﻿{
+  Collation: {
+    Locale: tr
+  },
+  ValidationLevel: Strict,
+  ValidationAction: Error,
+  ChangeStreamPreAndPostImages: false,
+  Clustered: true,
+  Definition: collation { "locale" : "tr" }, clustered,
+  Level: strict,
+  Action: error
+}

@@ -150,7 +150,7 @@ stored source show only what the query filters do, and `MatchesNothing` whether 
 `IVaultMigrator.MigrateAllAsync`, and `MigrateAsync`, set up a vault's declared indexes after its migrations, which may
 create the collections or rename the fields they map:
 
-- **none of the name:** the index is created, and its collection, if missing;
+- **none of the name:** the index is created, and its collection, if missing, with its [declared settings](configuration.md#collection-settings);
 - **one defined as declared:** nothing to do. The definitions are compared as the server lists them, with its defaults;
 - **one defined otherwise:** it's updated. Searches use it as it was until it's rebuilt;
 - **one of the other type:** it fails, since a type can't be changed.

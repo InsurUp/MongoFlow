@@ -95,7 +95,8 @@ await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
 
 For each encrypted collection it finds:
 
-- **none:** it creates the collection encrypted, and its data keys;
+- **none:** it creates the collection encrypted, and its data keys, with the [settings](configuration.md#collection-settings)
+  it declares, such as a validator or a collation;
 - **one encrypted as declared:** nothing to do;
 - **one encrypted otherwise:** it fails, since MongoDB can't change an encrypted collection. Copy its documents into a new
   collection, under another name, encrypted as declared;
@@ -106,10 +107,13 @@ For each encrypted collection it finds:
 MongoDB can't encrypt a collection in place, so a rebuild:
 
 1. renames the collection to `{name}.encrypting`;
-2. creates the encrypted collection under its name;
+2. creates the encrypted collection under its name, with its declared settings but its validator, which documents
+   stored before it may not pass, and which is added once they're copied;
 3. copies the documents into it, in `_id` order and in batches, encrypting the declared members, and logs its progress;
 4. copies the indexes that don't cover an encrypted member; the others, such as a unique index on `Ssn`, are left
-   behind with a warning, as the server can't index encrypted values;
+   behind with a warning, as the server can't index encrypted values. The indexes it [declares](configuration.md#indexes)
+   are set up after the migrations, as any collection's are, and an index declared on an encrypted member, or with a
+   partial filter comparing one, fails at startup;
 5. renames `{name}.encrypting` to `{name}.unencrypted`, which marks it done. Search indexes follow it there, with a
    warning, since they keep its documents indexed in plain text.
 

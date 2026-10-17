@@ -209,7 +209,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
 
         async Task ApplyAsync(IClientSessionHandle session)
         {
-            var context = new MigrationContext<TVault>(vault, model.Database, session);
+            var context = new MigrationContext<TVault>(vault, model, session);
 
             if (up)
             {

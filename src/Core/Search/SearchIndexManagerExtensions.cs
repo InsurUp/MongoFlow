@@ -25,7 +25,7 @@ public static class SearchIndexManagerExtensions
     /// <param name="cancellationToken">Cancels the commands.</param>
     /// <returns>Whether it was created, updated or left as it was.</returns>
     /// <exception cref="InvalidOperationException">An index of the name is of the other type, which can't be changed.</exception>
-    public static async Task<SearchIndexChange> CreateOrUpdateAsync(this IMongoSearchIndexManager indexes,
+    public static async Task<IndexChange> CreateOrUpdateAsync(this IMongoSearchIndexManager indexes,
         string name,
         BsonDocument definition,
         SearchIndexType type = SearchIndexType.Search,

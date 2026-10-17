@@ -1,0 +1,87 @@
+﻿[
+  {
+    Name: number_1,
+    Listed: {
+      key: {
+        number: 1
+      },
+      name: number_1,
+      unique: true
+    }
+  },
+  {
+    Name: Customer_1_IssuedAt_-1,
+    Listed: {
+      key: {
+        Customer: 1,
+        IssuedAt: -1
+      },
+      name: Customer_1_IssuedAt_-1
+    }
+  },
+  {
+    Name: due,
+    Listed: {
+      key: {
+        DueAt: 1
+      },
+      name: due,
+      partialFilterExpression: {
+        Status: Issued
+      },
+      expireAfterSeconds: 2592000
+    }
+  },
+  {
+    Name: Notes_text_Address.City_1,
+    Listed: {
+      key: {
+        _fts: text,
+        _ftsx: 1,
+        Address.City: 1
+      },
+      name: Notes_text_Address.City_1,
+      weights: {
+        Notes: 1
+      },
+      sparse: true,
+      hidden: true
+    }
+  },
+  {
+    Name: Customer_hashed,
+    Listed: {
+      key: {
+        Customer: hashed
+      },
+      name: Customer_hashed
+    }
+  },
+  {
+    Name: Address.$**_1,
+    Listed: {
+      key: {
+        Address.$**: 1
+      },
+      name: Address.$**_1,
+      collation: {
+        locale: tr,
+        strength: 2
+      }
+    }
+  },
+  {
+    Name: Total_1,
+    Listed: {
+      key: {
+        Total: 1
+      },
+      name: Total_1,
+      partialFilterExpression: {
+        Notes: {
+          $exists: true
+        }
+      }
+    }
+  }
+]

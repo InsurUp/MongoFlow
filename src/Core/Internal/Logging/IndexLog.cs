@@ -43,4 +43,47 @@ internal static partial class IndexLog
         Message = "Checked the indexes of {Vault}.")]
     public static partial void IndexCheckCompleted(this ILogger logger,
         string vault);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Indexes.IndexCreated, EventName = nameof(MongoFlowLogEvents.Indexes.IndexCreated),
+        Level = LogLevel.Information, Message = "Created the index {Index} of {Collection}: {Definition}.")]
+    public static partial void IndexCreatedAsDeclared(this ILogger logger,
+        string index,
+        string collection,
+        string definition);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Indexes.IndexUpdated, EventName = nameof(MongoFlowLogEvents.Indexes.IndexUpdated),
+        Level = LogLevel.Information, Message = "Changed the index {Index} of {Collection} in place: {Changes}.")]
+    public static partial void IndexChangedInPlace(this ILogger logger,
+        string index,
+        string collection,
+        string changes);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Indexes.IndexUpToDate, Level = LogLevel.Debug,
+        Message = "The index {Index} of {Collection} is defined as declared.")]
+    public static partial void IndexUpToDate(this ILogger logger,
+        string index,
+        string collection);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Indexes.IndexDiffers, Level = LogLevel.Error,
+        Message = "The index {Index} of {Collection} differs from its declaration in what MongoDB can't change in place: " +
+                  "{Differences}. Recreate it in a migration, with context.Collection(...).RecreateIndexAsync.")]
+    public static partial void IndexDiffers(this ILogger logger,
+        string index,
+        string collection,
+        string differences);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Indexes.IndexRecreated, Level = LogLevel.Information,
+        Message = "Recreated the index {Index} of {Collection}, dropping {Dropped}: {Definition}.")]
+    public static partial void IndexRecreated(this ILogger logger,
+        string index,
+        string collection,
+        string dropped,
+        string definition);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Indexes.IndexNotDeclared, Level = LogLevel.Warning,
+        Message = "A migration named the index {Index} of {Collection}, which the collection doesn't declare; the migrator " +
+                  "sets up the indexes it declares after the migrations.")]
+    public static partial void IndexNotDeclared(this ILogger logger,
+        string index,
+        string collection);
 }

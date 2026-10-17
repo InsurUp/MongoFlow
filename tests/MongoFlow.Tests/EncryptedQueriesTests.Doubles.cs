@@ -53,6 +53,11 @@ public partial class EncryptedQueriesTests
         public override Task PrepareAsync(VaultModel model,
             CancellationToken cancellationToken) =>
             Task.CompletedTask;
+
+        public override Task PrepareCollectionAsync(VaultModel model,
+            ICollectionModel collection,
+            CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 
     /// <summary>Stands in for a collection's encryption: a filter it encrypts shows as <c>{ encrypted: filter }</c>.</summary>

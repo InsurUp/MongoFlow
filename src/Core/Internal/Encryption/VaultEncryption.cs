@@ -27,6 +27,15 @@ internal abstract class VaultEncryption : IVaultSetup
     public abstract Task PrepareAsync(VaultModel model,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Sets up <paramref name="collection"/>, which has encrypted members, as <see cref="PrepareAsync"/> does: creates it
+    /// encrypted, with its declared settings, checks it, or rebuilds it encrypted. For a collection created outside the
+    /// migrator's own setup, by a migration or before an index is created on it.
+    /// </summary>
+    public abstract Task PrepareCollectionAsync(VaultModel model,
+        ICollectionModel collection,
+        CancellationToken cancellationToken);
+
     Task IVaultSetup.RunAsync(VaultModel model,
         MigrateOptions options,
         CancellationToken cancellationToken) =>

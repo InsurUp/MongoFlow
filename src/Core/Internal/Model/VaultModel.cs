@@ -34,7 +34,10 @@ internal sealed class VaultModel(Type vaultType,
     /// <summary>The vault's encryption, or <see langword="null"/> when it doesn't encrypt.</summary>
     public VaultEncryption? Encryption { get; } = encryption;
 
-    /// <summary>What the migrator sets up for the vault besides its migrations: its encryption and search indexes.</summary>
+    /// <summary>
+    /// What the migrator sets up for the vault besides its migrations, in order: its encryption, its collections' declared
+    /// settings, indexes and search indexes.
+    /// </summary>
     public IReadOnlyList<IVaultSetup> Setups { get; } = setups;
 
     /// <summary>

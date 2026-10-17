@@ -12,9 +12,9 @@
     Parent: MongoFlow.Migrate,
     Status: Unset,
     Tags: {
-      mongoflow.search_index.change: created,
-      mongoflow.search_index.collection: Customers,
-      mongoflow.search_index.name: default,
+      mongoflow.change: created,
+      mongoflow.collection: Customers,
+      mongoflow.index.name: default,
       mongoflow.search_index.type: search,
       mongoflow.vault: CrmVault
     }
@@ -24,9 +24,9 @@
     Parent: MongoFlow.Migrate,
     Status: Unset,
     Tags: {
-      mongoflow.search_index.change: created,
-      mongoflow.search_index.collection: Customers,
-      mongoflow.search_index.name: vectors,
+      mongoflow.change: created,
+      mongoflow.collection: Customers,
+      mongoflow.index.name: vectors,
       mongoflow.search_index.type: vectorSearch,
       mongoflow.vault: CrmVault
     }

@@ -13,7 +13,7 @@ internal sealed class VaultLogs(ILoggerFactory factory)
     /// <summary>Building a vault's model.</summary>
     public ILogger Model { get; } = factory.CreateLogger(MongoFlowLogEvents.Model.Category);
 
-    /// <summary>Collections missing the indexes their key and features rely on.</summary>
+    /// <summary>Declared indexes set up by the migrator, and collections missing the indexes their key and features rely on.</summary>
     public ILogger Indexes { get; } = factory.CreateLogger(MongoFlowLogEvents.Indexes.Category);
 
     /// <summary>Saves: what they write, how they end, and what fails them.</summary>
@@ -30,6 +30,9 @@ internal sealed class VaultLogs(ILoggerFactory factory)
 
     /// <summary>Search indexes set up by the migrator, and query filters searches match after the search.</summary>
     public ILogger Search { get; } = factory.CreateLogger(MongoFlowLogEvents.Search.Category);
+
+    /// <summary>Collections the migrator creates with their declared settings, or changes in place.</summary>
+    public ILogger Collections { get; } = factory.CreateLogger(MongoFlowLogEvents.Collections.Category);
 
     public static VaultLogs From(IServiceProvider services) =>
         new(services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance);

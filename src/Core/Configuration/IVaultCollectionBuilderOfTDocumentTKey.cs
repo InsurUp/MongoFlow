@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -13,7 +14,8 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
     /// </summary>
     /// <remarks>
     /// Lookups by key expect one document, so a key other than <c>_id</c> needs a unique index, which MongoFlow doesn't
-    /// create.
+    /// declare for it: declare one, such as <c>Index(keys =&gt; keys.Ascending(p =&gt; p.PolicyNumber), index =&gt;
+    /// index.Unique())</c>.
     /// </remarks>
     /// <param name="key">The key member, or a new <typeparamref name="TKey"/> of members.</param>
     IVaultCollectionBuilder<TDocument, TKey> Key(Expression<Func<TDocument, TKey>> key);
@@ -59,4 +61,12 @@ public interface IVaultCollectionBuilder<TDocument, TKey> : IVaultCollectionBuil
     /// <inheritdoc/>
     new IVaultCollectionBuilder<TDocument, TKey> VectorSearchIndex(string name,
         Action<IVectorSearchIndexBuilder<TDocument>> configure);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> Index(
+        Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
+        Action<IIndexBuilder<TDocument>>? configure = null);
+
+    /// <inheritdoc/>
+    new IVaultCollectionBuilder<TDocument, TKey> Settings(Action<ICollectionSettingsBuilder<TDocument>> configure);
 }

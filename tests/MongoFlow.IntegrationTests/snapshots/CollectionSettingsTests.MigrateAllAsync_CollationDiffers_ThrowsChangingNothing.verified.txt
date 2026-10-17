@@ -1,0 +1,13 @@
+﻿{
+  Message: LedgerVault declares settings MongoDB can't change in place: {database}.Payments: it compares strings with simple, not { "locale" : "tr" }. Rebuild the collection in a migration: create it anew with context.Collection(...).CreateAsync, and copy the documents into it.,
+  Options: {},
+  Logs: [
+    {
+      Category: MongoFlow.Collections,
+      Level: Error,
+      EventId: 27009004,
+      Event: CollectionDiffers,
+      Message: {database}.Payments differs from its declared settings in what MongoDB can't change in place: it compares strings with simple, not { "locale" : "tr" }. Rebuild it in a migration: create the collection anew with context.Collection(...).CreateAsync, and copy the documents into it.
+    }
+  ]
+}

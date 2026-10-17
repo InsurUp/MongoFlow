@@ -6,7 +6,8 @@ namespace MongoFlow;
 /// <c>.AddSource(MongoFlowTelemetry.ActivitySourceName)</c> and <c>.AddMeter(MongoFlowTelemetry.MeterName)</c>.
 /// </summary>
 /// <remarks>
-/// MongoFlow traces its own units of work: saves, migrations and the search indexes the migrator sets up. The driver traces every command they send, under
+/// MongoFlow traces its own units of work: saves, migrations, and the collections and indexes the migrator sets up. The
+/// driver traces every command they send, under
 /// <c>MongoTelemetry.ActivitySourceName</c>; add that source too to see them nested. Reads have no span of their own:
 /// <c>QueryAsync</c>, <c>FindAsync</c> and <c>AggregateAsync</c> return queries that run after they return, and the
 /// driver traces them when they do. The meter comes from the <c>IMeterFactory</c> in DI, if there is one.
@@ -45,10 +46,24 @@ public static class MongoFlowTelemetry
         /// <summary>
         /// One search index a vault declares, created, updated or found as declared by <c>IVaultMigrator</c> after the
         /// vault's migrations, and waited for until it's queryable, tagged with <see cref="Tags.Vault"/>,
-        /// <see cref="Tags.SearchIndexCollection"/>, <see cref="Tags.SearchIndexName"/>, <see cref="Tags.SearchIndexType"/>
-        /// and <see cref="Tags.SearchIndexChange"/>.
+        /// <see cref="Tags.Collection"/>, <see cref="Tags.IndexName"/>, <see cref="Tags.SearchIndexType"/> and
+        /// <see cref="Tags.Change"/>.
         /// </summary>
         public const string SearchIndex = "MongoFlow.SearchIndex";
+
+        /// <summary>
+        /// One collection a vault declares settings for, created with them, changed in place or found as declared, by
+        /// <c>IVaultMigrator</c> before the vault's migrations or by a migration, tagged with <see cref="Tags.Vault"/>,
+        /// <see cref="Tags.Collection"/> and <see cref="Tags.Change"/>.
+        /// </summary>
+        public const string Collection = "MongoFlow.Collection";
+
+        /// <summary>
+        /// One index a vault declares, created, changed in place or found as declared, by <c>IVaultMigrator</c> after the
+        /// vault's migrations, or recreated by a migration, tagged with <see cref="Tags.Vault"/>, <see cref="Tags.Collection"/>,
+        /// <see cref="Tags.IndexName"/> and <see cref="Tags.Change"/>.
+        /// </summary>
+        public const string Index = "MongoFlow.Index";
     }
 
     /// <summary>The instruments of MongoFlow's meter.</summary>
@@ -126,17 +141,20 @@ public static class MongoFlowTelemetry
         /// <summary>Whether a migration is applied, <c>up</c>, or reverted, <c>down</c>.</summary>
         public const string MigrationDirection = "mongoflow.migration.direction";
 
-        /// <summary>The collection a search index is of.</summary>
-        public const string SearchIndexCollection = "mongoflow.search_index.collection";
+        /// <summary>The collection a span's work is on, such as <c>orders</c>.</summary>
+        public const string Collection = "mongoflow.collection";
 
-        /// <summary>A search index's name.</summary>
-        public const string SearchIndexName = "mongoflow.search_index.name";
+        /// <summary>An index's name, a search index's or another.</summary>
+        public const string IndexName = "mongoflow.index.name";
 
         /// <summary>A search index's type: <c>search</c> or <c>vectorSearch</c>.</summary>
         public const string SearchIndexType = "mongoflow.search_index.type";
 
-        /// <summary>What was done to a search index: <c>created</c>, <c>updated</c> or <c>unchanged</c>.</summary>
-        public const string SearchIndexChange = "mongoflow.search_index.change";
+        /// <summary>
+        /// What was done to a collection or an index: <c>created</c>, <c>updated</c>, <c>unchanged</c> or, for an index a
+        /// migration recreates, <c>recreated</c>.
+        /// </summary>
+        public const string Change = "mongoflow.change";
 
         /// <summary>OpenTelemetry's <c>error.type</c>: the full type name of the exception that failed the work.</summary>
         public const string ErrorType = "error.type";

@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Invoices declares the index DueAt_1_IssuedAt_1, but it expires documents by more than one field, where MongoDB takes one.
+}

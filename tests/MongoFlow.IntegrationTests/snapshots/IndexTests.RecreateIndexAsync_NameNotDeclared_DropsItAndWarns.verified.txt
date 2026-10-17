@@ -1,0 +1,22 @@
+﻿{
+  Indexes: [
+    _id_,
+    Customer_1
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Indexes,
+      Level: Warning,
+      EventId: 27002012,
+      Event: IndexNotDeclared,
+      Message: A migration named the index Retired_1 of {database}.Orders, which the collection doesn't declare; the migrator sets up the indexes it declares after the migrations.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Customer_1 of {database}.Orders: { "Customer" : 1 }.
+    }
+  ]
+}

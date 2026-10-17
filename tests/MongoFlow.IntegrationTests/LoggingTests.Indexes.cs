@@ -46,6 +46,28 @@ public partial class LoggingTests
         await Assert.That(_sink.Snapshot("MongoFlow.Indexes").Where(entry => entry.Message.Contains(".Articles"))).IsEmpty();
     }
 
+    [Test]
+    public async Task IndexCheck_IndexesDeclared_CountsThemAsThere()
+    {
+        // Arrange — the keyed policies and the soft-deleted articles exist without indexes, which they declare; the receipts
+        // declare an index on their key that isn't unique; the rest neither exist nor declare one.
+        var database = Mongo.NewDatabase();
+        await database.CreateCollectionAsync("Policies");
+        await database.CreateCollectionAsync("Articles");
+        await using var host = new VaultHost<IndexedVault>(Mongo.Client, database, vault => vault
+            .UseSoftDelete((ISoftDeletable x) => x.IsDeleted)
+            .Collection(x => x.Policies, policies => policies.Index(keys => keys.Ascending(p => p.Number), index => index.Unique()))
+            .Collection(x => x.Articles, articles => articles.Index(keys => keys.Ascending(a => a.IsDeleted)))
+            .Collection(x => x.Receipts, receipts => receipts.Index(keys => keys.Ascending(r => r.Code))), Logging);
+
+        // Act
+        _ = host.Vault;
+        await _sink.WaitForAsync(MongoFlowLogEvents.Indexes.IndexCheckCompleted);
+
+        // Assert
+        await Verify(_sink.Snapshot("MongoFlow.Indexes"));
+    }
+
     private static Task<string> CreateIndexAsync(IMongoDatabase database,
         string collection,
         BsonDocument keys,

@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -78,6 +79,28 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
     /// </summary>
     IVaultCollectionBuilder<TDocument> VectorSearchIndex(string name,
         Action<IVectorSearchIndexBuilder<TDocument>> configure);
+
+    /// <summary>
+    /// Declares an index on <paramref name="keys"/>, such as <c>keys =&gt; keys.Ascending(x =&gt; x.Customer)</c>, which
+    /// <c>IVaultMigrator.MigrateAllAsync</c> creates after the vault's migrations, and keeps as declared. It's named as the
+    /// server names an index, such as <c>Customer_1</c>, unless <paramref name="configure"/> names it; a vault's own
+    /// declaration takes the place of a default configuration's of the same name.
+    /// </summary>
+    /// <remarks>
+    /// An index that differs from its declaration has its expiry, and whether it's hidden, changed in place. MongoDB can't
+    /// change anything else in place, so the migrator fails, naming the index, for a migration to recreate it with
+    /// <c>context.Collection(...).RecreateIndexAsync</c>. Indexes the vault doesn't declare are left as they are.
+    /// </remarks>
+    IVaultCollectionBuilder<TDocument> Index(Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
+        Action<IIndexBuilder<TDocument>>? configure = null);
+
+    /// <summary>
+    /// Declares what the collection is created with, such as its collation or validator, which
+    /// <c>IVaultMigrator.MigrateAllAsync</c> creates it with before the vault's migrations, so they write to it as
+    /// declared. Declared again, the settings are configured further; a vault's own setting wins over a default
+    /// configuration's.
+    /// </summary>
+    IVaultCollectionBuilder<TDocument> Settings(Action<ICollectionSettingsBuilder<TDocument>> configure);
 
     /// <summary>
     /// Adds an interceptor instance, shared by every request, that sees only this collection's operations. Being
