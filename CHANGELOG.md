@@ -3,6 +3,49 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.13] - 2026-10-17
+
+### Added
+
+- MongoDB Search, on Atlas and on MongoDB Community with mongot. A collection declares its indexes with
+  `SearchIndex(name, ...)`, mapping members as `SearchField.String()`, `Autocomplete()`, `Token()` and the rest, and
+  `VectorSearchIndex(name, ...)`; MongoFlow maps the fields its features filter on, such as the tenant and soft delete's
+  flag, as their values compare. `SearchAsync`, `SearchMetaAsync` and `VectorSearchAsync` filter with the collection's
+  query filters in the index, where the index maps a field to compare exactly, and match the rest right after the search
+  stage, so a search finds only what a read would; one that can't count what the query filters hide, counting, faceting
+  or returning stored source, throws instead. `SearchFiltersAsync` gives the query filters as search clauses, for a
+  pipeline of your own. Searches run outside the scope's transaction, and a collection with encrypted members can't be
+  searched, nor declare a search index. It logs under `MongoFlow.Search`.
+- Declared indexes: `Index(keys => keys.Ascending(x => x.Number), index => index.Unique())`, with the driver's typed key
+  builder and `IIndexBuilder<T>`'s name, unique, sparse, partial filter, expiry, hidden and collation. An index is known by
+  its name, given or generated as the server generates one, so an index created without a name matches its declaration.
+- Declared collection settings: `Settings(s => s.Collation(...).Validator(x => ...).ChangeStreamPreAndPostImages()
+  .Clustered(...))`, each layered, so a vault's own wins over a default configuration's. Capped and time series
+  collections can't be declared, as the server refuses writes to them in a transaction, which every save is in.
+- `IVaultMigrator` sets up what collections declare: their settings before the vault's migrations, creating a collection
+  with them; their indexes and search indexes after, which migrations may prepare, such as by removing what a unique index
+  would refuse. It changes in place what MongoDB can, an index's expiry and visibility, a collection's validator, change
+  stream images and expiry, and a search index's definition, and waits until search indexes are queryable unless
+  `MigrateOptions.WaitForSearchIndexes` says not to, through the new `MigrateAllAsync(options)` and
+  `MigrateAsync<TVault>(target, options)`. It fails, naming each, before it changes anything, when a collection or an
+  index differs in what MongoDB can't change in place, such as an index's keys or whether it's unique, or a collection's
+  collation. Indexes nothing declares are left. It logs under `MongoFlow.Indexes` and `MongoFlow.Collections`, and traces
+  `MongoFlow.Collection`, `MongoFlow.Index` and `MongoFlow.SearchIndex` spans under `MongoFlow.Migrate`.
+- `MigrationContext.Collection(x => x.Orders)`, a `DeclaredCollection<T>`, for a migration to apply what a collection
+  declares at a point of its own, outside its transaction: `ApplyIndexesAsync`, `RecreateIndexAsync`, for a change
+  MongoDB can't make in place, and `CreateAsync`, for a collection rebuilt anew. For indexes a vault doesn't declare,
+  `CreateOrUpdateIndexAsync` and `RecreateIndexAsync` on `IMongoCollection<T>`, and for search indexes
+  `CreateOrUpdateAsync` and `WaitUntilQueryableAsync` on `IMongoSearchIndexManager`.
+
+### Changed
+
+- The index check counts the indexes a vault declares, hidden ones aside, as there, as the migrator creates them, so it
+  doesn't warn about one about to be created.
+- MongoFlow.Encryption creates an encrypted collection with the settings it declares. A rebuild creates it without its
+  validator, which documents stored before it may not pass, and the migrator adds the validator once they're copied. An
+  index, partial filter or validator on an encrypted member fails the model. A rebuild of a collection with search
+  indexes warns that they follow its documents to `{name}.unencrypted`, where they keep them indexed in plain text.
+
 ## [1.0.0-beta.12] - 2026-10-16
 
 ### Added
@@ -296,6 +339,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[1.0.0-beta.13]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.12...v1.0.0-beta.13
 [1.0.0-beta.12]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.11...v1.0.0-beta.12
 [1.0.0-beta.11]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.10...v1.0.0-beta.11
 [1.0.0-beta.10]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.9...v1.0.0-beta.10
