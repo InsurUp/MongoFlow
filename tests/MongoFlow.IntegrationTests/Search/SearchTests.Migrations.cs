@@ -87,7 +87,7 @@ public partial class SearchTests
         await using var host = await CrmAsync();
 
         // Assert
-        await Verify(spans.Snapshot().OrderBy(span => span.Name).ThenBy(span => span.Tags.GetValueOrDefault(MongoFlowTelemetry.Tags.SearchIndexName)));
+        await Verify(spans.Snapshot().OrderBy(span => span.Name).ThenBy(span => span.Tags.GetValueOrDefault(MongoFlowTelemetry.Tags.IndexName)));
     }
 
     // What the migrator logged of the indexes, after the first entries it logged before, in order of index, as it sets them

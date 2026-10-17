@@ -8,13 +8,14 @@ ID; refer to them by constant, not by number.
 | Category | Logs |
 |---|---|
 | `MongoFlow.Model` | A vault's model built, at `Debug` |
-| `MongoFlow.Indexes` | Indexes a vault relies on and lacks, at `Warning`; the check itself at `Debug` |
+| `MongoFlow.Indexes` | Declared indexes the migrator sets up: created, changed in place, or recreated by a migration, at `Information`, found as declared at `Debug`, differing in what can't change in place at `Error`; a migration naming one not declared, and indexes a vault relies on and lacks, at `Warning`; the check itself at `Debug` |
 | `MongoFlow.Save` | Each save: starting, how many tracked documents changed, and how it ended, at `Debug`; each write at `Trace`; a concurrency conflict, a write to another tenant, or a set-based write to encrypted documents made one at a time, at `Debug`; an interceptor's `FailedAsync` or `CommittedAsync` throwing, at `Error` |
 | `MongoFlow.Transaction` | Transactions begun with `BeginAsync`: begun, committed, rolled back or doomed, at `Debug`; one a save opens for itself at `Trace` |
 | `MongoFlow.Query` | Each read, with the query filters it runs with, and each search, with its index and what it filters in the index and after it, at `Trace` |
 | `MongoFlow.Migrations` | Migrations applied and reverted, at `Information`; a history recording a version twice, at `Warning`; a failure at `Error` |
 | `MongoFlow.Encryption` | Encrypted collections the migrator sets up: created, or rebuilt from one that wasn't encrypted, at `Information`, and found as declared at `Debug`; an index a rebuild left behind, search indexes that followed the unencrypted copy, or an unencrypted copy still there, at `Warning` |
 | `MongoFlow.Search` | Search indexes the migrator sets up: created, updated and queryable at `Information`, found as declared and building at `Debug`, failed at `Error`; a field searches filter on after the search, at `Warning` |
+| `MongoFlow.Collections` | Collections the migrator sets up with their declared settings: created or changed in place at `Information`, found as declared at `Debug`, differing in what can't change in place at `Error` |
 
 ```json
 {
@@ -31,15 +32,16 @@ A failed save logs at `Debug`, since its exception reaches the caller, who decid
 
 ### Missing indexes
 
-MongoFlow doesn't create indexes, but it checks them, once per vault, in the background when its model is built, and
-warns about:
+MongoFlow creates only the indexes a vault declares, but it checks them, once per vault, in the background when its model
+is built, and warns about:
 
 - a key other than `_id` that no unique index covers, so lookups and writes by key scan the collection;
 - a key whose index isn't unique, so a key can match more than one document;
 - a field a feature filters every read on, such as the soft-delete flag or the tenant, that no index includes.
 
-A collection with no indexes at all isn't checked, since it may not exist yet. Create indexes in a
-[migration](migrations.md).
+A declared index counts as there, since the migrator creates it, unless it's hidden, which queries don't use. A
+collection with no indexes at all, declared or not, isn't checked, since it may not exist yet.
+[Declare](configuration.md#indexes) the indexes it warns about.
 
 ## Tracing
 
@@ -59,6 +61,8 @@ services.AddOpenTelemetry()
 | `MongoFlow.Save` | A save with writes queued | The vault; whether it ran in a transaction of its own or joined one; the writes it sent; what it inserted, matched, modified and deleted |
 | `MongoFlow.Migrate` | One vault migrated, its encrypted collections set up first | The vault; its version before, and the target |
 | `MongoFlow.Migration` | One migration applied or reverted | The vault; the migration's version and name; up or down |
+| `MongoFlow.Collection` | One collection the migrator sets up with its declared settings, under `MongoFlow.Migrate`, or a migration creates | The vault; the collection; whether it was created, updated or unchanged |
+| `MongoFlow.Index` | One declared index the migrator sets up, under `MongoFlow.Migrate`, or a migration applies or recreates | The vault; the collection; the index's name; whether it was created, updated, unchanged or recreated |
 | `MongoFlow.SearchIndex` | One search index the migrator sets up, and waits for unless `MigrateOptions` says not to, under `MongoFlow.Migrate` | The vault; the collection; the index's name and type; whether it was created, updated or unchanged |
 
 A span that fails has an error status, `error.type` and an exception event. `MongoFlowTelemetry.Activities` and

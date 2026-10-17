@@ -1,0 +1,47 @@
+﻿{
+  Options: {
+    changeStreamPreAndPostImages: {
+      enabled: true
+    },
+    validator: {
+      Version: {
+        $gte: 0
+      }
+    },
+    validationLevel: strict,
+    validationAction: error,
+    collation: {
+      locale: tr,
+      caseLevel: false,
+      caseFirst: off,
+      strength: 2,
+      numericOrdering: false,
+      alternate: non-ignorable,
+      maxVariable: punct,
+      normalization: false,
+      backwards: false,
+      version: 57.1
+    }
+  },
+  Indexes: [
+    _id_,
+    __safeContent___1,
+    Name_1
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Collections,
+      Level: Debug,
+      EventId: 27009003,
+      Event: CollectionUpToDate,
+      Message: {database}.Customers has the settings it declares.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Name_1 of {database}.Customers: { "Name" : 1 }.
+    }
+  ]
+}

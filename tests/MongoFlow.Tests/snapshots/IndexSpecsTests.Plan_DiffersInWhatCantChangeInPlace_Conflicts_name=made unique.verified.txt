@@ -1,0 +1,6 @@
+﻿{
+  Action: Conflict,
+  Conflicts: [
+    it isn't unique, and is declared unique
+  ]
+}

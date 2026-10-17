@@ -297,11 +297,16 @@ public partial class QueryableEncryptionTests
     /// logging encryption to the sink.
     /// </summary>
     private VaultHost<CustomerVault> PlainHost(IMongoDatabase database,
-        Action<IVaultCollectionBuilder<Customer, int>>? customers = null) =>
+        Action<IVaultCollectionBuilder<Customer, int>>? customers = null,
+        Action<IMigrationBuilder<CustomerVault>>? migrations = null) =>
         new(Mongo.Client, database, vault =>
             {
                 UseEncryption(vault, database.DatabaseNamespace.DatabaseName);
                 vault.Collection(x => x.Customers, customers ?? Encrypted);
+                if (migrations is not null)
+                {
+                    vault.Migrations(migrations);
+                }
             },
             services => services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddProvider(_sink)));
 

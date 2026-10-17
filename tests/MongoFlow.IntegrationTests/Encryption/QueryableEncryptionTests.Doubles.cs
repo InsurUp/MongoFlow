@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoFlow.Encryption;
+using Semver;
 
 namespace MongoFlow.IntegrationTests.Encryption;
 
@@ -84,6 +85,25 @@ public partial class QueryableEncryptionTests
         public int Id { get; set; }
 
         public string Text { get; set; } = "";
+    }
+
+    /// <summary>Drops the customers, and creates them anew, encrypted with their settings, as a migration rebuilding them would.</summary>
+    public sealed class RecreateCustomers : IVaultMigration<CustomerVault>
+    {
+        public SemVersion Version { get; } = new(1, 0, 0);
+
+        public bool UseTransaction => false;
+
+        public async Task UpAsync(MigrationContext<CustomerVault> context,
+            CancellationToken cancellationToken)
+        {
+            await context.Database.DropCollectionAsync("Customers", cancellationToken);
+            await context.Collection(x => x.Customers).CreateAsync(cancellationToken);
+        }
+
+        public Task DownAsync(MigrationContext<CustomerVault> context,
+            CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 
     /// <summary>The customers' encryption, as a vault declares it: Ssn for equality, Salary for ranges, Notes and Street just encrypted.</summary>

@@ -1,0 +1,1 @@
+﻿Setting up {database}.Orders runs outside the migration's transaction, as the server doesn't build indexes or change a collection in one, and waiting on what the transaction wrote would abort it. Opt the migration out with UseTransaction => false.

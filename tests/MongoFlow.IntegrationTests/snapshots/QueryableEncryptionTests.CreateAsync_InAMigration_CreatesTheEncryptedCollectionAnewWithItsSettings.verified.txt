@@ -1,0 +1,45 @@
+﻿{
+  Schema: [
+    {
+      keyId: (data key),
+      path: Ssn,
+      bsonType: string,
+      queries: {
+        queryType: equality,
+        contention: 8
+      }
+    },
+    {
+      keyId: (data key),
+      path: Salary,
+      bsonType: int,
+      queries: {
+        queryType: range,
+        contention: 8,
+        min: 0,
+        max: 1000000,
+        sparsity: 2,
+        trimFactor: 6
+      }
+    },
+    {
+      keyId: (data key),
+      path: Notes,
+      bsonType: string
+    },
+    {
+      keyId: (data key),
+      path: Address.Street,
+      bsonType: string
+    }
+  ],
+  Options: {
+    validator: {
+      Version: {
+        $gte: 0
+      }
+    },
+    validationLevel: strict,
+    validationAction: error
+  }
+}

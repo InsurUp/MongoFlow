@@ -47,25 +47,62 @@ public Task UpAsync(MigrationContext<PolicyVault> context, CancellationToken can
 ### Outside a transaction
 
 A migration runs in a transaction unless it opts out with `UseTransaction => false`, for what MongoDB doesn't allow in
-one, such as creating an index on a collection that has documents, or dropping a collection. Indexes belong in
-migrations: MongoFlow doesn't create them.
+one, such as building an index, or dropping a collection.
 
 ```csharp
-public sealed class CreatePolicyIndexes : IVaultMigration<PolicyVault>
+public sealed class DropLegacyIndex : IVaultMigration<PolicyVault>
 {
-    public SemVersion Version { get; } = new(1, 0, 0);
+    public SemVersion Version { get; } = new(1, 2, 0);
 
     public bool UseTransaction => false;
 
     public Task UpAsync(MigrationContext<PolicyVault> context, CancellationToken cancellationToken) =>
-        context.Vault.Policies.MongoCollection.Indexes.CreateOneAsync(context.Session,
-            new CreateIndexModel<Policy>(Builders<Policy>.IndexKeys.Ascending(p => p.PolicyNumber),
-                new CreateIndexOptions { Unique = true }),
-            cancellationToken: cancellationToken);
+        context.Vault.Policies.MongoCollection.Indexes.DropOneAsync("legacy_number", cancellationToken);
 
     public Task DownAsync(MigrationContext<PolicyVault> context, CancellationToken cancellationToken) =>
-        context.Vault.Policies.MongoCollection.Indexes.DropOneAsync(context.Session, "PolicyNumber_1", cancellationToken);
+        Task.CompletedTask;
 }
+```
+
+### Declarations in a migration
+
+A collection's [indexes and settings](configuration.md#indexes) are declared on the collection, and the migrator applies
+them: settings before the migrations, indexes after. A migration applies them at a point of its own through
+`context.Collection(...)`, outside its transaction, which it opts out of:
+
+| `DeclaredCollection<T>` | |
+|---|---|
+| `ApplyIndexesAsync()`, `ApplyIndexesAsync(names)` | The declared indexes, or those named, set up as the migrator does: for the migrations after this one to run on them |
+| `RecreateIndexAsync(name)` | Drops the index of the name, and any the server would refuse the declared one beside, then creates it as declared: for what MongoDB can't change in place |
+| `CreateAsync()` | The collection created with its declared settings, encrypted if it has encrypted members: for a migration that rebuilds it |
+
+```csharp
+public sealed class MakePolicyNumbersUnique : IVaultMigration<PolicyVault>
+{
+    public SemVersion Version { get; } = new(1, 3, 0);
+
+    public bool UseTransaction => false;
+
+    public async Task UpAsync(MigrationContext<PolicyVault> context, CancellationToken cancellationToken)
+    {
+        // Duplicates removed first, then the index, now declared unique, rebuilt.
+        await RemoveDuplicateNumbersAsync(context, cancellationToken);
+        await context.Collection(x => x.Policies).RecreateIndexAsync("PolicyNumber_1", cancellationToken);
+    }
+
+    public Task DownAsync(MigrationContext<PolicyVault> context, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+}
+```
+
+Called in a migration's transaction, they throw. A name the collection no longer declares, such as one renamed since the
+migration was written, is logged and left to the declarations the migrator applies after the migrations. For an index
+the vault doesn't declare, `CreateOrUpdateIndexAsync` and `RecreateIndexAsync` on a driver collection do the same, with
+an index declared as a collection declares one:
+
+```csharp
+await context.Database.GetCollection<AuditEntry>("audit").CreateOrUpdateIndexAsync(
+    keys => keys.Ascending(x => x.At), index => index.ExpireAfter(TimeSpan.FromDays(90)), cancellationToken);
 ```
 
 ## Declaring them
@@ -132,12 +169,20 @@ A vault that encrypts, with MongoFlow.Encryption, has its encrypted collections 
 when it has none: created encrypted with their data keys, or rebuilt encrypted when they hold documents already. See
 [Queryable Encryption](encryption.md#setting-up-the-collections).
 
+Collections that declare settings are set up next, before the migrations: created with them, or changed in place where
+they differ. Declared indexes are set up after the migrations, which may remove what a unique index would refuse, or
+rename the fields an index is on: created, or changed in place where they differ. Either fails, naming each, before it
+changes anything, when one differs in what MongoDB can't change in place. See [indexes](configuration.md#indexes) and
+[collection settings](configuration.md#collection-settings).
+
 A vault whose collections declare search indexes has them set up after its migrations, even when it has none: created,
 or updated when they're declared otherwise, then waited for until they're queryable, unless `MigrateOptions` says not to.
 See [MongoDB Search](search.md#setting-up-indexes), which also has helpers for search indexes a migration sets up by hand.
 
-Migrations log under `MongoFlow.Migrations`, and are traced as `MongoFlow.Migrate` and `MongoFlow.Migration` spans, and
-search indexes as `MongoFlow.SearchIndex` spans; see [observability](observability.md).
+Migrations log under `MongoFlow.Migrations`, collections under `MongoFlow.Collections` and indexes under
+`MongoFlow.Indexes`, and are traced as `MongoFlow.Migrate` and `MongoFlow.Migration` spans, collections, indexes and search
+indexes as `MongoFlow.Collection`, `MongoFlow.Index` and `MongoFlow.SearchIndex` spans; see
+[observability](observability.md).
 
 ## From 0.5
 

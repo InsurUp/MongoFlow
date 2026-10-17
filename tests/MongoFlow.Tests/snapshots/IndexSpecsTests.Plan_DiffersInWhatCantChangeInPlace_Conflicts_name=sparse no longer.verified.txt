@@ -1,0 +1,6 @@
+﻿{
+  Action: Conflict,
+  Conflicts: [
+    it's sparse, and isn't declared sparse
+  ]
+}

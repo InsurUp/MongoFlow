@@ -97,11 +97,13 @@ services.AddMongoVault<IPolicyVault, PolicyVault>(vault => vault
     .UseDatabase("policies")
     .Collection(x => x.Policies, policies => policies
         .Name("insurance_policies")
-        .Key(p => p.PolicyNumber)));
+        .Key(p => p.PolicyNumber)
+        .Index(keys => keys.Ascending(p => p.PolicyNumber), index => index.Unique())
+        .Settings(settings => settings.Validator(p => p.Premium >= 0))));
 ```
 
 [Configuration](https://github.com/InsurUp/MongoFlow/blob/main/docs/configuration.md): registration, keys and composite
-keys, defaults, and the order settings apply in.
+keys, indexes and collection settings, which the migrator applies, defaults, and the order settings apply in.
 
 ### Reads and writes
 
@@ -177,7 +179,9 @@ audit trail and an outbox written in the same transaction.
 ### Migrations
 
 Migrations are classes with a version, applied once, in order, each in a transaction unless it opts out, and recorded.
-They can be reverted down to a version.
+They can be reverted down to a version. The migrator also sets up what collections declare: their settings before the
+migrations, their indexes after, failing before it changes anything MongoDB can't change in place; a migration applies
+them earlier where it needs them.
 
 ```csharp
 await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
@@ -205,7 +209,7 @@ after it, `$searchMeta`, vector search, pipelines of your own, indexes managed b
 ### Logging, tracing and metrics
 
 MongoFlow logs through the `ILoggerFactory` in DI, and warns about keys and feature fields no index covers. It traces
-saves, migrations and the search indexes it sets up, and measures saves and transactions, through `System.Diagnostics`,
+saves, migrations and the collections and indexes it sets up, and measures saves and transactions, through `System.Diagnostics`,
 for OpenTelemetry.
 
 ```csharp

@@ -6,8 +6,10 @@ namespace MongoFlow;
 /// Applies vaults' migrations. Registered as a singleton by <c>AddMongoVault</c>. Each migration runs in a DI scope of
 /// its own, in a transaction unless it opts out, and is recorded in the same transaction. A vault that encrypts, with
 /// MongoFlow.Encryption, has its encrypted collections set up first: created with their data keys, or rebuilt encrypted
-/// when they hold documents already. A vault whose collections declare search indexes has them set up after its
-/// migrations, and the migrator waits until they're queryable unless <see cref="MigrateOptions"/> says not to.
+/// when they hold documents already. What a vault's collections declare is set up too: their settings before its
+/// migrations, their indexes and search indexes after, failing before anything is changed when a collection or an index
+/// differs in what MongoDB can't change in place; the migrator waits until search indexes are queryable unless
+/// <see cref="MigrateOptions"/> says not to.
 /// </summary>
 /// <remarks>
 /// Run it from one instance of the application, such as at startup before it serves requests. Instances migrating at once

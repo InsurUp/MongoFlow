@@ -1,0 +1,39 @@
+﻿{
+  Options: {
+    collation: {
+      locale: tr,
+      caseLevel: false,
+      caseFirst: off,
+      strength: 3,
+      numericOrdering: false,
+      alternate: non-ignorable,
+      maxVariable: punct,
+      normalization: false,
+      backwards: false,
+      version: 57.1
+    }
+  },
+  Logs: [
+    {
+      Category: MongoFlow.Collections,
+      Level: Information,
+      EventId: 27009001,
+      Event: CollectionCreated,
+      Message: Created {database}.Payments with collation { "locale" : "tr" }.
+    },
+    {
+      Category: MongoFlow.Collections,
+      Level: Information,
+      EventId: 27009001,
+      Event: CollectionCreated,
+      Message: Created {database}.Payments with collation { "locale" : "tr" }.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Payer_1 of {database}.Payments: { "Payer" : 1 }.
+    }
+  ]
+}

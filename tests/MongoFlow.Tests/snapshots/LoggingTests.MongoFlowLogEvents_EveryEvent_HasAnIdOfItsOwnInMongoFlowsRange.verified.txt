@@ -35,6 +35,36 @@
     Id: 27002006
   },
   {
+    Group: Indexes,
+    Event: IndexCreated,
+    Id: 27002007
+  },
+  {
+    Group: Indexes,
+    Event: IndexUpdated,
+    Id: 27002008
+  },
+  {
+    Group: Indexes,
+    Event: IndexUpToDate,
+    Id: 27002009
+  },
+  {
+    Group: Indexes,
+    Event: IndexDiffers,
+    Id: 27002010
+  },
+  {
+    Group: Indexes,
+    Event: IndexRecreated,
+    Id: 27002011
+  },
+  {
+    Group: Indexes,
+    Event: IndexNotDeclared,
+    Id: 27002012
+  },
+  {
     Group: Save,
     Event: SavingAlone,
     Id: 27003001
@@ -238,5 +268,25 @@
     Group: Search,
     Event: IndexListed,
     Id: 27008008
+  },
+  {
+    Group: Collections,
+    Event: CollectionCreated,
+    Id: 27009001
+  },
+  {
+    Group: Collections,
+    Event: CollectionUpdated,
+    Id: 27009002
+  },
+  {
+    Group: Collections,
+    Event: CollectionUpToDate,
+    Id: 27009003
+  },
+  {
+    Group: Collections,
+    Event: CollectionDiffers,
+    Id: 27009004
   }
 ]

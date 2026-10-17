@@ -25,7 +25,7 @@ public class SearchIndexManagerExtensionsTests
         var change = await _indexes.Object.CreateOrUpdateAsync("default", Definition);
 
         // Assert
-        await Assert.That(change).IsEqualTo(SearchIndexChange.Created);
+        await Assert.That(change).IsEqualTo(IndexChange.Created);
     }
 
     [Test]
@@ -38,7 +38,7 @@ public class SearchIndexManagerExtensionsTests
         var change = await _indexes.Object.CreateOrUpdateAsync("default", Definition);
 
         // Assert
-        await Assert.That(change).IsEqualTo(SearchIndexChange.Unchanged);
+        await Assert.That(change).IsEqualTo(IndexChange.Unchanged);
     }
 
     [Test]

@@ -27,7 +27,7 @@ public partial class SearchIndexSyncTests
         var change = await SearchIndexSync.CreateOrUpdateAsync(_indexes.Object, "default", Definition, SearchIndexType.Search, null, CancellationToken.None);
 
         // Assert
-        await Assert.That(change).IsEqualTo(SearchIndexChange.Created);
+        await Assert.That(change).IsEqualTo(IndexChange.Created);
         _indexes.CreateOneAsync(Any<CreateSearchIndexModel>(), Any()).WasCalled(Times.Once);
     }
 
@@ -42,7 +42,7 @@ public partial class SearchIndexSyncTests
         var change = await SearchIndexSync.CreateOrUpdateAsync(_indexes.Object, "default", Definition, SearchIndexType.Search, null, CancellationToken.None);
 
         // Assert
-        await Assert.That(change).IsEqualTo(SearchIndexChange.Unchanged);
+        await Assert.That(change).IsEqualTo(IndexChange.Unchanged);
     }
 
     [Test]
@@ -67,7 +67,7 @@ public partial class SearchIndexSyncTests
             Index("READY", Definition), CancellationToken.None);
 
         // Assert
-        await Assert.That(change).IsEqualTo(SearchIndexChange.Unchanged);
+        await Assert.That(change).IsEqualTo(IndexChange.Unchanged);
         _indexes.UpdateAsync(Any(), Any(), Any()).WasNeverCalled();
     }
 
@@ -81,7 +81,7 @@ public partial class SearchIndexSyncTests
         var change = await SearchIndexSync.CreateOrUpdateAsync(_indexes.Object, "default", Definition, SearchIndexType.Search, listed, CancellationToken.None);
 
         // Assert
-        await Assert.That(change).IsEqualTo(SearchIndexChange.Updated);
+        await Assert.That(change).IsEqualTo(IndexChange.Updated);
         _indexes.UpdateAsync("default", Definition, Any()).WasCalled(Times.Once);
     }
 

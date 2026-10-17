@@ -1,0 +1,6 @@
+﻿{
+  Failed: MongoCommandException,
+  Indexes: [
+    _id_
+  ]
+}

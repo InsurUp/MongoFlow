@@ -2,7 +2,7 @@ namespace MongoFlow;
 
 /// <summary>
 /// Work the migrator does for a vault besides its migrations, outside any transaction, such as setting up encrypted
-/// collections or search indexes.
+/// collections, declared collection settings, indexes or search indexes.
 /// </summary>
 internal interface IVaultSetup
 {

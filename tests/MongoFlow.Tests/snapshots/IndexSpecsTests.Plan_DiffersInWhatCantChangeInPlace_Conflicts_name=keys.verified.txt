@@ -1,0 +1,6 @@
+﻿{
+  Action: Conflict,
+  Conflicts: [
+    its keys are { "a" : -1 }, not { "a" : 1 }
+  ]
+}

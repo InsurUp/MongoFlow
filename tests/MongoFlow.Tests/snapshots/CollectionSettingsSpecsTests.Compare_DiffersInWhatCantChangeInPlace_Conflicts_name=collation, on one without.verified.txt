@@ -1,0 +1,5 @@
+﻿{
+  Conflicts: [
+    it compares strings with simple, not { "locale" : "tr" }
+  ]
+}

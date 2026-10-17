@@ -1,0 +1,131 @@
+﻿{
+  Indexes: [
+    {
+      key: {
+        _id: 1
+      },
+      name: _id_
+    },
+    {
+      key: {
+        Number: 1
+      },
+      name: Number_1,
+      unique: true
+    },
+    {
+      key: {
+        Customer: 1,
+        PlacedAt: -1
+      },
+      name: Customer_1_PlacedAt_-1
+    },
+    {
+      key: {
+        ExpiresAt: 1
+      },
+      name: expiring,
+      partialFilterExpression: {
+        Status: Closed
+      },
+      expireAfterSeconds: 2592000
+    },
+    {
+      key: {
+        _fts: text,
+        _ftsx: 1,
+        Customer: 1
+      },
+      name: Notes_text_Customer_1,
+      weights: {
+        Notes: 1
+      },
+      default_language: english,
+      language_override: language,
+      textIndexVersion: 3
+    },
+    {
+      key: {
+        Customer: hashed
+      },
+      name: Customer_hashed
+    },
+    {
+      key: {
+        Customer: 1
+      },
+      name: by_customer_tr,
+      collation: {
+        locale: tr,
+        caseLevel: false,
+        caseFirst: off,
+        strength: 2,
+        numericOrdering: false,
+        alternate: non-ignorable,
+        maxVariable: punct,
+        normalization: false,
+        backwards: false,
+        version: 57.1
+      }
+    },
+    {
+      key: {
+        Notes: 1
+      },
+      name: Notes_1,
+      hidden: true,
+      sparse: true
+    }
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Number_1 of {database}.Orders: { "Number" : 1 }, unique.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Customer_1_PlacedAt_-1 of {database}.Orders: { "Customer" : 1, "PlacedAt" : -1 }.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index expiring of {database}.Orders: { "ExpiresAt" : 1 }, partial { "Status" : "Closed" }, expiring after 2592000 s.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Notes_text_Customer_1 of {database}.Orders: { "Notes" : "text", "Customer" : 1 }.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Customer_hashed of {database}.Orders: { "Customer" : "hashed" }.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index by_customer_tr of {database}.Orders: { "Customer" : 1 }, collation { "locale" : "tr", "strength" : 2 }.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Notes_1 of {database}.Orders: { "Notes" : 1 }, sparse, hidden.
+    }
+  ]
+}

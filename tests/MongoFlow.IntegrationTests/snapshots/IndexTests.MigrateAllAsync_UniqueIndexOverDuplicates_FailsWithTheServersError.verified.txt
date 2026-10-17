@@ -1,0 +1,23 @@
+﻿{
+  Code: 11000,
+  Spans: [
+    {
+      Name: MongoFlow.Migrate,
+      Status: Error,
+      Tags: {
+        error.type: MongoDB.Driver.MongoCommandException,
+        mongoflow.vault: StoreVault
+      }
+    },
+    {
+      Name: MongoFlow.Index,
+      Status: Error,
+      Tags: {
+        error.type: MongoDB.Driver.MongoCommandException,
+        mongoflow.collection: Orders,
+        mongoflow.index.name: Number_1,
+        mongoflow.vault: StoreVault
+      }
+    }
+  ]
+}

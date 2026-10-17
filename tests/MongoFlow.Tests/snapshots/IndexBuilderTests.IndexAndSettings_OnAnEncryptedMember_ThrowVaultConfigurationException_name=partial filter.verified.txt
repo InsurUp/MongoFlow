@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Invoices declares the index Customer_1, but its partial filter compares an encrypted member, which the server only sees encrypted: { "TaxNumber" : { "$ne" : "" } }.
+}

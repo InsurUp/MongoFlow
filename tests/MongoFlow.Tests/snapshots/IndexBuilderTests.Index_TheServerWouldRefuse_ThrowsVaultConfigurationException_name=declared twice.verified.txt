@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Invoices declares the index Customer_1 more than once. Name one otherwise, with Name, or declare it once.
+}

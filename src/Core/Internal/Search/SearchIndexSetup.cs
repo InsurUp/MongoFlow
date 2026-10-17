@@ -12,8 +12,6 @@ namespace MongoFlow;
 /// </summary>
 internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
 {
-    private const int NamespaceExists = 48;
-
     public bool BeforeMigrations => false;
 
     public async Task RunAsync(VaultModel model,
@@ -28,7 +26,7 @@ internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
             var indexes = model.SourceDatabase.GetCollection<BsonDocument>(name).SearchIndexes;
 
             // The server doesn't create a collection for a search index, as it does for an index.
-            await EnsureCollectionAsync(model.SourceDatabase, name, cancellationToken);
+            await CollectionSettingsSync.EnsureCreatedAsync(model, collection, cancellationToken);
 
             var listed = await (await indexes.ListAsync(cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
             var byName = listed.Where(index => index.GetValue("name", BsonNull.Value).IsString)
@@ -60,11 +58,11 @@ internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
 
             switch (change)
             {
-                case SearchIndexChange.Created:
+                case IndexChange.Created:
                     log.IndexCreated(index.TypeName, index.Name, collection);
                     break;
 
-                case SearchIndexChange.Updated:
+                case IndexChange.Updated:
                     log.IndexUpdated(index.TypeName, index.Name, collection);
                     break;
 
@@ -74,7 +72,7 @@ internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
             }
 
             // One unchanged may still be building, created by another instance or before a restart.
-            if (wait && (change != SearchIndexChange.Unchanged || listed is null || !SearchIndexSync.IsQueryable(listed)))
+            if (wait && (change != IndexChange.Unchanged || listed is null || !SearchIndexSync.IsQueryable(listed)))
             {
                 await SearchIndexSync.WaitAsync(indexes,
                     index.Name,
@@ -94,20 +92,6 @@ internal sealed class SearchIndexSetup(TimeProvider time) : IVaultSetup
 
             activity.Fail(exception);
             throw;
-        }
-    }
-
-    private static async Task EnsureCollectionAsync(IMongoDatabase database,
-        string name,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await database.CreateCollectionAsync(name, cancellationToken: cancellationToken);
-        }
-        catch (MongoCommandException exception) when (exception.Code == NamespaceExists)
-        {
-            // It exists, as it usually does.
         }
     }
 }

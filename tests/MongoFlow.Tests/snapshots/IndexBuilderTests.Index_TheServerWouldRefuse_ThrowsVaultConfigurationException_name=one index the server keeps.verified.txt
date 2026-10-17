@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Invoices declares the indexes Customer_1 and by_customer on the same keys, with the same options, which MongoDB keeps one index of. Declare one of them.
+}

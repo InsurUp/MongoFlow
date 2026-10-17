@@ -9,8 +9,9 @@ namespace MongoFlow;
 /// range is clear of InsurUp's events (<c>1_0gg_eee</c>), ASP.NET Core's and most libraries' (below 10,000), Npgsql's
 /// (1,000 to 6,999), Entity Framework Core's (10,000 to 39,999) and Orleans' (100,000 to 110,000). Every category starts
 /// with <c>MongoFlow</c>, so one setting covers them all. Below warnings, everything is <c>Debug</c> or <c>Trace</c>,
-/// except an interceptor's failure hook throwing, which is swallowed and so logged as an error, and migrations, which
-/// change the database and run rarely, so they log at <c>Information</c>, and a failed one at <c>Error</c>.
+/// except an interceptor's failure hook throwing, which is swallowed and so logged as an error, and the migrator, which
+/// changes the database and runs rarely: migrations, and the collections and indexes it sets up, log at
+/// <c>Information</c>, and what fails it at <c>Error</c>.
 /// </remarks>
 public static class MongoFlowLogEvents
 {
@@ -25,8 +26,9 @@ public static class MongoFlowLogEvents
     }
 
     /// <summary>
-    /// Indexes a collection's key or features rely on that it doesn't have, checked once per vault in the background, only
-    /// when warnings are logged. MongoFlow doesn't create indexes.
+    /// Indexes: those a vault declares, which <c>IVaultMigrator</c> creates after the vault's migrations, or a migration
+    /// earlier; and those a collection's key or features rely on that it doesn't have, checked once per vault in the
+    /// background, only when warnings are logged. MongoFlow creates only the indexes a vault declares.
     /// </summary>
     public static class Indexes
     {
@@ -50,6 +52,30 @@ public static class MongoFlowLogEvents
 
         /// <summary><c>Debug</c>: every collection of a vault was checked.</summary>
         public const int IndexCheckCompleted = 27_002_006;
+
+        /// <summary><c>Information</c>: a declared index was created.</summary>
+        public const int IndexCreated = 27_002_007;
+
+        /// <summary><c>Information</c>: a declared index's expiry, or whether it's hidden, was changed in place.</summary>
+        public const int IndexUpdated = 27_002_008;
+
+        /// <summary><c>Debug</c>: a declared index is defined as declared already.</summary>
+        public const int IndexUpToDate = 27_002_009;
+
+        /// <summary>
+        /// <c>Error</c>: a declared index differs from the server's in what MongoDB can't change in place, such as its keys
+        /// or whether it's unique; the migrator throws, changing no index, for a migration to recreate it.
+        /// </summary>
+        public const int IndexDiffers = 27_002_010;
+
+        /// <summary><c>Information</c>: a migration recreated an index, dropping the server's.</summary>
+        public const int IndexRecreated = 27_002_011;
+
+        /// <summary>
+        /// <c>Warning</c>: a migration named an index the collection doesn't declare, such as one renamed since; what it
+        /// did is left to the declarations the migrator applies after the migrations.
+        /// </summary>
+        public const int IndexNotDeclared = 27_002_012;
     }
 
     /// <summary>Saves: what they write, how they end, and what fails them.</summary>
@@ -257,5 +283,30 @@ public static class MongoFlowLogEvents
 
         /// <summary><c>Debug</c>: an index the vault doesn't declare was listed, once, to learn which fields it maps.</summary>
         public const int IndexListed = 27_008_008;
+    }
+
+    /// <summary>
+    /// Collections a vault declares settings for, which <c>IVaultMigrator</c> creates with them, or changes in place, before
+    /// the vault's migrations, or a migration earlier.
+    /// </summary>
+    public static class Collections
+    {
+        /// <summary>The logger category.</summary>
+        public const string Category = "MongoFlow.Collections";
+
+        /// <summary><c>Information</c>: a collection was created with its declared settings.</summary>
+        public const int CollectionCreated = 27_009_001;
+
+        /// <summary><c>Information</c>: a collection's validator, change stream images or expiry was changed in place.</summary>
+        public const int CollectionUpdated = 27_009_002;
+
+        /// <summary><c>Debug</c>: a collection has its declared settings already.</summary>
+        public const int CollectionUpToDate = 27_009_003;
+
+        /// <summary>
+        /// <c>Error</c>: a collection differs from its declared settings in what MongoDB can't change in place, its collation
+        /// or clustering; the migrator throws, changing no collection, for a migration to rebuild it.
+        /// </summary>
+        public const int CollectionDiffers = 27_009_004;
     }
 }

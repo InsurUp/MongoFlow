@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using MongoDB.Driver;
 
 namespace MongoFlow;
 
@@ -95,6 +96,21 @@ internal sealed class CollectionModelBuilder<TDocument, TKey>(VaultModelBuilderB
         Action<IVectorSearchIndexBuilder<TDocument>> configure)
     {
         VectorSearchIndex(name, configure);
+        return this;
+    }
+
+    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.Index(
+        Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
+        Action<IIndexBuilder<TDocument>>? configure)
+    {
+        Index(keys, configure);
+        return this;
+    }
+
+    IVaultCollectionBuilder<TDocument, TKey> IVaultCollectionBuilder<TDocument, TKey>.Settings(
+        Action<ICollectionSettingsBuilder<TDocument>> configure)
+    {
+        Settings(configure);
         return this;
     }
 

@@ -1,0 +1,4 @@
+﻿{
+  Type: VaultConfigurationException,
+  Message: Invoices declares the index $**_1, but it indexes every field, the encrypted ones among them, and the server can't index an encrypted member.
+}

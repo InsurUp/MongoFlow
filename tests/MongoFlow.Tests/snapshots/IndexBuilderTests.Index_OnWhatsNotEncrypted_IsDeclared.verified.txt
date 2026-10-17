@@ -1,0 +1,12 @@
+﻿{
+  Indexes: [
+    Customer_1
+  ],
+  Validator: {
+    Total: {
+      $gte: {
+        $numberDecimal: 0
+      }
+    }
+  }
+}
