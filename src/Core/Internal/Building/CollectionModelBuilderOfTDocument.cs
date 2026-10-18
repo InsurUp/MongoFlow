@@ -12,7 +12,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     private readonly Layered<string> _name = new();
     private readonly LayeredList<QueryFilterEntry<TDocument>> _filters = new();
     private readonly HashSet<FeatureKey> _without = [];
-    private readonly List<(LambdaExpression Field, FeatureKey? Owner)> _indexed = [];
+    private readonly List<(LambdaExpression Field, Type ComparedAs, FeatureKey? Owner)> _indexed = [];
     private readonly List<(Func<TDocument, bool> Pending, FeatureKey? Owner)> _runSaveWhen = [];
     private readonly List<LambdaExpression> _reserved = [];
     private readonly List<(LambdaExpression Member, object Options)> _encrypted = [];
@@ -164,11 +164,12 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
     /// <summary>
     /// Notes that every read filters on <paramref name="member"/>, such as <c>(ISoftDeletable x) =&gt; x.IsDeleted</c>, so
     /// an index should include it; the index check warns when none does. For built-in features, which also reserve it.
+    /// What it returns is what the feature compares the field as, which search indexes map it by.
     /// </summary>
     public void ExpectIndex(LambdaExpression member)
     {
         var field = OnDocument(member);
-        _indexed.Add((field, Vault.Owner));
+        _indexed.Add((field, member.ReturnType, Vault.Owner));
         _reserved.Add(field);
     }
 
@@ -216,7 +217,7 @@ internal class CollectionModelBuilder<TDocument> : CollectionModelBuilder, IVaul
             KeyType,
             database.GetCollection<TDocument>(_name.TryGet(out var name) ? name : Property.Name),
             [.. _filters.All.Where(filter => IsOn(filter.Owner))],
-            [.. _indexed.Where(indexed => IsOn(indexed.Owner)).Select(indexed => (indexed.Field, indexed.Owner?.Name ?? "a query filter"))],
+            [.. _indexed.Where(indexed => IsOn(indexed.Owner)).Select(indexed => (indexed.Field, indexed.Owner?.Name ?? "a query filter", indexed.ComparedAs))],
             [.. _runSaveWhen.Where(pending => IsOn(pending.Owner))]);
 
         EnsureIdIsRead(definition.Collection);

@@ -1,0 +1,53 @@
+﻿[
+  {
+    Name: default,
+    TypeName: search,
+    Definition: {
+      mappings: {
+        dynamic: true,
+        fields: {
+          TenantId: {
+            type: token
+          }
+        }
+      }
+    }
+  },
+  {
+    Name: static,
+    TypeName: search,
+    Definition: {
+      mappings: {
+        dynamic: false,
+        fields: {
+          Title: {
+            type: string
+          },
+          TenantId: {
+            type: token
+          },
+          IsDeleted: {
+            type: boolean
+          }
+        }
+      }
+    }
+  },
+  {
+    Name: mapped,
+    TypeName: search,
+    Definition: {
+      mappings: {
+        dynamic: true,
+        fields: {
+          IsDeleted: {
+            type: boolean
+          },
+          TenantId: {
+            type: token
+          }
+        }
+      }
+    }
+  }
+]

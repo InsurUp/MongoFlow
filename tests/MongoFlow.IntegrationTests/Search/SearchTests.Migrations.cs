@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Search;
 
 namespace MongoFlow.IntegrationTests.Search;
 
@@ -117,6 +118,25 @@ public partial class SearchTests
             Index = (await IndexesAsync(first.Database)).Single(index => index.Name == "default").Definition,
             Logs = Migrated(before)
         });
+    }
+
+    [Test]
+    public async Task MigrateAllAsync_DynamicIndexWithoutTheFlagMapped_LeavesItForSearchesToFilterOnTheFlag()
+    {
+        // Act — a migration sets the index up by hand, as it was before soft delete; the vault declares it dynamic.
+        await using var host = await CrmAsync(customers: customers => customers.SearchIndex("default", index => index.Dynamic()),
+            configure: vault => vault.Migrations(migrations => migrations.Add<IndexCustomersDynamicallyByHand>()));
+
+        // Assert — the deleted Ada Byron is left out in the index, by the flag it indexes dynamically, so it counts too.
+        var search = await host.Vault.Customers.SearchAsync(Ada);
+        var meta = await host.Vault.Customers.SearchMetaAsync(Ada, count: new SearchCountOptions { Type = SearchCountType.Total });
+        await Verify(new
+        {
+            Logs = Migrated().Where(entry => entry.Message.Contains(" default ")),
+            Found = await Names(search),
+            Pipeline = search.ToString(),
+            meta.Count
+        }).IgnoreParametersForVerified();
     }
 
     [Test]

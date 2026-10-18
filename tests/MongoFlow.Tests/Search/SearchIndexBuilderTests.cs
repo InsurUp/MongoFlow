@@ -11,7 +11,8 @@ namespace MongoFlow.Tests.Search;
 /// the index's dynamic setting, or the one declared for documents, but for documents mapped already, on top of a
 /// definition given as it is;</item>
 /// <item>the fields features filter on are mapped as their values compare, as filter fields of a vector index, unless
-/// they're mapped so already or can't be compared exactly;</item>
+/// they're mapped so already, can't be compared exactly, or are indexed as compared by a dynamic index, which a tenant,
+/// null without a current one, and a string or a UUID never are;</item>
 /// <item>an index declared again is configured further, a type mapped again replaces the earlier mapping, and a vector or
 /// filter field declared again replaces the earlier one;</item>
 /// <item>a name used by both kinds, a vector index without a vector, and any index on a collection with encrypted members
@@ -91,6 +92,48 @@ public partial class SearchIndexBuilderTests
 
         // Assert
         await Verify(declarations);
+    }
+
+    [Test]
+    public async Task SearchIndex_FlagADynamicIndexIndexesAsCompared_IsLeftUnmapped()
+    {
+        // Arrange — the flag in a dynamic index, a static one, and a dynamic one mapping it itself; the tenant, a string,
+        // would be indexed dynamically as analyzed text, which equality can't match.
+        await using var host = new VaultHost<CatalogVault>(vault => vault
+            .UseMultiTenancy((ITenantOwned x) => x.TenantId, _ => "t-1")
+            .UseSoftDelete((Listing x) => x.IsDeleted)
+            .Collection(x => x.Listings, listings => listings
+                .SearchIndex("default", index => index.Dynamic())
+                .SearchIndex("static", index => index.Map(x => x.Title, SearchField.String()))
+                .SearchIndex("mapped", index => index.Dynamic().Map(x => x.IsDeleted, SearchField.Boolean()))));
+
+        // Act
+        var declarations = Rendered(Model(host).Collections.Single(collection => collection.DocumentType == typeof(Listing)));
+
+        // Assert
+        await Verify(declarations);
+    }
+
+    [Test]
+    [Arguments("ObjectId")]
+    [Arguments("Guid")]
+    public async Task SearchIndex_TenantOfAValueTypeInADynamicIndex_IsMapped(string tenant)
+    {
+        // Arrange — the tenant is compared with null without a current one, which a search does only on a mapping; nor do
+        // dynamic mappings index UUIDs.
+        await using var host = new VaultHost<CatalogVault>(vault =>
+        {
+            _ = tenant == "ObjectId"
+                ? vault.UseMultiTenancy((Listing x) => x.AgencyId, _ => (ObjectId?)null)
+                : vault.UseMultiTenancy((Listing x) => x.OwnerId, _ => (Guid?)null);
+            vault.Collection(x => x.Listings, listings => listings.SearchIndex("default", index => index.Dynamic()));
+        });
+
+        // Act
+        var declarations = Rendered(Model(host).Collections.Single(collection => collection.DocumentType == typeof(Listing)));
+
+        // Assert
+        await Verify(declarations).UseParameters(tenant);
     }
 
     [Test]

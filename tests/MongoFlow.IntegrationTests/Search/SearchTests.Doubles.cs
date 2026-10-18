@@ -6,8 +6,8 @@ using Semver;
 namespace MongoFlow.IntegrationTests.Search;
 
 // Customers of agencies, soft deleted, searched by name and by an embedding, in a CRM's vault and an analytics one;
-// patients whose identity number is encrypted, beside plain notes searched by text; migrations that set up a search and a
-// vector search index by hand; a search index as the server lists it.
+// patients whose identity number is encrypted, beside plain notes searched by text; migrations that set up search and
+// vector search indexes by hand; a search index as the server lists it.
 public partial class SearchTests
 {
     public sealed class Customer
@@ -129,6 +129,33 @@ public partial class SearchTests
             await indexes.CreateOrUpdateAsync("vectors", BsonDocument.Parse("{ mappings: { dynamic: false, fields: { Name: { type: 'string' } } } }"),
                 cancellationToken: cancellationToken);
             await indexes.WaitUntilQueryableAsync("vectors", cancellationToken: cancellationToken);
+        }
+
+        public Task DownAsync(MigrationContext<CrmVault> context,
+            CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Sets up the index named <c>default</c> by hand, dynamic, as it was before soft delete: it maps names and agencies, and
+    /// indexes soft delete's flag dynamically, as a boolean.
+    /// </summary>
+    public sealed class IndexCustomersDynamicallyByHand : IVaultMigration<CrmVault>
+    {
+        public SemVersion Version { get; } = new(1, 0, 0);
+
+        public string Description => "Index customers dynamically";
+
+        public bool UseTransaction => false;
+
+        public async Task UpAsync(MigrationContext<CrmVault> context,
+            CancellationToken cancellationToken)
+        {
+            var indexes = context.Database.GetCollection<BsonDocument>("Customers").SearchIndexes;
+            await indexes.CreateOrUpdateAsync("default",
+                BsonDocument.Parse("{ mappings: { dynamic: true, fields: { Name: { type: 'string' }, AgencyId: { type: 'token' } } } }"),
+                cancellationToken: cancellationToken);
+            await indexes.WaitUntilQueryableAsync("default", cancellationToken: cancellationToken);
         }
 
         public Task DownAsync(MigrationContext<CrmVault> context,

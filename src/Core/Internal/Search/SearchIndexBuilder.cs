@@ -117,7 +117,7 @@ internal sealed class SearchIndexBuilder<TDocument>(string name) : ISearchIndexB
 
         foreach (var feature in features)
         {
-            if (feature.SearchType is not { } type)
+            if (feature.SearchType is not { } type || IndexedDynamically(mappings, feature))
             {
                 continue;
             }
@@ -131,6 +131,15 @@ internal sealed class SearchIndexBuilder<TDocument>(string name) : ISearchIndexB
 
         return new SearchIndexDeclaration(Name, SearchIndexType.Search, definition);
     }
+
+    // Whether the index indexes a feature's field as the feature compares it already, without a mapping: a feature's field is
+    // at the root, which, dynamic, indexes a boolean, number, date or ObjectId it doesn't map by its type. One the feature
+    // compares with null is mapped still, as a search's filters compare null only on a field that's mapped.
+    private static bool IndexedDynamically(BsonDocument mappings,
+        FeatureField feature) =>
+        feature is { ComparesNull: false, SearchType: "boolean" or "number" or "date" or "objectId" } &&
+        mappings["dynamic"] is BsonBoolean { Value: true } &&
+        (mappings.GetValue("fields", BsonNull.Value) as BsonDocument)?.Contains(feature.Path) != true;
 
     // The mappings of the field at path, with a document mapping for each document holding it that isn't mapped already,
     // created with dynamic: by default the index's setting, as the field's documents were indexed before.
