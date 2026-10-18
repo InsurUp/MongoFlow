@@ -229,4 +229,6 @@ container, as a single-node replica set, which saves need too:
 docker run -d -p 27017:27017 mongodb/mongodb-atlas-local:8.3.4
 ```
 
-Connect with `mongodb://localhost:27017/?directConnection=true`. MongoFlow's own search tests run against it.
+Connect with `mongodb://localhost:27017/?directConnection=true`. MongoFlow's own search tests run against it, and against
+MongoDB Community with mongot from the [mongodb-community-search](https://hub.docker.com/r/mongodb/mongodb-community-search)
+image.

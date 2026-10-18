@@ -30,14 +30,14 @@ public partial class SearchTests
         {
             Found = (await search.Project(x => x.Text).ToListAsync()).Order(),
             Patient = await host.Vault.Patients.FirstOrDefaultAsync(x => x.Ssn == "111-11")
-        });
+        }).IgnoreParametersForVerified();
     }
 
     [Test]
     public async Task MigrateAllAsync_CollectionWithSearchIndexesRebuiltEncrypted_WarnsTheyFollowedItsPlainCopy()
     {
         // Arrange — patients an earlier version stored in plain text, and searched.
-        var database = Mongo.NewDatabase();
+        var database = _mongo.NewDatabase();
         var plain = database.GetCollection<BsonDocument>("Patients");
         await plain.InsertOneAsync(new BsonDocument { { "_id", 1 }, { "Name", "Ada" }, { "Ssn", "111-11" } });
         await plain.SearchIndexes.CreateOrUpdateAsync("byName", BsonDocument.Parse("{ mappings: { dynamic: true } }"));
@@ -49,14 +49,14 @@ public partial class SearchTests
 
         // Assert
         await Verify(_sink.Snapshot(MongoFlowLogEvents.Encryption.Category)
-            .Where(entry => entry.EventId == MongoFlowLogEvents.Encryption.SearchIndexesFollowCopy));
+            .Where(entry => entry.EventId == MongoFlowLogEvents.Encryption.SearchIndexesFollowCopy)).IgnoreParametersForVerified();
     }
 
     private VaultHost<ClinicVault> Clinic(Action<IVaultCollectionBuilder<Note, int>>? notes = null,
         IMongoDatabase? database = null)
     {
-        database ??= Mongo.NewDatabase();
-        return new VaultHost<ClinicVault>(Mongo.Client, database, vault => vault
+        database ??= _mongo.NewDatabase();
+        return new VaultHost<ClinicVault>(_mongo.Client, database, vault => vault
                 .UseQueryableEncryption(qe => qe
                     .KeyVault(database.DatabaseNamespace.DatabaseName, "__keyVault")
                     .Kms(new LocalKms(MasterKey)))

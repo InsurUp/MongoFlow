@@ -1,0 +1,26 @@
+﻿{
+  Indexes: [
+    {
+      Name: default
+    },
+    {
+      Name: vectors
+    }
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008001,
+      Event: IndexCreated,
+      Message: Created the search index default of Customers.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008001,
+      Event: IndexCreated,
+      Message: Created the vectorSearch index vectors of Customers.
+    }
+  ]
+}

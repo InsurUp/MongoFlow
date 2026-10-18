@@ -39,13 +39,12 @@ internal static class SearchIndexSync
             }
         }
 
-        var listedType = listed.GetValue("type", "search").ToString();
-        var typeName = TypeName(type);
-        if (listedType != typeName)
+        var listedType = TypeOf(listed);
+        if (listedType != type)
         {
             throw new InvalidOperationException(
-                $"The search index {name} is a {listedType} index, but is declared a {typeName} index, and an index's type " +
-                "can't be changed. Drop it, or name the declared one otherwise.");
+                $"The search index {name} is a {TypeName(listedType)} index, but is declared a {TypeName(type)} index, and an " +
+                "index's type can't be changed. Drop it, or name the declared one otherwise.");
         }
 
         if (SearchIndexDefinitions.Matches(definition, listed.GetValue("latestDefinition", BsonNull.Value) as BsonDocument ?? [], type))
@@ -113,6 +112,19 @@ internal static class SearchIndexSync
         string name,
         CancellationToken cancellationToken) =>
         await (await indexes.ListAsync(name, cancellationToken: cancellationToken)).FirstOrDefaultAsync(cancellationToken);
+
+    /// <summary>
+    /// The type of the index <paramref name="listed"/>, as <c>$listSearchIndexes</c> shows it: the one it names or, where it
+    /// names none, as mongodb-community-search doesn't, the one its definition is of, a vector search index's fields being
+    /// an array.
+    /// </summary>
+    public static SearchIndexType TypeOf(BsonDocument listed) =>
+        listed.GetValue("type", BsonNull.Value) is BsonString type
+            ? type.Value == "vectorSearch" ? SearchIndexType.VectorSearch : SearchIndexType.Search
+            : listed.GetValue("latestDefinition", BsonNull.Value) is BsonDocument definition &&
+              definition.GetValue("fields", BsonNull.Value) is BsonArray
+                ? SearchIndexType.VectorSearch
+                : SearchIndexType.Search;
 
     /// <summary>The type as <c>$listSearchIndexes</c> names it.</summary>
     public static string TypeName(SearchIndexType type) => type == SearchIndexType.VectorSearch ? "vectorSearch" : "search";

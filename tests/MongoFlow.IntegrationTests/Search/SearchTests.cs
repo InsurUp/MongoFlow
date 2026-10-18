@@ -7,7 +7,8 @@ using MongoDB.Driver.Search;
 namespace MongoFlow.IntegrationTests.Search;
 
 /// <summary>
-/// MongoDB Search on a vault's collections, against MongoDB Atlas Local (mongod 8.3, mongot 1.70):
+/// MongoDB Search on a vault's collections, each test on both servers InsurUp searches on, Atlas Local and MongoDB
+/// Community with mongodb-community-search, which behave alike, and share their snapshots, but for how they list indexes:
 /// <list type="number">
 /// <item>searches and vector searches filter with the query filters in the index, a tenant and soft delete's flag among
 /// them, so they find only what the query filters show; what the index can't filter on is matched after the search;</item>
@@ -18,6 +19,8 @@ namespace MongoFlow.IntegrationTests.Search;
 /// </list>
 /// </summary>
 [Category("Search")]
+[ClassDataSource<AtlasLocalFixture>(Shared = SharedType.PerTestSession)]
+[ClassDataSource<CommunitySearchFixture>(Shared = SharedType.PerTestSession)]
 public partial class SearchTests
 {
     private static readonly SearchDefinition<Customer> Ada = Builders<Customer>.Search.Text(x => x.Name, "ada");
@@ -25,9 +28,14 @@ public partial class SearchTests
     private static readonly QueryVector Lovelace = new(new[] { 1f, 0f, 0f });
 
     private readonly LogSink _sink = new();
+    private readonly SearchFixture _mongo;
 
-    [ClassDataSource<SearchFixture>(Shared = SharedType.PerTestSession)]
-    public required SearchFixture Mongo { get; init; }
+    // The server through the constructor, so each snapshot received is named after it; one verified on both says
+    // IgnoreParametersForVerified.
+    public SearchTests(SearchFixture mongo)
+    {
+        _mongo = mongo;
+    }
 
     [Test]
     public async Task SearchAsync_TenantAndSoftDelete_AreFilteredInTheIndex()
@@ -39,7 +47,7 @@ public partial class SearchTests
         var search = await host.Vault.Customers.SearchAsync(Ada);
 
         // Assert
-        await Verify(new { Found = await Names(search), Pipeline = search.ToString() });
+        await Verify(new { Found = await Names(search), Pipeline = search.ToString() }).IgnoreParametersForVerified();
     }
 
     [Test]
@@ -52,7 +60,7 @@ public partial class SearchTests
         var search = await host.Vault.Customers.SearchAsync(Ada);
 
         // Assert
-        await Verify(new { Found = await Names(search), Logs = Logged(MongoFlowLogEvents.Search.FilterFieldNotPreFiltered) });
+        await Verify(new { Found = await Names(search), Logs = Logged(MongoFlowLogEvents.Search.FilterFieldNotPreFiltered) }).IgnoreParametersForVerified();
     }
 
     [Test]
@@ -121,7 +129,7 @@ public partial class SearchTests
         var meta = await host.Vault.Customers.SearchMetaAsync(byAgency, count: new SearchCountOptions { Type = SearchCountType.Total });
 
         // Assert
-        await Verify(meta);
+        await Verify(meta).IgnoreParametersForVerified();
     }
 
     [Test]
@@ -135,7 +143,7 @@ public partial class SearchTests
             new VectorSearchOptions<Customer> { IndexName = "vectors", NumberOfCandidates = 50 });
 
         // Assert
-        await Verify(await search.Project(x => x.Name).ToListAsync());
+        await Verify(await search.Project(x => x.Name).ToListAsync()).IgnoreParametersForVerified();
     }
 
     [Test]
@@ -149,7 +157,7 @@ public partial class SearchTests
             new VectorSearchOptions<Customer> { IndexName = "vectors", NumberOfCandidates = 50 });
 
         // Assert
-        await Verify(await search.Project(x => x.Name).ToListAsync());
+        await Verify(await search.Project(x => x.Name).ToListAsync()).IgnoreParametersForVerified();
     }
 
     [Test]
@@ -183,7 +191,25 @@ public partial class SearchTests
             Found = await Names(search),
             Pipeline = search.ToString(),
             Logs = Logged(MongoFlowLogEvents.Search.IndexListed, MongoFlowLogEvents.Search.FilterFieldNotPreFiltered)
-        });
+        }).IgnoreParametersForVerified();
+    }
+
+    [Test]
+    public async Task VectorSearchAsync_IndexTheVaultDoesntDeclare_IsReadFromTheServer()
+    {
+        // Arrange — an index set up by a migration, which filters on the agency but not soft delete's flag.
+        await using var host = await CrmAsync(configure: vault => vault.Migrations(migrations => migrations.Add<IndexEmbeddingsByHand>()));
+
+        // Act
+        var search = await host.Vault.Customers.VectorSearchAsync(x => x.Embedding, Lovelace, 10,
+            new VectorSearchOptions<Customer> { IndexName = "vectorsByHand", NumberOfCandidates = 50 });
+
+        // Assert
+        await Verify(new
+        {
+            Found = await search.Project(x => x.Name).ToListAsync(),
+            Logs = Logged(MongoFlowLogEvents.Search.IndexListed, MongoFlowLogEvents.Search.FilterFieldNotPreFiltered)
+        }).IgnoreParametersForVerified();
     }
 
     // Customers of agency a-1, or all agencies, soft deleted, searched by name and embedding, seeded, then migrated, so the
@@ -195,7 +221,7 @@ public partial class SearchTests
         MigrateOptions? migrate = null,
         params BsonDocument[] extra)
     {
-        var host = Mongo.Host<CrmVault>(vault =>
+        var host = _mongo.Host<CrmVault>(vault =>
             {
                 vault.UseSoftDelete((Customer x) => x.IsDeleted)
                     .UseMultiTenancy((Customer x) => x.AgencyId, _ => agency, _ => allAgencies)
