@@ -19,6 +19,11 @@ internal sealed class VaultMigrator(IServiceProvider services,
         {
             await runner.MigrateAsync(target: null, options, cancellationToken);
         }
+
+        if (options.SyncIndexes)
+        {
+            await SyncIndexesAsync([.. runners], options, cancellationToken);
+        }
     }
 
     public Task MigrateAsync<TVault>(SemVersion? target = null,
@@ -26,7 +31,7 @@ internal sealed class VaultMigrator(IServiceProvider services,
         where TVault : MongoVault =>
         MigrateAsync<TVault>(target, new MigrateOptions(), cancellationToken);
 
-    public Task MigrateAsync<TVault>(SemVersion? target,
+    public async Task MigrateAsync<TVault>(SemVersion? target,
         MigrateOptions options,
         CancellationToken cancellationToken = default)
         where TVault : MongoVault
@@ -35,7 +40,12 @@ internal sealed class VaultMigrator(IServiceProvider services,
         var runner = Runner<TVault>();
         ThrowIfHistoriesShared();
 
-        return runner.MigrateAsync(target, options, cancellationToken);
+        await runner.MigrateAsync(target, options, cancellationToken);
+
+        if (options.SyncIndexes)
+        {
+            await SyncIndexesAsync([runner], options, cancellationToken);
+        }
     }
 
     public Task<SemVersion?> GetVersionAsync<TVault>(CancellationToken cancellationToken = default) where TVault : MongoVault =>
@@ -44,6 +54,14 @@ internal sealed class VaultMigrator(IServiceProvider services,
     private VaultMigrationRunner<TVault> Runner<TVault>() where TVault : MongoVault =>
         services.GetService<VaultMigrationRunner<TVault>>()
         ?? throw new InvalidOperationException($"{typeof(TVault).Name} isn't registered. Register it with AddMongoVault.");
+
+    // The collections the migrated vaults declare, with what every registered vault declares of each, so migrating one
+    // vault drops no index another declares of a collection they share.
+    private Task SyncIndexesAsync(IReadOnlyList<IVaultMigrationRunner> migrated,
+        MigrateOptions options,
+        CancellationToken cancellationToken) =>
+        new VaultIndexSync(services.GetService<TimeProvider>() ?? TimeProvider.System)
+            .RunAsync([.. migrated.Select(runner => runner.Model)], [.. runners.Select(runner => runner.Model)], options, cancellationToken);
 
     /// <summary>
     /// Vaults recording their migrations in one collection would each take the other's for their own, skipping and

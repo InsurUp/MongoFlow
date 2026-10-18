@@ -15,7 +15,12 @@ namespace MongoFlow.IntegrationTests;
 /// <item>one that differs in what MongoDB can't change in place, or one the server keeps under another name, fails the
 /// migrator before any index is changed; one the vault doesn't declare is left;</item>
 /// <item>each is traced under the migration, and the helpers for indexes managed by hand do the same; see
-/// <c>IndexTests.Migrations.cs</c> for migrations applying them.</item>
+/// <c>IndexTests.Migrations.cs</c> for migrations applying them;</item>
+/// <item>syncing indexes (<c>IndexTests.Sync.cs</c>), the indexes become what every vault declares of a collection: one
+/// declared unique is made unique in place, unless documents share its keys; one that differs otherwise, or is declared
+/// under another name, is recreated; those no vault declares are dropped, last, and one the server fails to drop fails
+/// it, traced; two vaults declaring an index otherwise fail it, before any is changed; and a second run changes
+/// nothing.</item>
 /// </list>
 /// </summary>
 public partial class IndexTests
@@ -240,15 +245,17 @@ public partial class IndexTests
     ];
 
     // The collection's indexes as the server lists them, without their version.
-    private static async Task<List<BsonDocument>> IndexesAsync(IMongoDatabase database)
+    private static async Task<List<BsonDocument>> IndexesAsync(IMongoDatabase database,
+        string collection = "Orders")
     {
-        var indexes = await (await database.GetCollection<BsonDocument>("Orders").Indexes.ListAsync()).ToListAsync();
+        var indexes = await (await database.GetCollection<BsonDocument>(collection).Indexes.ListAsync()).ToListAsync();
         indexes.ForEach(index => index.Remove("v"));
         return indexes;
     }
 
-    private static async Task<List<string>> NamesAsync(IMongoDatabase database) =>
-        [.. (await IndexesAsync(database)).Select(index => index["name"].AsString)];
+    private static async Task<List<string>> NamesAsync(IMongoDatabase database,
+        string collection = "Orders") =>
+        [.. (await IndexesAsync(database, collection)).Select(index => index["name"].AsString)];
 
     private static string Scrubbed(string message) => Database().Replace(message, "{database}");
 

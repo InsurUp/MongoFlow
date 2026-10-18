@@ -1,0 +1,7 @@
+﻿{
+  Action: Update,
+  Changes: {
+    name: a_1,
+    hidden: true
+  }
+}

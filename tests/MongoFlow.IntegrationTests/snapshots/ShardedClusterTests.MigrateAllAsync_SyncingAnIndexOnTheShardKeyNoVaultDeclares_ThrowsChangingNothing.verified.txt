@@ -1,0 +1,8 @@
+﻿{
+  Message: Syncing indexes changed nothing: the index Customer_hashed of {database}.Orders is on its shard key, { "Customer" : "hashed" }, and no vault declares one that is: declare it.,
+  Indexes: [
+    _id_,
+    Customer_hashed,
+    Notes_1
+  ]
+}

@@ -10,7 +10,8 @@ namespace MongoFlow;
 /// <remarks>
 /// An index that differs from its declaration has its expiry, and whether it's hidden, changed in place. MongoDB can't
 /// change anything else in place, so the migrator fails, naming the index, for a migration to recreate it with
-/// <c>context.Collection(...).RecreateIndexAsync</c>.
+/// <c>context.Collection(...).RecreateIndexAsync</c>, or, migrating with <see cref="MigrateOptions.SyncIndexes"/>,
+/// recreates it.
 /// </remarks>
 public interface IIndexBuilder<TDocument>
 {

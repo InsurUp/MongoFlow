@@ -1,0 +1,23 @@
+﻿{
+  Indexes: [
+    _id_,
+    PlacedAt_-1,
+    Customer_1
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Indexes,
+      Level: Debug,
+      EventId: 27002009,
+      Event: IndexUpToDate,
+      Message: The index PlacedAt_-1 of {database}.Orders is defined as declared.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Debug,
+      EventId: 27002009,
+      Event: IndexUpToDate,
+      Message: The index Customer_1 of {database}.Orders is defined as declared.
+    }
+  ]
+}

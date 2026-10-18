@@ -1,0 +1,4 @@
+﻿{
+  Message: Syncing indexes changed nothing: AnalyticsVault declares the search index default of {database}.Customers as search { "mappings" : { "dynamic" : false, "fields" : { "Name" : { "type" : "token" } } } }, and CrmVault as search { "mappings" : { "dynamic" : false, "fields" : { "Name" : { "type" : "string" } } } }.,
+  Created: []
+}

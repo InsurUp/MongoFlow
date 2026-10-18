@@ -107,6 +107,26 @@ internal static class SearchIndexSync
         }
     }
 
+    /// <summary>
+    /// Drops the index named <paramref name="name"/>, and waits until the server no longer lists it, checking every second
+    /// at first, then less often, up to every five: one dropped can be listed a while, as it's deleted, and another of its
+    /// name created only once it's gone.
+    /// </summary>
+    public static async Task DropAsync(IMongoSearchIndexManager indexes,
+        string name,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        await indexes.DropOneAsync(name, cancellationToken);
+
+        var delay = TimeSpan.FromSeconds(1);
+        while (await ListAsync(indexes, name, cancellationToken) is not null)
+        {
+            await Task.Delay(delay, time, cancellationToken);
+            delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, TimeSpan.FromSeconds(5).Ticks));
+        }
+    }
+
     /// <summary>The index named <paramref name="name"/> as <c>$listSearchIndexes</c> shows it, or <see langword="null"/>.</summary>
     public static async Task<BsonDocument?> ListAsync(IMongoSearchIndexManager indexes,
         string name,

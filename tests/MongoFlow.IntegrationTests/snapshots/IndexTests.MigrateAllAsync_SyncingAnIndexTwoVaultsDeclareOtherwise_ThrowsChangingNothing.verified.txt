@@ -1,0 +1,7 @@
+﻿{
+  Message: Syncing indexes changed nothing: ReportsVault declares the index Customer_1 of {database}.Orders as { "Customer" : 1 }, unique, and StoreVault as { "Customer" : 1 }.,
+  Indexes: [
+    _id_,
+    Notes_1
+  ]
+}

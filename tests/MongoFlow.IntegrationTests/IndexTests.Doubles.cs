@@ -5,8 +5,9 @@ using Semver;
 
 namespace MongoFlow.IntegrationTests;
 
-// Orders of customers, with a status stored as text, an expiry and notes; and migrations that apply the declared indexes
-// at a point of their own, in a transaction or not, and write after them.
+// Orders of customers, with a status stored as text, an expiry and notes, in a store's vault and a reporting one; and
+// migrations that apply the declared indexes at a point of their own, in a transaction or not, write after them, or do
+// nothing.
 public partial class IndexTests
 {
     public enum OrderStatus
@@ -36,6 +37,26 @@ public partial class IndexTests
     public sealed class StoreVault : MongoVault
     {
         public IVaultCollection<Order, int> Orders { get; init; } = null!;
+    }
+
+    /// <summary>Another vault of the same orders, as an app's reporting vault maps them beside its store's.</summary>
+    public sealed class ReportsVault : MongoVault
+    {
+        public IVaultCollection<Order, int> Orders { get; init; } = null!;
+    }
+
+    /// <summary>Does nothing: a vault with it records its migrations, in a collection with an index of its own.</summary>
+    public sealed class Nothing : IVaultMigration<StoreVault>
+    {
+        public SemVersion Version { get; } = new(1, 0, 0);
+
+        public Task UpAsync(MigrationContext<StoreVault> context,
+            CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+
+        public Task DownAsync(MigrationContext<StoreVault> context,
+            CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 
     /// <summary>Recreates <c>Number_1</c>, which the vault declares unique, outside a transaction.</summary>

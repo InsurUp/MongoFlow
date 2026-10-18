@@ -65,6 +65,11 @@
     Id: 27002012
   },
   {
+    Group: Indexes,
+    Event: IndexDropped,
+    Id: 27002013
+  },
+  {
     Group: Save,
     Event: SavingAlone,
     Id: 27003001
@@ -268,6 +273,11 @@
     Group: Search,
     Event: IndexListed,
     Id: 27008008
+  },
+  {
+    Group: Search,
+    Event: IndexDropped,
+    Id: 27008009
   },
   {
     Group: Collections,

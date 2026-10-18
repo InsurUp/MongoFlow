@@ -1,5 +1,5 @@
 ﻿{
-  Message: StoreVault declares indexes MongoDB can't change in place: the index Number_1 of {database}.Orders: it isn't unique, and is declared unique. Recreate them in a migration, with context.Collection(...).RecreateIndexAsync(name), which runs before the migrator sets up indexes.,
+  Message: StoreVault declares indexes MongoDB can't change in place: the index Number_1 of {database}.Orders: it isn't unique, and is declared unique. Recreate them in a migration, with context.Collection(...).RecreateIndexAsync(name), which runs before the migrator sets up indexes, or migrate with MigrateOptions.SyncIndexes, which recreates them.,
   Indexes: [
     _id_,
     Number_1
@@ -10,7 +10,7 @@
       Level: Error,
       EventId: 27002010,
       Event: IndexDiffers,
-      Message: The index Number_1 of {database}.Orders differs from its declaration in what MongoDB can't change in place: it isn't unique, and is declared unique. Recreate it in a migration, with context.Collection(...).RecreateIndexAsync.
+      Message: The index Number_1 of {database}.Orders differs from its declaration in what MongoDB can't change in place: it isn't unique, and is declared unique. Recreate it in a migration, with context.Collection(...).RecreateIndexAsync, or migrate with MigrateOptions.SyncIndexes, which recreates it.
     }
   ]
 }

@@ -181,7 +181,8 @@ audit trail and an outbox written in the same transaction.
 Migrations are classes with a version, applied once, in order, each in a transaction unless it opts out, and recorded.
 They can be reverted down to a version. The migrator also sets up what collections declare: their settings before the
 migrations, their indexes after, failing before it changes anything MongoDB can't change in place; a migration applies
-them earlier where it needs them.
+them earlier where it needs them. With `MigrateOptions.SyncIndexes`, the indexes become exactly what the vaults declare:
+recreated where MongoDB can't change them in place, and dropped where no vault declares them.
 
 ```csharp
 await app.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();

@@ -9,7 +9,9 @@ namespace MongoFlow;
 /// when they hold documents already. What a vault's collections declare is set up too: their settings before its
 /// migrations, their indexes and search indexes after, failing before anything is changed when a collection or an index
 /// differs in what MongoDB can't change in place; the migrator waits until search indexes are queryable unless
-/// <see cref="MigrateOptions"/> says not to.
+/// <see cref="MigrateOptions"/> says not to. With <see cref="MigrateOptions.SyncIndexes"/>, the indexes and search indexes
+/// of the collections the migrated vaults declare are synced instead, once every vault's migrations have run, with what
+/// every registered vault declares of them.
 /// </summary>
 /// <remarks>
 /// Run it from one instance of the application, such as at startup before it serves requests. Instances migrating at once

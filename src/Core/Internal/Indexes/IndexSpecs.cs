@@ -172,8 +172,78 @@ internal static class IndexSpecs
         return new IndexPlan(declared, SetupAction.Create);
     }
 
+    /// <summary>
+    /// What syncing <paramref name="declared"/> does, given the indexes the server lists of a collection that compares
+    /// strings with <paramref name="collation"/>, and the names of every index declared of it. As <see cref="Plan"/>, but
+    /// a plain index of its name is made unique in place, and one that differs in anything else MongoDB can't change in
+    /// place is recreated, as is one on the same keys with the same options under a name no vault declares.
+    /// </summary>
+    public static IndexPlan PlanSync(IndexDeclaration declared,
+        IReadOnlyList<BsonDocument> listed,
+        BsonDocument? collation,
+        IReadOnlySet<string> declaredNames)
+    {
+        if (listed.FirstOrDefault(index => NameOf(index) == declared.Name) is { } named)
+        {
+            var comparison = Compare(declared, named, collation);
+            return comparison switch
+            {
+                { Conflicts.Count: 0, Changes: { } changes } => new IndexPlan(declared, SetupAction.Update, changes),
+                { Conflicts.Count: 0 } => new IndexPlan(declared, SetupAction.Unchanged),
+
+                // Declared unique, and otherwise the same: collMod makes it unique, unless documents share its keys.
+                { Conflicts.Count: 1 } when declared.Unique && !Flag(named, "unique") =>
+                    new IndexPlan(declared, SetupAction.MakeUnique, comparison.Changes),
+
+                _ => new IndexPlan(declared, SetupAction.Recreate, Conflicts: comparison.Conflicts, Replaces: named)
+            };
+        }
+
+        if (listed.FirstOrDefault(index => NameOf(index) != "_id_" && Equivalent(declared, index, collation)) is { } equivalent)
+        {
+            // The server keeps one index of the two: one declared is a conflict, as it is without syncing.
+            return declaredNames.Contains(NameOf(equivalent)!)
+                ? new IndexPlan(declared, SetupAction.Conflict,
+                    Conflicts: [$"the index {NameOf(equivalent)}, declared too, is on the same keys, with the same options, which MongoDB keeps one index of"])
+                : new IndexPlan(declared, SetupAction.Recreate, Replaces: equivalent);
+        }
+
+        return new IndexPlan(declared, SetupAction.Create);
+    }
+
+    /// <summary>
+    /// The indexes the server lists that syncing drops: those no vault declares, but <c>_id_</c> and Queryable Encryption's
+    /// on <c>__safeContent__</c>, which the server keeps itself, and those <paramref name="plans"/> replace already.
+    /// </summary>
+    public static IReadOnlyList<BsonDocument> Undeclared(IReadOnlyList<BsonDocument> listed,
+        IReadOnlyList<IndexPlan> plans)
+    {
+        var kept = plans.Select(plan => plan.Declaration.Name)
+            .Concat(plans.Where(plan => plan.Replaces is not null).Select(plan => NameOf(plan.Replaces!)!))
+            .ToHashSet(StringComparer.Ordinal);
+
+        return [.. listed.Where(index => NameOf(index) is { } name && !kept.Contains(name) && !IsServers(index))];
+    }
+
+    /// <summary>
+    /// Whether an index on <paramref name="keys"/>, as the server lists them, backs a collection sharded on
+    /// <paramref name="shardKey"/>: its keys start with the shard key's.
+    /// </summary>
+    public static bool Backs(BsonDocument keys,
+        BsonDocument shardKey) =>
+        keys.ElementCount >= shardKey.ElementCount &&
+        shardKey.Elements.Zip(keys.Elements).All(pair => pair.First.Name == pair.Second.Name && StoredSpecs.Same(pair.First.Value, pair.Second.Value));
+
+    /// <summary>The index as the server lists it, without its version: what creates it again, shown in a log.</summary>
+    public static string DefinitionOf(BsonDocument listed) => new BsonDocument(listed.Where(element => element.Name != "v")).ToJson();
+
     /// <summary>An index's name, as the server lists it.</summary>
     public static string? NameOf(BsonDocument listed) => listed.GetValue("name", BsonNull.Value) is BsonString name ? name.Value : null;
+
+    // The server's own: _id_, and Queryable Encryption's on __safeContent__.
+    private static bool IsServers(BsonDocument listed) =>
+        NameOf(listed) == "_id_" ||
+        listed.GetValue("key", BsonNull.Value) is BsonDocument { ElementCount: 1 } key && key.GetElement(0).Name == "__safeContent__";
 
     // The collation the index compares strings with: its own, or the collection's.
     private static BsonDocument? Collation(IndexDeclaration declared,

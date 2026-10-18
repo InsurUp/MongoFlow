@@ -1,0 +1,14 @@
+﻿{
+  CodeName: BadValue,
+  Spans: [
+    {
+      Status: Error,
+      Tags: {
+        error.type: MongoDB.Driver.MongoCommandException,
+        mongoflow.collection: Orders,
+        mongoflow.index.name: Notes_1,
+        mongoflow.vault: StoreVault
+      }
+    }
+  ]
+}

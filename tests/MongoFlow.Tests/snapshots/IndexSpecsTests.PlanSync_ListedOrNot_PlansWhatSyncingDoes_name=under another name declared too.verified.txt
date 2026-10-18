@@ -1,0 +1,6 @@
+﻿{
+  Action: Conflict,
+  Conflicts: [
+    the index by_customer_declared, declared too, is on the same keys, with the same options, which MongoDB keeps one index of
+  ]
+}

@@ -5,9 +5,9 @@ using Semver;
 
 namespace MongoFlow.IntegrationTests.Search;
 
-// Customers of agencies, soft deleted, searched by name and by an embedding; patients whose identity number is
-// encrypted, beside plain notes searched by text; migrations that set up a search and a vector search index by hand; a
-// search index as the server lists it.
+// Customers of agencies, soft deleted, searched by name and by an embedding, in a CRM's vault and an analytics one;
+// patients whose identity number is encrypted, beside plain notes searched by text; migrations that set up a search and a
+// vector search index by hand; a search index as the server lists it.
 public partial class SearchTests
 {
     public sealed class Customer
@@ -27,6 +27,12 @@ public partial class SearchTests
     }
 
     public sealed class CrmVault : MongoVault
+    {
+        public IVaultCollection<Customer, int> Customers { get; init; } = null!;
+    }
+
+    /// <summary>Another vault of the same customers, as an app's analytics vault maps them beside its CRM's.</summary>
+    public sealed class AnalyticsVault : MongoVault
     {
         public IVaultCollection<Customer, int> Customers { get; init; } = null!;
     }
@@ -100,6 +106,29 @@ public partial class SearchTests
                 SearchIndexType.VectorSearch,
                 cancellationToken);
             await indexes.WaitUntilQueryableAsync("vectorsByHand", cancellationToken: cancellationToken);
+        }
+
+        public Task DownAsync(MigrationContext<CrmVault> context,
+            CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+    }
+
+    /// <summary>Sets up the index named <c>vectors</c> by hand as a search index, which the vault declares a vector search one.</summary>
+    public sealed class IndexVectorsAsText : IVaultMigration<CrmVault>
+    {
+        public SemVersion Version { get; } = new(1, 0, 0);
+
+        public string Description => "Index customers by name, as vectors";
+
+        public bool UseTransaction => false;
+
+        public async Task UpAsync(MigrationContext<CrmVault> context,
+            CancellationToken cancellationToken)
+        {
+            var indexes = context.Database.GetCollection<BsonDocument>("Customers").SearchIndexes;
+            await indexes.CreateOrUpdateAsync("vectors", BsonDocument.Parse("{ mappings: { dynamic: false, fields: { Name: { type: 'string' } } } }"),
+                cancellationToken: cancellationToken);
+            await indexes.WaitUntilQueryableAsync("vectors", cancellationToken: cancellationToken);
         }
 
         public Task DownAsync(MigrationContext<CrmVault> context,

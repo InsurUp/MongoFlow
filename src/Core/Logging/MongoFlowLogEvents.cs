@@ -68,7 +68,7 @@ public static class MongoFlowLogEvents
         /// </summary>
         public const int IndexDiffers = 27_002_010;
 
-        /// <summary><c>Information</c>: a migration recreated an index, dropping the server's.</summary>
+        /// <summary><c>Information</c>: a migration, or the migrator syncing indexes, recreated an index, dropping the server's.</summary>
         public const int IndexRecreated = 27_002_011;
 
         /// <summary>
@@ -76,6 +76,12 @@ public static class MongoFlowLogEvents
         /// did is left to the declarations the migrator applies after the migrations.
         /// </summary>
         public const int IndexNotDeclared = 27_002_012;
+
+        /// <summary>
+        /// <c>Information</c>: syncing indexes, the migrator dropped an index: one no vault declares, or one it recreates
+        /// as declared. The message has the index as the server listed it, to create it again by hand.
+        /// </summary>
+        public const int IndexDropped = 27_002_013;
     }
 
     /// <summary>Saves: what they write, how they end, and what fails them.</summary>
@@ -283,6 +289,13 @@ public static class MongoFlowLogEvents
 
         /// <summary><c>Debug</c>: an index the vault doesn't declare was listed, once, to learn which fields it maps.</summary>
         public const int IndexListed = 27_008_008;
+
+        /// <summary>
+        /// <c>Information</c>: syncing indexes, the migrator dropped a search index: one no vault declares, or one declared
+        /// of the other type, which it creates anew. The message has the definition the server listed, to create it again
+        /// by hand.
+        /// </summary>
+        public const int IndexDropped = 27_008_009;
     }
 
     /// <summary>

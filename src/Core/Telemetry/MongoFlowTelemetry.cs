@@ -45,7 +45,7 @@ public static class MongoFlowTelemetry
 
         /// <summary>
         /// One search index a vault declares, created, updated or found as declared by <c>IVaultMigrator</c> after the
-        /// vault's migrations, and waited for until it's queryable, tagged with <see cref="Tags.Vault"/>,
+        /// vault's migrations, and waited for until it's queryable, or, syncing indexes, recreated or dropped, tagged with <see cref="Tags.Vault"/>,
         /// <see cref="Tags.Collection"/>, <see cref="Tags.IndexName"/>, <see cref="Tags.SearchIndexType"/> and
         /// <see cref="Tags.Change"/>.
         /// </summary>
@@ -60,7 +60,7 @@ public static class MongoFlowTelemetry
 
         /// <summary>
         /// One index a vault declares, created, changed in place or found as declared, by <c>IVaultMigrator</c> after the
-        /// vault's migrations, or recreated by a migration, tagged with <see cref="Tags.Vault"/>, <see cref="Tags.Collection"/>,
+        /// vault's migrations, or recreated by a migration; or, syncing indexes, recreated or dropped; tagged with <see cref="Tags.Vault"/>, <see cref="Tags.Collection"/>,
         /// <see cref="Tags.IndexName"/> and <see cref="Tags.Change"/>.
         /// </summary>
         public const string Index = "MongoFlow.Index";
@@ -152,7 +152,7 @@ public static class MongoFlowTelemetry
 
         /// <summary>
         /// What was done to a collection or an index: <c>created</c>, <c>updated</c>, <c>unchanged</c> or, for an index a
-        /// migration recreates, <c>recreated</c>.
+        /// migration, or the migrator syncing indexes, recreates, <c>recreated</c>; for one syncing drops, <c>dropped</c>.
         /// </summary>
         public const string Change = "mongoflow.change";
 

@@ -27,25 +27,35 @@ internal static class IndexSync
         return (true, indexes, options.GetValue("collation", BsonNull.Value) as BsonDocument);
     }
 
-    /// <summary>Creates the index <paramref name="plan"/> creates, or changes it in place.</summary>
+    /// <summary>Creates the index <paramref name="plan"/> creates, changes it in place, or makes it unique.</summary>
     public static async Task ApplyAsync(IMongoDatabase database,
         string collection,
         IndexPlan plan,
         CancellationToken cancellationToken)
     {
+        var indexes = database.GetCollection<BsonDocument>(collection).Indexes;
         switch (plan.Action)
         {
             case SetupAction.Create:
-                await database.GetCollection<BsonDocument>(collection).Indexes.CreateOneAsync(plan.Declaration.Model(),
-                    cancellationToken: cancellationToken);
+                await indexes.CreateOneAsync(plan.Declaration.Model(), cancellationToken: cancellationToken);
                 break;
 
             case SetupAction.Update:
-                await database.RunCommandAsync<BsonDocument>(new BsonDocument { { "collMod", collection }, { "index", plan.Changes } },
-                    cancellationToken: cancellationToken);
+                await ModifyAsync(database, collection, plan.Changes!, cancellationToken);
+                break;
+
+            case SetupAction.MakeUnique:
+                await MakeUniqueAsync(database, collection, plan, cancellationToken);
                 break;
         }
     }
+
+    /// <summary>Drops the index named <paramref name="name"/>.</summary>
+    public static Task DropAsync(IMongoDatabase database,
+        string collection,
+        string name,
+        CancellationToken cancellationToken) =>
+        database.GetCollection<BsonDocument>(collection).Indexes.DropOneAsync(name, cancellationToken);
 
     /// <summary>
     /// Drops the index named <paramref name="name"/>, and any the server would refuse <paramref name="declared"/> beside,
@@ -79,4 +89,36 @@ internal static class IndexSync
 
         return dropping;
     }
+
+    // Unique in two steps, as collMod takes it: the index refuses new duplicates first, then becomes unique, which fails
+    // while documents share its keys, and the index is put back as it was.
+    private static async Task MakeUniqueAsync(IMongoDatabase database,
+        string collection,
+        IndexPlan plan,
+        CancellationToken cancellationToken)
+    {
+        var name = plan.Declaration.Name;
+        if (plan.Changes is { } changes)
+        {
+            await ModifyAsync(database, collection, changes, cancellationToken);
+        }
+
+        await ModifyAsync(database, collection, new BsonDocument { { "name", name }, { "prepareUnique", true } }, cancellationToken);
+        try
+        {
+            await ModifyAsync(database, collection, new BsonDocument { { "name", name }, { "unique", true } }, cancellationToken);
+        }
+        catch (MongoCommandException)
+        {
+            await ModifyAsync(database, collection, new BsonDocument { { "name", name }, { "prepareUnique", false } }, CancellationToken.None);
+            throw;
+        }
+    }
+
+    private static Task ModifyAsync(IMongoDatabase database,
+        string collection,
+        BsonDocument index,
+        CancellationToken cancellationToken) =>
+        database.RunCommandAsync<BsonDocument>(new BsonDocument { { "collMod", collection }, { "index", index } },
+            cancellationToken: cancellationToken);
 }

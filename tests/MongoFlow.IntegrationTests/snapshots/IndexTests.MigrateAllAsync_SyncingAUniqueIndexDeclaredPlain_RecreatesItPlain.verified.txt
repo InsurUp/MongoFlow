@@ -1,0 +1,32 @@
+﻿{
+  Indexes: [
+    {
+      key: {
+        _id: 1
+      },
+      name: _id_
+    },
+    {
+      key: {
+        Number: 1
+      },
+      name: Number_1
+    }
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002013,
+      Event: IndexDropped,
+      Message: Dropped the index Number_1 of {database}.Orders, to recreate it as declared: it's unique, and isn't declared unique. It was { "key" : { "Number" : 1 }, "name" : "Number_1", "unique" : true }.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002011,
+      Event: IndexRecreated,
+      Message: Recreated the index Number_1 of {database}.Orders, dropping Number_1: { "Number" : 1 }.
+    }
+  ]
+}

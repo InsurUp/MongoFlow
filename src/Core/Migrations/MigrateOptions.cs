@@ -14,4 +14,20 @@ public sealed class MigrateOptions
     /// doesn't fail the migrator. <see cref="SearchIndexManagerExtensions.WaitUntilQueryableAsync"/> waits for one later.
     /// </remarks>
     public bool WaitForSearchIndexes { get; init; } = true;
+
+    /// <summary>
+    /// Whether the migrator makes the indexes and search indexes of every collection the migrated vaults declare exactly
+    /// what the vaults registered declare of it, once the migrations have run: as well as creating what's missing and
+    /// changing in place what MongoDB can, it makes an index unique in place, recreates one that differs in what MongoDB
+    /// can't change in place, and drops, last, the indexes no vault declares, but <c>_id_</c> and Queryable Encryption's.
+    /// <see langword="false"/> by default: an index no vault declares is left, and one MongoDB can't change in place fails
+    /// the migrator.
+    /// </summary>
+    /// <remarks>
+    /// It plans every collection before it changes any, and fails, changing nothing, when two vaults declare an index of one
+    /// name otherwise, or when an index it would drop is the only one on a sharded collection's shard key. Each index it
+    /// drops is logged with its definition, so it can be created again by hand. Making an index unique fails, leaving it
+    /// as it was, when documents share its keys.
+    /// </remarks>
+    public bool SyncIndexes { get; init; }
 }

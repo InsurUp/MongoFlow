@@ -66,7 +66,8 @@ internal static partial class IndexLog
 
     [LoggerMessage(EventId = MongoFlowLogEvents.Indexes.IndexDiffers, Level = LogLevel.Error,
         Message = "The index {Index} of {Collection} differs from its declaration in what MongoDB can't change in place: " +
-                  "{Differences}. Recreate it in a migration, with context.Collection(...).RecreateIndexAsync.")]
+                  "{Differences}. Recreate it in a migration, with context.Collection(...).RecreateIndexAsync, or migrate " +
+                  "with MigrateOptions.SyncIndexes, which recreates it.")]
     public static partial void IndexDiffers(this ILogger logger,
         string index,
         string collection,
@@ -86,4 +87,12 @@ internal static partial class IndexLog
     public static partial void IndexNotDeclared(this ILogger logger,
         string index,
         string collection);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Indexes.IndexDropped, Level = LogLevel.Information,
+        Message = "Dropped the index {Index} of {Collection}, {Reason}. It was {Definition}.")]
+    public static partial void IndexDropped(this ILogger logger,
+        string index,
+        string collection,
+        string reason,
+        string definition);
 }

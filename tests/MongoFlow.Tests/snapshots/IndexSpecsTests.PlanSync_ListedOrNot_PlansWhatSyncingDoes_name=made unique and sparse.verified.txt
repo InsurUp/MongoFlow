@@ -1,0 +1,8 @@
+﻿{
+  Action: Recreate,
+  Conflicts: [
+    it isn't unique, and is declared unique,
+    it isn't sparse, and is declared sparse
+  ],
+  Replaces: a_1
+}
