@@ -1,0 +1,30 @@
+﻿[
+  {
+    type: string,
+    analyzer: lucene.turkish,
+    multi: {
+      keyword: {
+        type: string,
+        analyzer: lucene.keyword
+      },
+      english: {
+        type: string,
+        analyzer: lucene.english,
+        searchAnalyzer: lucene.standard
+      }
+    }
+  },
+  {
+    type: string,
+    multi: {
+      keyword: {
+        type: string,
+        analyzer: lucene.keyword
+      },
+      english: {
+        type: string,
+        analyzer: lucene.english
+      }
+    }
+  }
+]

@@ -7,8 +7,8 @@ namespace MongoFlow.Tests.Search;
 /// <summary>
 /// A collection's <c>SearchIndex</c> and <c>VectorSearchIndex</c> declare the indexes the migrator sets up:
 /// <list type="number">
-/// <item>members are mapped by their element names, dotted paths as document mappings following the index's dynamic
-/// setting, on top of a definition given as it is;</item>
+/// <item>members are mapped by their element names, text with its alternates, dotted paths as document mappings following
+/// the index's dynamic setting, on top of a definition given as it is;</item>
 /// <item>the fields features filter on are mapped as their values compare, as filter fields of a vector index, unless
 /// they're mapped so already or can't be compared exactly;</item>
 /// <item>an index declared again is configured further, a type mapped again replaces the earlier mapping, and a vector or
@@ -29,6 +29,24 @@ public partial class SearchIndexBuilderTests
             .Map(x => x.Name, SearchField.String(), SearchField.Autocomplete(), SearchField.Token())
             .Map(x => x.Supplier!.City, SearchField.Token())
             .Map("Supplier.Country.Code", SearchField.Token())));
+
+        // Act
+        var declarations = Declarations(host);
+
+        // Assert
+        await Verify(declarations);
+    }
+
+    [Test]
+    public async Task SearchIndex_TextWithAnAlternate_IsMappedWithItBesideTheFieldsOtherMappings()
+    {
+        // Arrange
+        await using var host = Host(products => products.SearchIndex("default", index => index
+            .Analyzer("lucene.turkish")
+            .Map(x => x.Name,
+                SearchField.String("lucene.turkish").Multi("keyword", SearchField.String("lucene.keyword")),
+                SearchField.Autocomplete(2, 20),
+                SearchField.Token())));
 
         // Act
         var declarations = Declarations(host);

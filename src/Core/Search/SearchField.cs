@@ -4,7 +4,8 @@ namespace MongoFlow;
 
 /// <summary>
 /// How a search index maps a field, given to <c>Map</c>: as analyzed text, for autocomplete, as an exact token, or as a
-/// number, date, boolean, ObjectId or UUID. A field can be mapped several ways at once.
+/// number, date, boolean, ObjectId or UUID. A field can be mapped several ways at once, and text indexed again with other
+/// analyzers, as alternates (<see cref="Multi"/>).
 /// </summary>
 public sealed class SearchField
 {
@@ -83,6 +84,49 @@ public sealed class SearchField
 
     /// <summary>A UUID, stored as binary subtype 4, for <c>equals</c> and <c>in</c>.</summary>
     public static SearchField Uuid() => new(new BsonDocument("type", "uuid"));
+
+    /// <summary>
+    /// This text mapping with an alternate: the text indexed again as <paramref name="alternate"/> analyzes it, which a
+    /// query picks by name with <c>path: { value, multi }</c>, such as a <c>lucene.keyword</c> one for <c>wildcard</c> to
+    /// match the whole value. Each call adds one; this mapping is left as it was.
+    /// </summary>
+    /// <param name="name">The alternate's name, which queries pick it by.</param>
+    /// <param name="alternate">How it's indexed: text, such as <c>SearchField.String("lucene.keyword")</c>.</param>
+    /// <exception cref="ArgumentException">
+    /// This mapping isn't text, <paramref name="alternate"/> isn't text or has alternates of its own, or this mapping has an
+    /// alternate named <paramref name="name"/> already.
+    /// </exception>
+    public SearchField Multi(string name,
+        SearchField alternate)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(alternate);
+
+        if (Type != "string")
+        {
+            throw new ArgumentException($"MongoDB Search takes alternates only on text, mapped with SearchField.String(), not on a {Type} mapping.");
+        }
+
+        if (alternate.Type != "string" || alternate.Definition.Contains("multi"))
+        {
+            throw new ArgumentException("An alternate is text, mapped with SearchField.String(), without alternates of its own.",
+                nameof(alternate));
+        }
+
+        var definition = (BsonDocument)Definition.DeepClone();
+        if (definition.GetValue("multi", BsonNull.Value) is not BsonDocument multi)
+        {
+            definition["multi"] = multi = [];
+        }
+
+        if (multi.Contains(name))
+        {
+            throw new ArgumentException($"The text mapping has an alternate named {name} already.", nameof(name));
+        }
+
+        multi[name] = alternate.Definition.DeepClone();
+        return new SearchField(definition);
+    }
 
     /// <summary>A mapping written as MongoDB Search takes it, such as <c>{ type: "geo", indexShapes: true }</c>.</summary>
     /// <exception cref="ArgumentException">It has no <c>type</c>.</exception>
