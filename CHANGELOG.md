@@ -3,6 +3,14 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.14] - 2026-10-18
+
+### Fixed
+
+- A declared search index matches its definition as self-managed mongot (MongoDB Community) lists it, with the index's
+  name, type and number of partitions at its root. Before, no declared index matched there, so the migrator updated
+  every one on every run and mongot rebuilt each. A declaration that sets another number of partitions still differs.
+
 ## [1.0.0-beta.13] - 2026-10-17
 
 ### Added
@@ -339,6 +347,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[1.0.0-beta.14]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.13...v1.0.0-beta.14
 [1.0.0-beta.13]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.12...v1.0.0-beta.13
 [1.0.0-beta.12]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.11...v1.0.0-beta.12
 [1.0.0-beta.11]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.10...v1.0.0-beta.11
