@@ -1,0 +1,83 @@
+﻿{
+  Indexes: [
+    {
+      Name: default,
+      Status: READY,
+      Queryable: true,
+      Definition: {
+        mappings: {
+          dynamic: false,
+          fields: {
+            Name: [
+              {
+                type: string
+              },
+              {
+                type: autocomplete,
+                minGrams: 2,
+                maxGrams: 15,
+                foldDiacritics: true,
+                tokenization: edgeGram
+              }
+            ],
+            IsDeleted: {
+              type: boolean
+            },
+            AgencyId: {
+              type: token
+            }
+          }
+        }
+      }
+    },
+    {
+      Name: vectors,
+      Status: READY,
+      Queryable: true,
+      Definition: {
+        fields: [
+          {
+            type: vector,
+            path: Embedding,
+            numDimensions: 3,
+            similarity: cosine
+          },
+          {
+            type: filter,
+            path: IsDeleted
+          },
+          {
+            type: filter,
+            path: AgencyId
+          }
+        ]
+      }
+    }
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008002,
+      Event: IndexUpdated,
+      Message: Updated the search index default of Customers, whose definition changed; it's rebuilt, and searched as it was meanwhile.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008005,
+      Event: IndexQueryable,
+      Message: The search index default of Customers is built and queryable.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Debug,
+      EventId: 27008003,
+      Event: IndexUpToDate,
+      Message: The vectorSearch index vectors of Customers is defined as declared.
+    }
+  ],
+  Found: [
+    Ada Lovelace
+  ]
+}

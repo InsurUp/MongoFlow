@@ -22,9 +22,12 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
   MongoFlow.Encryption's live under `Encryption/`, with a local KMS on the community server, which takes explicit
   encryption; `BsonValueConverter` shows encrypted values and `__safeContent__`, random each write, as `(encrypted)` and
   `(tags)`. The unit lane tests its internals too (`Encryption/`), against doubles of the value encryptor.
-  MongoDB Search's tests live under `Search/`, in the `Search` category, on MongoDB's Atlas Local image, mongod with mongot
-  (`SearchFixture`, shared like `MongoFixture`). Seed a collection before migrating, so its index is built over the
-  documents: what's written afterwards is searchable only a moment later.
+  MongoDB Search's tests live under `Search/`, in the `Search` category, and each runs on two servers, shared like
+  `MongoFixture`: MongoDB's Atlas Local image, mongod with mongot (`AtlasLocalFixture`), and MongoDB Community as InsurUp
+  runs it, `mongo:8.2` with mongot from `mongodb-community-search` on a network of their own (`CommunitySearchFixture`).
+  They list indexes each their own way: Atlas Local with the defaults it fills in and the index's type, community-search
+  as the index was created, without either. Seed a collection before migrating, so its index is built over the documents:
+  what's written afterwards is searchable only a moment later.
 - Both target `net10.0` and `net11.0`, like the library.
 
 ## Framework and tooling
@@ -77,6 +80,10 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
 
 - Take the server by property injection, not the constructor, so Verify doesn't put it in snapshot names:
   `[ClassDataSource<MongoFixture>(Shared = SharedType.PerTestSession)] public required MongoFixture Mongo { get; init; }`.
+  The search tests are the exception: they take a `SearchFixture` through the constructor, from a `[ClassDataSource]` of
+  each server on the class, so each runs on both and what it receives is named after the server (`_mongo=Community`).
+  A snapshot both servers must match says `.IgnoreParametersForVerified()`, and is verified once; one of how a server
+  lists indexes is verified per server.
 - Isolation is a database per test: `Mongo.Host<TVault>(configure, services)` registers the vault on a new database
   with its own service provider and scope. For two vaults in one app, take `Mongo.NewDatabase()` and register both.
 - Tests run in parallel. The one shared resource is the server's `failCommand` failpoint (`Mongo.FailNextAsync`), which

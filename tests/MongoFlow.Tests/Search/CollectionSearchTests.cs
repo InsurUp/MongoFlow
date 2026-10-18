@@ -10,7 +10,8 @@ namespace MongoFlow.Tests.Search;
 /// <item>any other from the server, listed once for every search, and kept;</item>
 /// <item>a listing that fails, or finds no index, is tried again by the next search; a search canceled while waiting
 /// leaves the listing to the others;</item>
-/// <item>an index of the other type than the search's fails it;</item>
+/// <item>an index of the other type than the search's fails it, its type told by its definition where the server doesn't
+/// list it;</item>
 /// <item>the fields a search matches after it are warned about once each.</item>
 /// </list>
 /// </summary>
@@ -135,6 +136,22 @@ public partial class CollectionSearchTests
                 : search.MappingAsync("vectors", SearchIndexType.Search, CancellationToken.None)).AsTask())
             .IgnoreStackTrace()
             .UseParameters(index);
+    }
+
+    [Test]
+    public async Task MappingAsync_VectorIndexListedWithoutItsType_IsAVectorSearchIndex()
+    {
+        // Arrange — as mongodb-community-search lists an index, without its type.
+        var search = Search([], new Lister(BsonDocument.Parse("""
+            { name: 'vectors', status: 'READY', queryable: true,
+              latestDefinition: { fields: [{ type: 'vector', path: 'Embedding', numDimensions: 3, similarity: 'cosine' }, { type: 'filter', path: 'TenantId' }] } }
+            """)));
+
+        // Act
+        var mapping = await search.MappingAsync("vectors", SearchIndexType.VectorSearch, CancellationToken.None);
+
+        // Assert
+        await Assert.That(mapping.IsVectorFilter("TenantId")).IsTrue();
     }
 
     [Test]

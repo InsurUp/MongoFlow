@@ -94,7 +94,7 @@ internal sealed class CollectionSearch
                          $"{_collection} has no search index named {index}, so a search of it would find nothing. Declare " +
                          "it on the collection with SearchIndex or VectorSearchIndex, which IVaultMigrator creates, or create it.");
 
-        var type = listed.GetValue("type", "search") == "vectorSearch" ? SearchIndexType.VectorSearch : SearchIndexType.Search;
+        var type = SearchIndexSync.TypeOf(listed);
         var definition = listed.GetValue("latestDefinition", BsonNull.Value) as BsonDocument ?? [];
 
         _logger.IndexListed(SearchIndexSync.TypeName(type), index, _collection);

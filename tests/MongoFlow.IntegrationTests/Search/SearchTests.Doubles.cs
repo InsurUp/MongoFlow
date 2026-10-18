@@ -6,8 +6,8 @@ using Semver;
 namespace MongoFlow.IntegrationTests.Search;
 
 // Customers of agencies, soft deleted, searched by name and by an embedding; patients whose identity number is
-// encrypted, beside plain notes searched by text; a migration that sets up an index by hand; a search index as the server
-// lists it.
+// encrypted, beside plain notes searched by text; migrations that set up a search and a vector search index by hand; a
+// search index as the server lists it.
 public partial class SearchTests
 {
     public sealed class Customer
@@ -79,9 +79,37 @@ public partial class SearchTests
             Task.CompletedTask;
     }
 
-    /// <summary>A search index as the server lists it: its name, type, status, and the definition it's built to.</summary>
+    /// <summary>Sets up a vector search index of customers by hand, which filters on their agency but not soft delete's flag.</summary>
+    public sealed class IndexEmbeddingsByHand : IVaultMigration<CrmVault>
+    {
+        public SemVersion Version { get; } = new(1, 0, 0);
+
+        public string Description => "Index customers by embedding";
+
+        public bool UseTransaction => false;
+
+        public async Task UpAsync(MigrationContext<CrmVault> context,
+            CancellationToken cancellationToken)
+        {
+            var indexes = context.Database.GetCollection<BsonDocument>("Customers").SearchIndexes;
+            await indexes.CreateOrUpdateAsync("vectorsByHand",
+                BsonDocument.Parse("""
+                    { fields: [{ type: 'vector', path: 'Embedding', numDimensions: 3, similarity: 'cosine' },
+                               { type: 'filter', path: 'AgencyId' }] }
+                    """),
+                SearchIndexType.VectorSearch,
+                cancellationToken);
+            await indexes.WaitUntilQueryableAsync("vectorsByHand", cancellationToken: cancellationToken);
+        }
+
+        public Task DownAsync(MigrationContext<CrmVault> context,
+            CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+    }
+
+    /// <summary>A search index as the server lists it: its name, type, if listed, status, and the definition it's built to.</summary>
     public sealed record ListedIndex(string Name,
-        string Type,
+        string? Type,
         string Status,
         bool Queryable,
         BsonValue Definition);

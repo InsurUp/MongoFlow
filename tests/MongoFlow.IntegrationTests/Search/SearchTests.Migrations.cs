@@ -13,7 +13,7 @@ public partial class SearchTests
         // Arrange
         await using var host = await CrmAsync();
 
-        // Assert — CrmAsync migrated; searching right after finds what's stored.
+        // Assert — CrmAsync migrated; searching right after finds what's stored. Each server lists the indexes its own way.
         await Verify(new
         {
             Indexes = await IndexesAsync(host.Database),
@@ -28,7 +28,8 @@ public partial class SearchTests
         // Act — CrmAsync migrates with the options.
         await using var host = await CrmAsync(migrate: new MigrateOptions { WaitForSearchIndexes = false });
 
-        // Assert — logged created, and neither building nor queryable; how far each has got is up to the server.
+        // Assert — logged created, and neither building nor queryable; how far each has got is up to the server. Each
+        // server lists the indexes its own way.
         await Verify(new
         {
             Indexes = (await IndexesAsync(host.Database)).Select(index => new { index.Name, index.Type }),
@@ -47,7 +48,7 @@ public partial class SearchTests
         await host.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
 
         // Assert
-        await Verify(Migrated(before));
+        await Verify(Migrated(before)).IgnoreParametersForVerified();
     }
 
     [Test]
@@ -55,7 +56,7 @@ public partial class SearchTests
     {
         // Arrange — the same database, declared again with names mapped for autocomplete too.
         await using var first = await CrmAsync();
-        await using var changed = new VaultHost<CrmVault>(Mongo.Client, first.Database, vault => vault
+        await using var changed = new VaultHost<CrmVault>(_mongo.Client, first.Database, vault => vault
                 .UseSoftDelete((Customer x) => x.IsDeleted)
                 .UseMultiTenancy((Customer x) => x.AgencyId, _ => "a-1")
                 .Collection(x => x.Customers, customers => customers
@@ -67,7 +68,7 @@ public partial class SearchTests
         // Act
         await changed.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
 
-        // Assert
+        // Assert — each server lists the indexes its own way.
         await Verify(new
         {
             Indexes = await IndexesAsync(first.Database),
@@ -87,7 +88,7 @@ public partial class SearchTests
         await using var host = await CrmAsync();
 
         // Assert
-        await Verify(spans.Snapshot().OrderBy(span => span.Name).ThenBy(span => span.Tags.GetValueOrDefault(MongoFlowTelemetry.Tags.IndexName)));
+        await Verify(spans.Snapshot().OrderBy(span => span.Name).ThenBy(span => span.Tags.GetValueOrDefault(MongoFlowTelemetry.Tags.IndexName))).IgnoreParametersForVerified();
     }
 
     // What the migrator logged of the indexes, after the first entries it logged before, in order of index, as it sets them
@@ -104,7 +105,7 @@ public partial class SearchTests
         var listed = await (await database.GetCollection<BsonDocument>("Customers").SearchIndexes.ListAsync()).ToListAsync();
         return listed.OrderBy(index => index["name"].AsString).Select(index => new ListedIndex(
             index["name"].AsString,
-            index["type"].AsString,
+            index.GetValue("type", BsonNull.Value) is BsonString type ? type.Value : null,
             index["status"].AsString,
             index["queryable"].AsBoolean,
             index["latestDefinition"]));

@@ -8,7 +8,8 @@ namespace MongoFlow.Tests.Search;
 /// <see cref="SearchIndexSync"/> keeps a search index as declared:
 /// <list type="number">
 /// <item>one missing is created; one created meanwhile by another instance is compared like one listed;</item>
-/// <item>one defined as declared is left, one defined otherwise is updated, and one of the other type fails;</item>
+/// <item>one defined as declared is left, one defined otherwise is updated, and one of the other type fails, its type told
+/// by its definition where the server doesn't list it;</item>
 /// <item>waiting checks until the index is ready and queryable, every second at first, then less often, up to every five
 /// seconds, saying once that it's building; an index that failed or is gone fails the wait.</item>
 /// </list>
@@ -95,6 +96,38 @@ public partial class SearchIndexSyncTests
         // Act & Assert
         await ThrowsTask(() => SearchIndexSync.CreateOrUpdateAsync(_indexes.Object, "default", Definition, SearchIndexType.Search, listed, CancellationToken.None))
             .IgnoreStackTrace();
+    }
+
+    [Test]
+    [Arguments(SearchIndexType.Search, "{ mappings: { dynamic: false, fields: { TenantId: { type: 'token' } } } }")]
+    [Arguments(SearchIndexType.VectorSearch, "{ fields: [{ type: 'vector', path: 'Embedding', numDimensions: 3, similarity: 'cosine' }] }")]
+    public async Task CreateOrUpdateAsync_ListedWithoutItsType_TellsItByItsDefinition(SearchIndexType type,
+        string definition)
+    {
+        // Arrange — as mongodb-community-search lists an index, without its type.
+        var declared = BsonDocument.Parse(definition);
+        var listed = Index("READY", declared);
+        listed.Remove("type");
+
+        // Act
+        var change = await SearchIndexSync.CreateOrUpdateAsync(_indexes.Object, "default", declared, type, listed, CancellationToken.None);
+
+        // Assert
+        await Assert.That(change).IsEqualTo(IndexChange.Unchanged);
+    }
+
+    [Test]
+    public async Task CreateOrUpdateAsync_ListedWithoutItsTypeAndOfTheOtherType_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var listed = Index("READY", Definition);
+        listed.Remove("type");
+
+        // Act & Assert
+        await Assert.That(() => SearchIndexSync.CreateOrUpdateAsync(_indexes.Object, "default",
+                BsonDocument.Parse("{ fields: [{ type: 'vector', path: 'Embedding', numDimensions: 3, similarity: 'cosine' }] }"),
+                SearchIndexType.VectorSearch, listed, CancellationToken.None))
+            .ThrowsExactly<InvalidOperationException>();
     }
 
     [Test]

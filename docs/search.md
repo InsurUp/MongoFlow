@@ -151,8 +151,9 @@ stored source show only what the query filters do, and `MatchesNothing` whether 
 create the collections or rename the fields they map:
 
 - **none of the name:** the index is created, and its collection, if missing, with its [declared settings](configuration.md#collection-settings);
-- **one defined as declared:** nothing to do. The definitions are compared as the server lists them, with its defaults,
-  and without the index's own metadata, such as its name, which self-managed mongot lists with them;
+- **one defined as declared:** nothing to do. The definitions are compared with the server's defaults filled into both,
+  as some servers list a definition with them and others as it was created, and without the index's own metadata, such
+  as its name, which self-managed mongot lists with them;
 - **one defined otherwise:** it's updated. Searches use it as it was until it's rebuilt;
 - **one of the other type:** it fails, since a type can't be changed.
 
@@ -228,4 +229,6 @@ container, as a single-node replica set, which saves need too:
 docker run -d -p 27017:27017 mongodb/mongodb-atlas-local:8.3.4
 ```
 
-Connect with `mongodb://localhost:27017/?directConnection=true`. MongoFlow's own search tests run against it.
+Connect with `mongodb://localhost:27017/?directConnection=true`. MongoFlow's own search tests run against it, and against
+MongoDB Community with mongot from the [mongodb-community-search](https://hub.docker.com/r/mongodb/mongodb-community-search)
+image.
