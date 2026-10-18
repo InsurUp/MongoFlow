@@ -3,6 +3,16 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.17] - 2026-10-18
+
+### Added
+
+- `DocumentsDynamic(bool)` on a search index's builder, for whether the documents its dotted paths create index their
+  fields that aren't mapped too, as `Dynamic()` says at the index's root: off for documents that index only the fields
+  mapped in them while the root is dynamic. Without it they're dynamic as the index is, as before; a document mapped
+  already, in `Definition` or as `SearchField.Raw`, keeps its own. An index written by hand whose documents carry no
+  `dynamic` matches the same index declared with `Map` and `DocumentsDynamic(false)`, rather than being rebuilt.
+
 ## [1.0.0-beta.16] - 2026-10-18
 
 ### Added
@@ -383,6 +393,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[1.0.0-beta.17]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.16...v1.0.0-beta.17
 [1.0.0-beta.16]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.15...v1.0.0-beta.16
 [1.0.0-beta.15]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.14...v1.0.0-beta.15
 [1.0.0-beta.14]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.13...v1.0.0-beta.14
