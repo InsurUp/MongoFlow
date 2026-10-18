@@ -5,7 +5,7 @@ namespace MongoFlow;
 
 /// <summary>
 /// Whether a search index is defined as declared, comparing the declaration with the definition the server lists, which
-/// adds its defaults and may order things its own way.
+/// adds its defaults, may order things its own way and, on self-managed mongot, lists the index's own metadata at its root.
 /// </summary>
 internal static class SearchIndexDefinitions
 {
@@ -23,7 +23,7 @@ internal static class SearchIndexDefinitions
     public static bool Matches(BsonDocument declared,
         BsonDocument listed,
         SearchIndexType type) =>
-        Same(type == SearchIndexType.Search ? WithDefaults(declared) : declared, listed);
+        Same(Root(type == SearchIndexType.Search ? WithDefaults(declared) : declared), Root(listed));
 
     /// <summary>A search index definition with the defaults the server fills in, where it doesn't set them.</summary>
     public static BsonDocument WithDefaults(BsonDocument definition)
@@ -45,6 +45,15 @@ internal static class SearchIndexDefinitions
         }
 
         return filled;
+    }
+
+    // A definition's root as compared: without the index's name and type, which self-managed mongot lists there with the
+    // rest of the index's metadata, as neither is part of its definition, and with the one partition the server defaults to.
+    private static BsonDocument Root(BsonDocument definition)
+    {
+        var root = new BsonDocument(definition.Where(element => element.Name is not ("name" or "type")));
+        Default(root, "numPartitions", 1);
+        return root;
     }
 
     private static void FillDocument(BsonDocument document,

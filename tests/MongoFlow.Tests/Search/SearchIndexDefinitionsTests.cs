@@ -8,8 +8,10 @@ namespace MongoFlow.Tests.Search;
 /// the server lists, as MongoDB Search 1.70 lists it:
 /// <list type="number">
 /// <item>the defaults the server fills in, the order it lists things in, number types and a field's one mapping listed as
-/// an array of it are no difference, nor is an element the declaration can't set, which a newer server may add;</item>
-/// <item>a field, a mapping, an option or a vector field declared otherwise, added or no longer declared is one.</item>
+/// an array of it are no difference, nor is an element the declaration can't set, which a newer server may add, nor the
+/// index's own metadata self-managed mongot lists at a definition's root, its name and type among it;</item>
+/// <item>a field, a mapping, an option or a vector field declared otherwise, added or no longer declared is one, the number
+/// of partitions and the name of a synonym mapping included.</item>
 /// </list>
 /// </summary>
 public class SearchIndexDefinitionsTests
@@ -45,6 +47,21 @@ public class SearchIndexDefinitionsTests
         { fields: [{ type: 'vector', path: 'Vec', numDimensions: 3, similarity: 'cosine' }, { type: 'filter', path: 'Tenant' }] }
         """;
 
+    // As self-managed mongot (MongoDB Community 8.2) lists them: the index's metadata at the root, next to its definition.
+    private const string SelfManagedSearch = """
+        { indexID: { $oid: '68f1c0de4a5b6c7d8e9f0a1b' }, name: 'default', database: 'PolicyManagement',
+          lastObservedCollectionName: 'Policies', collectionUUID: { $binary: { base64: 'ABEiM0RVZneImaq7zN3u/w==', subType: '04' } },
+          numPartitions: 1, analyzer: 'lucene.turkish', searchAnalyzer: 'lucene.turkish', indexFeatureVersion: 4,
+          mappings: { dynamic: false, fields: { Number: { type: 'token' } } } }
+        """;
+
+    private const string SelfManagedVector = """
+        { type: 'vectorSearch', indexID: { $oid: '68f1c0de4a5b6c7d8e9f0a1c' }, name: 'vectors', database: 'PolicyManagement',
+          lastObservedCollectionName: 'Policies', collectionUUID: { $binary: { base64: 'ABEiM0RVZneImaq7zN3u/w==', subType: '04' } },
+          numPartitions: 1, fields: [{ type: 'filter', path: 'Tenant' }, { type: 'vector', path: 'Vec', numDimensions: 3, similarity: 'cosine' }],
+          indexFeatureVersion: 3 }
+        """;
+
     [Test]
     [Arguments(Declared, Listed)]
     [Arguments("{ mappings: { dynamic: true } }", "{ mappings: { dynamic: true, fields: { } } }")]
@@ -63,6 +80,21 @@ public class SearchIndexDefinitionsTests
     }
 
     [Test]
+    [Arguments(SearchIndexType.Search, "{ analyzer: 'lucene.turkish', searchAnalyzer: 'lucene.turkish', mappings: { dynamic: false, fields: { Number: { type: 'token' } } } }", SelfManagedSearch)]
+    [Arguments(SearchIndexType.Search, "{ numPartitions: 1, analyzer: 'lucene.turkish', searchAnalyzer: 'lucene.turkish', mappings: { dynamic: false, fields: { Number: { type: 'token' } } } }", SelfManagedSearch)]
+    [Arguments(SearchIndexType.VectorSearch, Vector, SelfManagedVector)]
+    public async Task Matches_ListedBySelfManagedMongot_IsNoDifference(SearchIndexType type,
+        string declared,
+        string listed)
+    {
+        // Act
+        var matches = SearchIndexDefinitions.Matches(BsonDocument.Parse(declared), BsonDocument.Parse(listed), type);
+
+        // Assert
+        await Assert.That(matches).IsTrue();
+    }
+
+    [Test]
     [Arguments("a field added", "{ mappings: { dynamic: false, fields: { T: { type: 'token' }, U: { type: 'token' } } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'token' } } } }")]
     [Arguments("a field no longer declared", "{ mappings: { dynamic: false, fields: { } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'token' } } } }")]
     [Arguments("a mapping added", "{ mappings: { dynamic: false, fields: { T: [{ type: 'token' }, { type: 'boolean' }] } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'token' } } } }")]
@@ -70,6 +102,9 @@ public class SearchIndexDefinitionsTests
     [Arguments("an option no longer declared", "{ mappings: { dynamic: false, fields: { T: { type: 'string' } } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'string', analyzer: 'lucene.turkish', indexOptions: 'offsets', store: true, norms: 'include' } } } }")]
     [Arguments("dynamic changed", "{ mappings: { dynamic: true } }", "{ mappings: { dynamic: false, fields: { } } }")]
     [Arguments("a type changed", "{ mappings: { dynamic: false, fields: { T: { type: 'token' } } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'string', indexOptions: 'offsets', store: true, norms: 'include' } } } }")]
+    [Arguments("partitions changed", "{ numPartitions: 2, mappings: { dynamic: true } }", "{ name: 'default', numPartitions: 1, mappings: { dynamic: true, fields: { } } }")]
+    [Arguments("partitions no longer declared", "{ mappings: { dynamic: true } }", "{ name: 'default', numPartitions: 2, mappings: { dynamic: true, fields: { } } }")]
+    [Arguments("a synonym mapping renamed", "{ mappings: { dynamic: true }, synonyms: [{ name: 'a', analyzer: 'lucene.standard', source: { collection: 'S' } }] }", "{ name: 'default', mappings: { dynamic: true, fields: { } }, synonyms: [{ name: 'b', analyzer: 'lucene.standard', source: { collection: 'S' } }] }")]
     public async Task Matches_DeclaredOtherwise_IsADifference(string difference,
         string declared,
         string listed)
