@@ -7,11 +7,12 @@ namespace MongoFlow.Tests.Search;
 /// <see cref="SearchIndexDefinitions.Matches"/> decides whether a declared index has to be updated, against the definition
 /// the server lists, as MongoDB Search 1.70 lists it:
 /// <list type="number">
-/// <item>the defaults the server fills in, the order it lists things in, number types and a field's one mapping listed as
-/// an array of it are no difference, nor is an element the declaration can't set, which a newer server may add, nor the
-/// index's own metadata self-managed mongot lists at a definition's root, its name and type among it;</item>
+/// <item>the defaults the server fills in, or leaves out where it lists a definition as created, the order it lists things
+/// in, number types and a field's one mapping listed as an array of it are no difference, nor is an element the declaration
+/// can't set, which a newer server may add, nor the index's own metadata self-managed mongot lists at a definition's root,
+/// its name and type among it;</item>
 /// <item>a field, a mapping, an option or a vector field declared otherwise, added or no longer declared is one, the number
-/// of partitions and the name of a synonym mapping included.</item>
+/// of partitions, a default overridden and the name of a synonym mapping included.</item>
 /// </list>
 /// </summary>
 public class SearchIndexDefinitionsTests
@@ -47,6 +48,14 @@ public class SearchIndexDefinitionsTests
         { fields: [{ type: 'vector', path: 'Vec', numDimensions: 3, similarity: 'cosine' }, { type: 'filter', path: 'Tenant' }] }
         """;
 
+    // As InsurUp/core declares a field, and mongodb-community-search 1.70.1 lists it: as created, without the defaults.
+    private const string AsCreated = """
+        { analyzer: 'lucene.turkish', mappings: { dynamic: false, fields: { FileName: [
+            { type: 'string', analyzer: 'lucene.turkish', multi: { keyword: { type: 'string', analyzer: 'lucene.keyword' } } },
+            { type: 'autocomplete', tokenization: 'edgeGram', minGrams: 2, maxGrams: 20 },
+            { type: 'token' }] } } }
+        """;
+
     // As self-managed mongot (MongoDB Community 8.2) lists them: the index's metadata at the root, next to its definition.
     private const string SelfManagedSearch = """
         { indexID: { $oid: '68f1c0de4a5b6c7d8e9f0a1b' }, name: 'default', database: 'PolicyManagement',
@@ -80,6 +89,20 @@ public class SearchIndexDefinitionsTests
     }
 
     [Test]
+    [Arguments(AsCreated, AsCreated)]
+    [Arguments("{ mappings: { dynamic: false, fields: { T: { type: 'string', store: true } } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'string' } } } }")]
+    [Arguments("{ mappings: { dynamic: false, fields: { F: { type: 'document', fields: { G: { type: 'token' } } } } } }", "{ mappings: { dynamic: false, fields: { F: { type: 'document', fields: { G: { type: 'token' } } } } } }")]
+    public async Task Matches_ListedAsCreated_IsNoDifference(string declared,
+        string listed)
+    {
+        // Act
+        var matches = SearchIndexDefinitions.Matches(BsonDocument.Parse(declared), BsonDocument.Parse(listed), SearchIndexType.Search);
+
+        // Assert
+        await Assert.That(matches).IsTrue();
+    }
+
+    [Test]
     [Arguments(SearchIndexType.Search, "{ analyzer: 'lucene.turkish', searchAnalyzer: 'lucene.turkish', mappings: { dynamic: false, fields: { Number: { type: 'token' } } } }", SelfManagedSearch)]
     [Arguments(SearchIndexType.Search, "{ numPartitions: 1, analyzer: 'lucene.turkish', searchAnalyzer: 'lucene.turkish', mappings: { dynamic: false, fields: { Number: { type: 'token' } } } }", SelfManagedSearch)]
     [Arguments(SearchIndexType.VectorSearch, Vector, SelfManagedVector)]
@@ -102,7 +125,9 @@ public class SearchIndexDefinitionsTests
     [Arguments("an option no longer declared", "{ mappings: { dynamic: false, fields: { T: { type: 'string' } } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'string', analyzer: 'lucene.turkish', indexOptions: 'offsets', store: true, norms: 'include' } } } }")]
     [Arguments("dynamic changed", "{ mappings: { dynamic: true } }", "{ mappings: { dynamic: false, fields: { } } }")]
     [Arguments("a type changed", "{ mappings: { dynamic: false, fields: { T: { type: 'token' } } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'string', indexOptions: 'offsets', store: true, norms: 'include' } } } }")]
-    [Arguments("partitions changed", "{ numPartitions: 2, mappings: { dynamic: true } }", "{ name: 'default', numPartitions: 1, mappings: { dynamic: true, fields: { } } }")]
+    [Arguments("a default overridden", "{ mappings: { dynamic: false, fields: { T: { type: 'string', store: false } } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'string' } } } }")]
+    [Arguments("an overridden default no longer declared", "{ mappings: { dynamic: false, fields: { T: { type: 'string' } } } }", "{ mappings: { dynamic: false, fields: { T: { type: 'string', store: false } } } }")]
+    [Arguments("partitions changed","{ numPartitions: 2, mappings: { dynamic: true } }", "{ name: 'default', numPartitions: 1, mappings: { dynamic: true, fields: { } } }")]
     [Arguments("partitions no longer declared", "{ mappings: { dynamic: true } }", "{ name: 'default', numPartitions: 2, mappings: { dynamic: true, fields: { } } }")]
     [Arguments("a synonym mapping renamed", "{ mappings: { dynamic: true }, synonyms: [{ name: 'a', analyzer: 'lucene.standard', source: { collection: 'S' } }] }", "{ name: 'default', mappings: { dynamic: true, fields: { } }, synonyms: [{ name: 'b', analyzer: 'lucene.standard', source: { collection: 'S' } }] }")]
     public async Task Matches_DeclaredOtherwise_IsADifference(string difference,

@@ -5,7 +5,8 @@ namespace MongoFlow;
 
 /// <summary>
 /// Whether a search index is defined as declared, comparing the declaration with the definition the server lists, which
-/// adds its defaults, may order things its own way and, on self-managed mongot, lists the index's own metadata at its root.
+/// may fill in its defaults or list it as created, may order things its own way and, on self-managed mongot, lists the
+/// index's own metadata at its root.
 /// </summary>
 internal static class SearchIndexDefinitions
 {
@@ -19,11 +20,16 @@ internal static class SearchIndexDefinitions
         "store", "storedSource", "synonyms", "tokenization", "type", "typeSet", "typeSets", "types"
     ];
 
-    /// <summary>Whether <paramref name="listed"/>, as the server lists it, defines what <paramref name="declared"/> does.</summary>
+    /// <summary>
+    /// Whether <paramref name="listed"/>, as the server lists it, defines what <paramref name="declared"/> does: a search
+    /// index's defaults are filled into both, so an option neither sets is its default on both.
+    /// </summary>
     public static bool Matches(BsonDocument declared,
         BsonDocument listed,
         SearchIndexType type) =>
-        Same(Root(type == SearchIndexType.Search ? WithDefaults(declared) : declared), Root(listed));
+        type == SearchIndexType.Search
+            ? Same(Root(WithDefaults(declared)), Root(WithDefaults(listed)))
+            : Same(Root(declared), Root(listed));
 
     /// <summary>A search index definition with the defaults the server fills in, where it doesn't set them.</summary>
     public static BsonDocument WithDefaults(BsonDocument definition)
