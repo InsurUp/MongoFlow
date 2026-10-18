@@ -3,6 +3,16 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.16] - 2026-10-18
+
+### Added
+
+- `SearchField.Multi(name, alternate)`, which gives a text mapping an alternate: the text indexed again as the alternate
+  analyzes it, which a query picks by name with `path: { value, multi }`, such as a `lucene.keyword` one for `wildcard`
+  to match the whole value. Each call adds one, written as `multi` is by hand, so an index declared with `Definition`
+  and moved to `Map` matches the one on the server, rather than being rebuilt. As MongoDB Search does, it refuses
+  alternates on a mapping that isn't text, and alternates that aren't text or have alternates of their own.
+
 ## [1.0.0-beta.15] - 2026-10-18
 
 ### Added
@@ -373,6 +383,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[1.0.0-beta.16]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.15...v1.0.0-beta.16
 [1.0.0-beta.15]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.14...v1.0.0-beta.15
 [1.0.0-beta.14]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.13...v1.0.0-beta.14
 [1.0.0-beta.13]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.12...v1.0.0-beta.13
