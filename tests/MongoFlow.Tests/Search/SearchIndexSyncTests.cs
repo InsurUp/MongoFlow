@@ -11,7 +11,8 @@ namespace MongoFlow.Tests.Search;
 /// <item>one defined as declared is left, one defined otherwise is updated, and one of the other type fails, its type told
 /// by its definition where the server doesn't list it;</item>
 /// <item>waiting checks until the index is ready and queryable, every second at first, then less often, up to every five
-/// seconds, saying once that it's building; an index that failed or is gone fails the wait.</item>
+/// seconds, saying once that it's building; an index that failed or is gone fails the wait;</item>
+/// <item>dropping one waits, as waiting for one does, until the server no longer lists it.</item>
 /// </list>
 /// </summary>
 public partial class SearchIndexSyncTests
@@ -128,6 +129,24 @@ public partial class SearchIndexSyncTests
                 BsonDocument.Parse("{ fields: [{ type: 'vector', path: 'Embedding', numDimensions: 3, similarity: 'cosine' }] }"),
                 SearchIndexType.VectorSearch, listed, CancellationToken.None))
             .ThrowsExactly<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task DropAsync_ListedAWhileAsItsDeleted_WaitsUntilItsGone()
+    {
+        // Arrange — listed being deleted twice after the drop, as Atlas deletes an index in the background.
+        var deleting = Index("DELETING", Definition);
+        _indexes.ListAsync(Any(), Any(), Any()).ReturnsSequentially(
+            new SearchIndexListing(deleting),
+            new SearchIndexListing(deleting),
+            new SearchIndexListing());
+
+        // Act
+        await SearchIndexSync.DropAsync(_indexes.Object, "default", _time, CancellationToken.None);
+
+        // Assert
+        _indexes.DropOneAsync("default", Any()).WasCalled(Times.Once);
+        await Verify(_time.Waits);
     }
 
     [Test]

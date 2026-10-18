@@ -15,7 +15,10 @@ namespace MongoFlow.IntegrationTests.Search;
 /// <item>a feature switched off, a missing tenant and query filters that match nothing are searched as reads find them;</item>
 /// <item><c>$searchMeta</c> counts only what the query filters show, and searches run outside an open transaction;</item>
 /// <item>the query filters as clauses filter a pipeline built by hand as <c>SearchAsync</c> does, and an index the vault
-/// doesn't declare is read from the server.</item>
+/// doesn't declare is read from the server;</item>
+/// <item>the migrator sets up the declared indexes and leaves them on the next run (<c>SearchTests.Migrations.cs</c>);
+/// syncing indexes, it drops one no vault declares, creates anew one declared of the other type, fails, before changing
+/// any, when two vaults declare one otherwise, and changes nothing on a second run.</item>
 /// </list>
 /// </summary>
 [Category("Search")]

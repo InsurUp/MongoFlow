@@ -1,0 +1,22 @@
+﻿{
+  Indexes: [
+    _id_,
+    Customer_1
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002013,
+      Event: IndexDropped,
+      Message: Dropped the index by_customer of {database}.Orders, as the declared Customer_1 replaces it, on the same keys with the same options. It was { "key" : { "Customer" : 1 }, "name" : "by_customer" }.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002011,
+      Event: IndexRecreated,
+      Message: Recreated the index Customer_1 of {database}.Orders, dropping by_customer: { "Customer" : 1 }.
+    }
+  ]
+}

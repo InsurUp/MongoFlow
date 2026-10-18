@@ -65,4 +65,13 @@ internal static partial class SearchLog
         string type,
         string index,
         string collection);
+
+    [LoggerMessage(EventId = MongoFlowLogEvents.Search.IndexDropped, Level = LogLevel.Information,
+        Message = "Dropped the {Type} index {Index} of {Collection}, {Reason}. It was {Definition}.")]
+    public static partial void IndexDropped(this ILogger logger,
+        string type,
+        string index,
+        string collection,
+        string reason,
+        string definition);
 }

@@ -38,6 +38,30 @@ public partial class QueryableEncryptionTests
     }
 
     [Test]
+    public async Task MigrateAllAsync_SyncingIndexesOfAnEncryptedCollection_KeepsTheServersOwn()
+    {
+        // Arrange — created encrypted, with the server's index on __safeContent__, and an index no vault declares.
+        var database = Mongo.NewDatabase();
+        await using var host = PlainHost(database, customers =>
+        {
+            Encrypted(customers);
+            customers.Index(keys => keys.Ascending(x => x.Name));
+        });
+        var migrator = host.Services.GetRequiredService<IVaultMigrator>();
+        await migrator.MigrateAllAsync();
+        await database.GetCollection<BsonDocument>("Customers").Indexes.CreateOneAsync(
+            new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("Version")));
+
+        // Act
+        await migrator.MigrateAllAsync(new MigrateOptions { SyncIndexes = true });
+
+        // Assert
+        await Assert.That((await (await database.GetCollection<BsonDocument>("Customers").Indexes.ListAsync()).ToListAsync())
+                .Select(index => index["name"].AsString))
+            .IsEquivalentTo(["_id_", "__safeContent___1", "Name_1"]);
+    }
+
+    [Test]
     public async Task MigrateAllAsync_RebuildingACollectionWithAValidator_CopiesItsDocumentsThenAppliesIt()
     {
         // Arrange — documents stored before the validator, which they don't pass.

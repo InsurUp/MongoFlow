@@ -1,0 +1,39 @@
+﻿{
+  Indexes: [
+    {
+      Name: default,
+      Type: search
+    },
+    {
+      Name: vectors,
+      Type: vectorSearch
+    }
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008001,
+      Event: IndexCreated,
+      Message: Created the vectorSearch index vectors of Customers.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008005,
+      Event: IndexQueryable,
+      Message: The vectorSearch index vectors of Customers is built and queryable.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008009,
+      Event: IndexDropped,
+      Message: Dropped the search index vectors of Customers, to create it anew as a vectorSearch index, as an index's type can't be changed. It was { "mappings" : { "dynamic" : false, "fields" : { "Name" : { "type" : "string", "indexOptions" : "offsets", "store" : true, "norms" : "include" } } } }.
+    }
+  ],
+  Found: [
+    Ada Lovelace,
+    Bob Babbage
+  ]
+}

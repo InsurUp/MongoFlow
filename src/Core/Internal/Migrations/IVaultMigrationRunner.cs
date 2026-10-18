@@ -8,6 +8,9 @@ internal interface IVaultMigrationRunner
 {
     Type VaultType { get; }
 
+    /// <summary>The vault's model, built on first use.</summary>
+    VaultModel Model { get; }
+
     /// <summary>The collection the vault records its migrations in, or <see langword="null"/> when it has none.</summary>
     IMongoCollection<MigrationRecord>? History { get; }
 

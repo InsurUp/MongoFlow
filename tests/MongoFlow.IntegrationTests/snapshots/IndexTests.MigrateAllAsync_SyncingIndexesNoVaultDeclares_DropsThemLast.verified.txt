@@ -1,0 +1,30 @@
+﻿{
+  Orders: [
+    _id_,
+    Customer_1
+  ],
+  Archive: [
+    _id_,
+    Number_1
+  ],
+  Migrations: [
+    _id_,
+    Version_1
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002007,
+      Event: IndexCreated,
+      Message: Created the index Customer_1 of {database}.Orders: { "Customer" : 1 }.
+    },
+    {
+      Category: MongoFlow.Indexes,
+      Level: Information,
+      EventId: 27002013,
+      Event: IndexDropped,
+      Message: Dropped the index Notes_1 of {database}.Orders, which no vault declares. It was { "key" : { "Notes" : 1 }, "name" : "Notes_1", "sparse" : true }.
+    }
+  ]
+}

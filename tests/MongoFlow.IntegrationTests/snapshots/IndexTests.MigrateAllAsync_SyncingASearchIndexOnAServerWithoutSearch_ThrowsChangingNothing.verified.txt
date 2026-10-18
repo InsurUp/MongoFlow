@@ -1,0 +1,7 @@
+﻿{
+  CodeName: SearchNotEnabled,
+  Indexes: [
+    _id_,
+    Notes_1
+  ]
+}

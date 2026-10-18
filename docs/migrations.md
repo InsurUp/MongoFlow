@@ -136,6 +136,9 @@ await migrator.MigrateAsync<PolicyVault>(new SemVersion(1, 1, 0));
 // Without waiting until search indexes are queryable.
 await migrator.MigrateAllAsync(new MigrateOptions { WaitForSearchIndexes = false });
 
+// With the indexes exactly what the vaults declare: recreated, and those no vault declares dropped.
+await migrator.MigrateAllAsync(new MigrateOptions { SyncIndexes = true });
+
 SemVersion? version = await migrator.GetVersionAsync<PolicyVault>();
 ```
 
@@ -172,8 +175,10 @@ when it has none: created encrypted with their data keys, or rebuilt encrypted w
 Collections that declare settings are set up next, before the migrations: created with them, or changed in place where
 they differ. Declared indexes are set up after the migrations, which may remove what a unique index would refuse, or
 rename the fields an index is on: created, or changed in place where they differ. Either fails, naming each, before it
-changes anything, when one differs in what MongoDB can't change in place. See [indexes](configuration.md#indexes) and
-[collection settings](configuration.md#collection-settings).
+changes anything, when one differs in what MongoDB can't change in place. With `MigrateOptions.SyncIndexes`, indexes and
+search indexes are synced instead, once every vault's migrations have run: what MongoDB can't change in place is
+recreated, and what no vault declares dropped. See [indexes](configuration.md#indexes),
+[syncing them](configuration.md#syncing-indexes) and [collection settings](configuration.md#collection-settings).
 
 A vault whose collections declare search indexes has them set up after its migrations, even when it has none: created,
 or updated when they're declared otherwise, then waited for until they're queryable, unless `MigrateOptions` says not to.

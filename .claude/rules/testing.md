@@ -28,6 +28,8 @@ adds: two lanes, a real server for anything that saves, and snapshots of what wa
   They list indexes each their own way: Atlas Local with the defaults it fills in and the index's type, community-search
   as the index was created, without either. Seed a collection before migrating, so its index is built over the documents:
   what's written afterwards is searchable only a moment later.
+  What depends on a sharded cluster, such as syncing indexes keeping a shard key's, is tested on `ShardedClusterFixture`,
+  `mongo:8.2` as a config server that's a shard too and mongos (`ShardedClusterTests`).
 - Both target `net10.0` and `net11.0`, like the library.
 
 ## Framework and tooling

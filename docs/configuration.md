@@ -126,13 +126,44 @@ An index is known by its name. On each run the migrator compares what it declare
 - **one that differs in anything else,** such as its keys or whether it's unique, or one on the same keys and options
   under another name: MongoDB can't change it in place, so the migrator fails, naming each, before it changes any
   index. Recreate it in a migration, with
-  [`context.Collection(...).RecreateIndexAsync`](migrations.md#declarations-in-a-migration).
+  [`context.Collection(...).RecreateIndexAsync`](migrations.md#declarations-in-a-migration), or
+  [sync indexes](#syncing-indexes).
 
-An index the vault doesn't declare is left as it is: drop it in a migration. Building an index blocks the migrator until
+An index the vault doesn't declare is left as it is, unless the migrator [syncs indexes](#syncing-indexes): drop it in a
+migration. Building an index blocks the migrator until
 it's built. A vault's own declaration takes the place of a default configuration's of the same name, and a feature's
 indexes are left out of a collection that's `Without` it. The server refuses `!= null` in a partial filter, which renders
 `$ne`: use `Builders<T>.Filter.Exists`. An index on an encrypted member, or a partial filter comparing one, fails at
 startup: the server only sees its value encrypted.
+
+#### Syncing indexes
+
+For the server's indexes to be exactly what the code declares, migrate with `SyncIndexes`:
+
+```csharp
+await migrator.MigrateAllAsync(new MigrateOptions { SyncIndexes = true });
+```
+
+Once every vault's migrations have run, the migrator syncs each collection a migrated vault declares with what every
+registered vault declares of it, so two vaults that map one collection keep each other's indexes. Beside creating what's
+missing and changing in place what MongoDB can, it does what it otherwise fails on:
+
+- **one declared unique, plain on the server:** made unique in place, with `collMod`. While documents share its keys,
+  that fails, and the index is left as it was;
+- **one that differs in anything else MongoDB can't change in place,** such as its keys, sparseness or collation, or a
+  unique index declared plain, and one on the same keys and options under another name: dropped, then created as
+  declared. Queries go without it in between;
+- **one no vault declares:** dropped, last, so a failure before leaves it, and a query never goes without the index a
+  declared one replaces. `_id_` and Queryable Encryption's index on `__safeContent__` are kept, as are the indexes of a
+  collection no vault declares, such as the migrations' history;
+- **search indexes:** one of the other type is dropped and created anew, and one no vault declares dropped. See
+  [MongoDB Search](search.md#setting-up-indexes).
+
+It plans every collection before it changes any, and fails, changing nothing, when two vaults declare an index of one
+name otherwise, or when an index it would drop is the only one on a sharded collection's shard key, which the server
+drops on a hashed key: declare it. It asks the server which collections are sharded with `$listClusterCatalog`, which
+MongoDB has from 8.0.10. Each index it drops is logged at `Information`, as `IndexDropped` under `MongoFlow.Indexes` or
+`MongoFlow.Search`, with its definition as the server listed it, so it can be created again by hand.
 
 ### Collection settings
 

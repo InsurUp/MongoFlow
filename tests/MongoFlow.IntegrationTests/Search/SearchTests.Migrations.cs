@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -7,6 +8,8 @@ namespace MongoFlow.IntegrationTests.Search;
 
 public partial class SearchTests
 {
+    private static readonly MigrateOptions Sync = new() { SyncIndexes = true };
+
     [Test]
     public async Task MigrateAllAsync_IndexesDeclared_CreatesThemAndWaitsUntilQueryable()
     {
@@ -91,6 +94,77 @@ public partial class SearchTests
         await Verify(spans.Snapshot().OrderBy(span => span.Name).ThenBy(span => span.Tags.GetValueOrDefault(MongoFlowTelemetry.Tags.IndexName))).IgnoreParametersForVerified();
     }
 
+    [Test]
+    public async Task MigrateAllAsync_SyncingSearchIndexesAsDeclared_ChangesNothing()
+    {
+        // Arrange
+        await using var host = await CrmAsync(migrate: Sync);
+        var before = _sink.Snapshot(MongoFlowLogEvents.Search.Category).Count;
+
+        // Act
+        await host.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync(Sync);
+
+        // Assert
+        await Verify(Migrated(before)).IgnoreParametersForVerified();
+    }
+
+    [Test]
+    public async Task MigrateAllAsync_SyncingASearchIndexNoVaultDeclares_DropsIt()
+    {
+        // Act — a migration sets one up by hand.
+        await using var host = await CrmAsync(configure: vault => vault.Migrations(migrations => migrations.Add<IndexCustomersByHand>()),
+            migrate: Sync);
+
+        // Assert — each server lists the definition dropped its own way.
+        await Verify(new
+        {
+            Indexes = (await IndexesAsync(host.Database)).Select(index => index.Name),
+            Logs = Migrated().Where(entry => entry.EventId == MongoFlowLogEvents.Search.IndexDropped)
+        });
+    }
+
+    [Test]
+    public async Task MigrateAllAsync_SyncingASearchIndexDeclaredOfTheOtherType_CreatesItAnew()
+    {
+        // Act — a migration sets the vectors up by hand as a search index.
+        await using var host = await CrmAsync(configure: vault => vault.Migrations(migrations => migrations.Add<IndexVectorsAsText>()),
+            migrate: Sync);
+
+        // Assert — each server lists the definition dropped its own way; the vectors are searched as declared.
+        var search = await host.Vault.Customers.VectorSearchAsync(x => x.Embedding, Lovelace, 10,
+            new VectorSearchOptions<Customer> { IndexName = "vectors", NumberOfCandidates = 50 });
+        await Verify(new
+        {
+            Indexes = (await IndexesAsync(host.Database)).Select(index => new { index.Name, index.Type }),
+            Logs = Migrated().Where(entry => entry.Message.Contains("vectors")),
+            Found = await search.Project(x => x.Name).ToListAsync()
+        });
+    }
+
+    [Test]
+    public async Task MigrateAllAsync_SyncingASearchIndexTwoVaultsDeclareOtherwise_ThrowsChangingNothing()
+    {
+        // Arrange — an analytics vault of the same customers declares the vectors as the CRM does, and the names otherwise.
+        var database = _mongo.NewDatabase();
+        await using var host = new VaultHost<CrmVault>(_mongo.Client,
+            database,
+            vault => vault.Collection(x => x.Customers, customers => customers
+                .SearchIndex("default", index => index.Map(x => x.Name, SearchField.String()))
+                .VectorSearchIndex("vectors", index => index.Vector(x => x.Embedding, dimensions: 3, VectorSimilarity.Cosine))),
+            services => services.AddMongoVault<AnalyticsVault>(vault => vault.UseDatabase(database).Collection(x => x.Customers, customers => customers
+                .SearchIndex("default", index => index.Map(x => x.Name, SearchField.Token()))
+                .VectorSearchIndex("vectors", index => index.Vector(x => x.Embedding, dimensions: 3, VectorSimilarity.Cosine)))));
+
+        // Act
+        var exception = await Assert.That(() => host.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync(Sync))
+            .ThrowsExactly<InvalidOperationException>();
+
+        // Assert
+        await Verify(new { Message = Scrubbed(exception!.Message), Created = await database.ListCollectionNames().ToListAsync() })
+            .DontIgnoreEmptyCollections()
+            .IgnoreParametersForVerified();
+    }
+
     // What the migrator logged of the indexes, after the first entries it logged before, in order of index, as it sets them
     // up in parallel; the building it waits for, at a status that depends on how quickly the server gets to it, left out.
     private IEnumerable<LogEntry> Migrated(int before = 0) =>
@@ -110,4 +184,9 @@ public partial class SearchTests
             index["queryable"].AsBoolean,
             index["latestDefinition"]));
     }
+
+    private static string Scrubbed(string message) => Database().Replace(message, "{database}");
+
+    [GeneratedRegex(@"\bt[0-9a-f]{32}\b")]
+    private static partial Regex Database();
 }

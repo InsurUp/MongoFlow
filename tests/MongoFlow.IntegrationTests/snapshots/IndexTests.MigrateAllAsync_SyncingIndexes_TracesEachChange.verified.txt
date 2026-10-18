@@ -1,0 +1,32 @@
+﻿[
+  {
+    Name: MongoFlow.Migrate,
+    Parent: test,
+    Status: Unset,
+    Tags: {
+      mongoflow.vault: StoreVault
+    }
+  },
+  {
+    Name: MongoFlow.Index,
+    Parent: test,
+    Status: Unset,
+    Tags: {
+      mongoflow.change: recreated,
+      mongoflow.collection: Orders,
+      mongoflow.index.name: Number_1,
+      mongoflow.vault: StoreVault
+    }
+  },
+  {
+    Name: MongoFlow.Index,
+    Parent: test,
+    Status: Unset,
+    Tags: {
+      mongoflow.change: dropped,
+      mongoflow.collection: Orders,
+      mongoflow.index.name: Notes_1,
+      mongoflow.vault: StoreVault
+    }
+  }
+]

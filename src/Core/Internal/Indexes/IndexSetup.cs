@@ -15,6 +15,12 @@ internal sealed class IndexSetup : IVaultSetup
         MigrateOptions options,
         CancellationToken cancellationToken)
     {
+        // Synced instead, with every vault's declarations, once every vault's migrations have run.
+        if (options.SyncIndexes)
+        {
+            return;
+        }
+
         var planned = new List<(ICollectionModel Collection, bool Exists, IReadOnlyList<IndexPlan> Plans)>();
         foreach (var collection in model.Collections.Where(collection => collection.Indexes.Count > 0))
         {
@@ -70,7 +76,7 @@ internal sealed class IndexSetup : IVaultSetup
                 $"the index {planned.Plan.Declaration.Name} of {planned.Collection.Namespace.FullName}: " +
                 $"{string.Join("; ", planned.Plan.Conflicts!)}.")) +
             " Recreate them in a migration, with context.Collection(...).RecreateIndexAsync(name), which runs before the " +
-            "migrator sets up indexes.");
+            "migrator sets up indexes, or migrate with MigrateOptions.SyncIndexes, which recreates them.");
     }
 
     /// <summary>
@@ -94,7 +100,8 @@ internal sealed class IndexSetup : IVaultSetup
         }
     }
 
-    private static async Task ApplyAsync(VaultModel model,
+    /// <summary>Does what <paramref name="plan"/> says to one index, in a span of its own.</summary>
+    public static async Task ApplyAsync(VaultModel model,
         ICollectionModel collection,
         IndexPlan plan,
         CancellationToken cancellationToken)
@@ -102,11 +109,33 @@ internal sealed class IndexSetup : IVaultSetup
         var index = plan.Declaration;
         var name = collection.Namespace.FullName;
         var log = model.Logs.Indexes;
+        var database = model.SourceDatabase;
+        var collectionName = collection.Namespace.CollectionName;
 
-        using var activity = VaultActivities.StartIndex(model.VaultType.Name, collection.Namespace.CollectionName, index.Name);
+        using var activity = VaultActivities.StartIndex(model.VaultType.Name, collectionName, index.Name);
         try
         {
-            await IndexSync.ApplyAsync(model.SourceDatabase, collection.Namespace.CollectionName, plan, cancellationToken);
+            if (plan is { Action: SetupAction.Recreate, Replaces: { } replaced })
+            {
+                // Dropped first, as MongoDB keeps one index of a name, and one of the same keys and options; logged once
+                // it's gone, so it can be created again by hand should creating the declared one fail.
+                var dropped = IndexSpecs.NameOf(replaced)!;
+                await IndexSync.DropAsync(database, collectionName, dropped, cancellationToken);
+                log.IndexDropped(dropped,
+                    name,
+                    dropped == index.Name
+                        ? $"to recreate it as declared: {string.Join("; ", plan.Conflicts!)}"
+                        : $"as the declared {index.Name} replaces it, on the same keys with the same options",
+                    IndexSpecs.DefinitionOf(replaced));
+
+                await IndexSync.ApplyAsync(database, collectionName, plan with { Action = SetupAction.Create }, cancellationToken);
+                log.IndexRecreated(index.Name, name, dropped, index.Definition);
+            }
+            else
+            {
+                await IndexSync.ApplyAsync(database, collectionName, plan, cancellationToken);
+            }
+
             activity.Changed(plan.Action);
 
             switch (plan.Action)
@@ -119,10 +148,40 @@ internal sealed class IndexSetup : IVaultSetup
                     log.IndexChangedInPlace(index.Name, name, plan.Changes!.ToJson());
                     break;
 
+                case SetupAction.MakeUnique:
+                    log.IndexChangedInPlace(index.Name, name,
+                        new BsonDocument(plan.Changes ?? new BsonDocument("name", index.Name)).Add("unique", true).ToJson());
+                    break;
+
+                case SetupAction.Recreate:
+                    break;
+
                 default:
                     log.IndexUpToDate(index.Name, name);
                     break;
             }
+        }
+        catch (Exception exception)
+        {
+            activity.Fail(exception);
+            throw;
+        }
+    }
+
+    /// <summary>Drops <paramref name="listed"/>, an index no vault declares, in a span of its own, logging its definition.</summary>
+    public static async Task DropAsync(VaultModel model,
+        ICollectionModel collection,
+        BsonDocument listed,
+        CancellationToken cancellationToken)
+    {
+        var index = IndexSpecs.NameOf(listed)!;
+
+        using var activity = VaultActivities.StartIndex(model.VaultType.Name, collection.Namespace.CollectionName, index);
+        try
+        {
+            await IndexSync.DropAsync(model.SourceDatabase, collection.Namespace.CollectionName, index, cancellationToken);
+            activity.Changed(SetupAction.Drop);
+            model.Logs.Indexes.IndexDropped(index, collection.Namespace.FullName, "which no vault declares", IndexSpecs.DefinitionOf(listed));
         }
         catch (Exception exception)
         {

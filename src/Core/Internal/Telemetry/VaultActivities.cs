@@ -83,15 +83,21 @@ internal static class VaultActivities
 
     public static Activity? StartSearchIndex(string vault,
         string collection,
-        SearchIndexDeclaration index)
+        SearchIndexDeclaration index) =>
+        StartSearchIndex(vault, collection, index.Name, index.TypeName);
+
+    public static Activity? StartSearchIndex(string vault,
+        string collection,
+        string index,
+        string type)
     {
         var activity = Source.StartActivity(MongoFlowTelemetry.Activities.SearchIndex);
         if (activity.Recording() is { } recording)
         {
             recording.SetTag(MongoFlowTelemetry.Tags.Vault, vault);
             recording.SetTag(MongoFlowTelemetry.Tags.Collection, collection);
-            recording.SetTag(MongoFlowTelemetry.Tags.IndexName, index.Name);
-            recording.SetTag(MongoFlowTelemetry.Tags.SearchIndexType, index.TypeName);
+            recording.SetTag(MongoFlowTelemetry.Tags.IndexName, index);
+            recording.SetTag(MongoFlowTelemetry.Tags.SearchIndexType, type);
         }
 
         return activity;
@@ -139,7 +145,9 @@ internal static class VaultActivities
         activity.Recording()?.SetTag(MongoFlowTelemetry.Tags.Change, action switch
         {
             SetupAction.Create => "created",
-            SetupAction.Update => "updated",
+            SetupAction.Update or SetupAction.MakeUnique => "updated",
+            SetupAction.Recreate => "recreated",
+            SetupAction.Drop => "dropped",
             _ => "unchanged"
         });
 

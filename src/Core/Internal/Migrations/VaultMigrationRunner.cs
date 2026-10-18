@@ -11,7 +11,7 @@ internal sealed class VaultMigrationRunner<TVault>(IServiceProvider services) : 
 {
     private const int DuplicateKey = 11000;
 
-    private VaultModel Model => services.GetRequiredService<VaultModelProvider<TVault>>().Model;
+    public VaultModel Model => services.GetRequiredService<VaultModelProvider<TVault>>().Model;
 
     public Type VaultType => typeof(TVault);
 

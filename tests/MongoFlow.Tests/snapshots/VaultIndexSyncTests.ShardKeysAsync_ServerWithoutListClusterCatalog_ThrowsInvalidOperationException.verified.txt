@@ -1,0 +1,4 @@
+﻿{
+  Message: Syncing indexes asks the server which collections are sharded, to keep the indexes their shard keys are on, with $listClusterCatalog, which MongoDB has from 8.0.10. Upgrade it, or migrate without MigrateOptions.SyncIndexes.,
+  Cause: Unrecognized pipeline stage name: '$listClusterCatalog'
+}

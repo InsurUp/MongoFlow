@@ -155,11 +155,12 @@ create the collections or rename the fields they map:
   as some servers list a definition with them and others as it was created, and without the index's own metadata, such
   as its name, which self-managed mongot lists with them;
 - **one defined otherwise:** it's updated. Searches use it as it was until it's rebuilt;
-- **one of the other type:** it fails, since a type can't be changed.
+- **one of the other type:** it fails, since a type can't be changed, unless the migrator
+  [syncs indexes](configuration.md#syncing-indexes): then it's dropped and created anew.
 
 The migrator then waits until every index it created or updated, and any still building, is built and queryable, so
 searches find what's stored once it returns; one that fails to build fails it. Each index is set up in parallel, and the
-wait is bounded by the migrator's cancellation token. An index no longer declared isn't dropped: drop it in a migration.
+wait is bounded by the migrator's cancellation token. An index no longer declared isn't dropped, unless the migrator syncs indexes: drop it in a migration.
 
 Over a large collection, the wait can take minutes. To start serving sooner, the migrator can return without it:
 

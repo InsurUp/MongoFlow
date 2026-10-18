@@ -89,7 +89,9 @@ public interface IVaultCollectionBuilder<TDocument> : IVaultCollectionInfo
     /// <remarks>
     /// An index that differs from its declaration has its expiry, and whether it's hidden, changed in place. MongoDB can't
     /// change anything else in place, so the migrator fails, naming the index, for a migration to recreate it with
-    /// <c>context.Collection(...).RecreateIndexAsync</c>. Indexes the vault doesn't declare are left as they are.
+    /// <c>context.Collection(...).RecreateIndexAsync</c>. Indexes the vault doesn't declare are left as they are. Migrating
+    /// with <see cref="MigrateOptions.SyncIndexes"/>, the migrator recreates the index instead, and drops those no vault
+    /// declares.
     /// </remarks>
     IVaultCollectionBuilder<TDocument> Index(Func<IndexKeysDefinitionBuilder<TDocument>, IndexKeysDefinition<TDocument>> keys,
         Action<IIndexBuilder<TDocument>>? configure = null);

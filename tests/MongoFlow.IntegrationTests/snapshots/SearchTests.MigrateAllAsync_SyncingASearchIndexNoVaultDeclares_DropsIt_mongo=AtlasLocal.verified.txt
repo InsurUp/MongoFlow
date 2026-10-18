@@ -1,0 +1,15 @@
+﻿{
+  Indexes: [
+    default,
+    vectors
+  ],
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Information,
+      EventId: 27008009,
+      Event: IndexDropped,
+      Message: Dropped the search index byHand of Customers, which no vault declares. It was { "mappings" : { "dynamic" : false, "fields" : { "AgencyId" : { "type" : "token" }, "Name" : { "type" : "string", "indexOptions" : "offsets", "store" : true, "norms" : "include" } } } }.
+    }
+  ]
+}

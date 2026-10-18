@@ -11,10 +11,13 @@ namespace MongoFlow.Tests.Indexes;
 /// <item>its expiry and whether it's hidden are changed in place, an expiry being added included;</item>
 /// <item>its keys, uniqueness, sparseness, partial filter and collation, and an expiry it shouldn't have, conflict, as an
 /// index the server keeps one of under another name does;</item>
-/// <item>one missing is created.</item>
+/// <item>one missing is created;</item>
+/// <item>syncing (<c>IndexSpecsTests.Sync.cs</c>), one declared unique is made unique in place, one that differs otherwise,
+/// or is listed under a name no vault declares, recreated, and the indexes no vault declares dropped, but the server's
+/// own; an index backs a shard key when its keys start with it.</item>
 /// </list>
 /// </summary>
-public class IndexSpecsTests
+public partial class IndexSpecsTests
 {
     private const string Turkish =
         "{ locale: 'tr', caseLevel: false, caseFirst: 'off', strength: 2, numericOrdering: false, alternate: 'non-ignorable', " +
