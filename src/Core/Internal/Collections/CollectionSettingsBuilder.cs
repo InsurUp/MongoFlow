@@ -14,6 +14,7 @@ internal sealed class CollectionSettingsBuilder<TDocument>(VaultModelBuilderBase
         _validator = new();
     private readonly Layered<bool> _changeStreamImages = new();
     private readonly Layered<TimeSpan?> _clustered = new();
+    private bool _create;
 
     public ICollectionSettingsBuilder<TDocument> Collation(Collation collation)
     {
@@ -59,7 +60,16 @@ internal sealed class CollectionSettingsBuilder<TDocument>(VaultModelBuilderBase
         return this;
     }
 
-    /// <summary>The settings rendered with <paramref name="args"/>, or <see langword="null"/> when none is declared.</summary>
+    public ICollectionSettingsBuilder<TDocument> CreateCollection()
+    {
+        _create = true;
+        return this;
+    }
+
+    /// <summary>
+    /// The settings rendered with <paramref name="args"/>, or <see langword="null"/> when none is declared and the
+    /// collection isn't declared created.
+    /// </summary>
     public CollectionSettings? Build(RenderArgs<TDocument> args)
     {
         var hasCollation = _collation.TryGet(out var collation);
@@ -67,7 +77,7 @@ internal sealed class CollectionSettingsBuilder<TDocument>(VaultModelBuilderBase
         var hasImages = _changeStreamImages.TryGet(out var images);
         var clustered = _clustered.TryGet(out var expireAfter);
 
-        if (!hasCollation && !hasValidator && !hasImages && !clustered)
+        if (!_create && !hasCollation && !hasValidator && !hasImages && !clustered)
         {
             return null;
         }

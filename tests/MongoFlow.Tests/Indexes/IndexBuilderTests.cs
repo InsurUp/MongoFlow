@@ -15,7 +15,8 @@ namespace MongoFlow.Tests.Indexes;
 /// declared again are configured further, and the indexes of a feature the collection is without are left out;</item>
 /// <item>an index the server would refuse, one declared twice, two the server keeps one of, and an index, partial filter
 /// or validator on an encrypted member fail the model;</item>
-/// <item>a vault declaring settings or indexes gets the migrator's setups for them, in order.</item>
+/// <item>a vault declaring settings or indexes gets the migrator's setups for them, in order, and one declaring only that
+/// its collections are created gets the setup that creates them.</item>
 /// </list>
 /// </summary>
 public partial class IndexBuilderTests
@@ -203,6 +204,19 @@ public partial class IndexBuilderTests
 
         // Assert
         await Assert.That(setups).IsEquivalentTo(["CollectionSettingsSetup", "IndexSetup", "SearchIndexSetup"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Build_CreateCollectionDeclaredForEachCollection_HasTheMigratorCreateThem()
+    {
+        // Arrange
+        await using var host = new VaultHost<BillingVault>(vault => vault.ForEachCollection(new CreateEveryCollection()));
+
+        // Act
+        var model = Model(host);
+
+        // Assert
+        await Verify(new { Setups = model.Setups.Select(setup => setup.GetType().Name), model.Collections.Single().Settings });
     }
 
     public static IEnumerable<Func<(string, Action<IVaultCollectionBuilder<Invoice, int>>)>> Refused()

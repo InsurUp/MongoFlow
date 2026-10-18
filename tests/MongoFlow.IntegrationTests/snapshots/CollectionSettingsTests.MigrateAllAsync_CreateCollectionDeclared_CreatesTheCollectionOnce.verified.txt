@@ -1,0 +1,19 @@
+﻿{
+  Options: {},
+  Logs: [
+    {
+      Category: MongoFlow.Collections,
+      Level: Information,
+      EventId: 27009001,
+      Event: CollectionCreated,
+      Message: Created {database}.Payments with the server's defaults.
+    },
+    {
+      Category: MongoFlow.Collections,
+      Level: Debug,
+      EventId: 27009003,
+      Event: CollectionUpToDate,
+      Message: {database}.Payments has the settings it declares.
+    }
+  ]
+}

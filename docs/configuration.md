@@ -153,6 +153,21 @@ vault.Collection(x => x.Payments, payments => payments.Settings(settings => sett
 | `Validator(rule, level, action)` | What every document written must match, also as `Builders<T>.Filter.JsonSchema(...)` | Changed in place |
 | `ChangeStreamPreAndPostImages()` | Change streams can show documents as they were before a change, and after | Changed in place |
 | `Clustered(expireAfter)` | Documents stored ordered by `_id`, expiring by it if given | Fails unless clustered; expiry changed in place |
+| `CreateCollection()` | Created when missing, though nothing else is declared | Left as it is |
+
+A collection that declares no setting, index or search index isn't created by the migrator, but by the first write to
+it: a save that creates it in its transaction while another does too fails. `CreateCollection()` has the migrator create
+it all the same, as the server would; a convention declares it for every collection of a vault:
+
+```csharp
+public sealed class CreateEveryCollection : IVaultCollectionConfiguration
+{
+    public void Configure<TDocument>(IVaultCollectionBuilder<TDocument> collection) =>
+        collection.Settings(settings => settings.CreateCollection());
+}
+
+vault.ForEachCollection(new CreateEveryCollection());
+```
 
 A setting it doesn't declare is left as the server has it. Its indexes have its collation unless they declare their own.
 MongoDB sets a collection's collation and clustering when it's created, so one that differs fails the migrator: rebuild

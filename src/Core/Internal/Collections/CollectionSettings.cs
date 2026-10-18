@@ -41,7 +41,10 @@ internal sealed record CollectionSettings(Collation? Collation,
         };
     }
 
-    /// <summary>How they're shown in logs, such as <c>collation { "locale" : "tr" }, clustered</c>.</summary>
+    /// <summary>
+    /// How they're shown in logs, such as <c>collation { "locale" : "tr" }, clustered</c>, or <c>the server's defaults</c>
+    /// when they create the collection as the server would.
+    /// </summary>
     public string Definition =>
         string.Join(", ", new[]
         {
@@ -50,7 +53,7 @@ internal sealed record CollectionSettings(Collation? Collation,
             ChangeStreamPreAndPostImages is true ? "change stream images" : null,
             Clustered ? "clustered" : null,
             Clustered && ExpireAfter is { } expiry ? $"expiring after {expiry.TotalSeconds:0} s" : null
-        }.OfType<string>());
+        }.OfType<string>()) is { Length: > 0 } definition ? definition : "the server's defaults";
 
     /// <summary>The validation level as the server names it, such as <c>strict</c>.</summary>
     public string Level => ValidationLevel.ToString().ToLowerInvariant();

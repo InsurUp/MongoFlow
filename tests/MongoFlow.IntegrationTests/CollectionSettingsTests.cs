@@ -11,6 +11,8 @@ namespace MongoFlow.IntegrationTests;
 /// <list type="number">
 /// <item>a missing collection is created with them, before any migration writes to it, and found as declared on the
 /// next run, its indexes with its collation included;</item>
+/// <item>a collection declaring only that it's created is created as the server would, once, and one that exists is left
+/// as it is, whatever its settings;</item>
 /// <item>a validator, change stream images and expiry that differ are changed in place;</item>
 /// <item>a collation that differs fails the migrator before any collection is changed;</item>
 /// <item>a clustered collection is saved to in a transaction, and a collection a migration drops is created anew with its
@@ -32,6 +34,38 @@ public partial class CollectionSettingsTests
             .Collation(new Collation("tr", strength: CollationStrength.Secondary))
             .Validator(x => x.Amount > 0, DocumentValidationLevel.Moderate)
             .ChangeStreamPreAndPostImages()));
+
+        // Act
+        await MigrateAsync(host);
+
+        // Assert
+        await Verify(new { Options = await OptionsAsync(host.Database), Logs = Logged() });
+    }
+
+    [Test]
+    public async Task MigrateAllAsync_CreateCollectionDeclared_CreatesTheCollectionOnce()
+    {
+        // Arrange — no other setting, and no index, which would create it too.
+        await using var host = Host(payments => payments.Settings(settings => settings.CreateCollection()));
+
+        // Act — twice: the second run finds it.
+        await MigrateAsync(host);
+        await MigrateAsync(host);
+
+        // Assert
+        await Verify(new { Options = await OptionsAsync(host.Database), Logs = Logged() }).DontIgnoreEmptyCollections();
+    }
+
+    [Test]
+    public async Task MigrateAllAsync_CreateCollectionDeclaredOnOneThatExists_LeavesIt()
+    {
+        // Arrange — created by hand, with settings the vault doesn't declare.
+        await using var host = Host(payments => payments.Settings(settings => settings.CreateCollection()));
+        await host.Database.CreateCollectionAsync("Payments", new CreateCollectionOptions
+        {
+            Collation = new Collation("tr"),
+            ChangeStreamPreAndPostImagesOptions = new ChangeStreamPreAndPostImagesOptions { Enabled = true }
+        });
 
         // Act
         await MigrateAsync(host);

@@ -1,0 +1,13 @@
+﻿{
+  Setups: [
+    CollectionSettingsSetup
+  ],
+  Settings: {
+    ValidationLevel: Strict,
+    ValidationAction: Error,
+    Clustered: false,
+    Definition: the server's defaults,
+    Level: strict,
+    Action: error
+  }
+}
