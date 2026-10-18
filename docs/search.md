@@ -53,6 +53,21 @@ customers.SearchIndex("default", index => index
 | `Number()`, `Date()`, `Boolean()`, `ObjectId()`, `Uuid()` | Values of the type | `equals`, `in`, `range`, `near` |
 | `Raw(definition)` | A mapping written as MongoDB takes it, such as `{ type: "geo" }` | |
 
+Text can be indexed again with other analyzers, as alternates a query picks by name. Each `Multi(name, alternate)` adds
+one, text too, to a text mapping:
+
+```csharp
+customers.SearchIndex("default", index => index
+    .Analyzer("lucene.turkish")
+    .Map(x => x.Name,
+        SearchField.String("lucene.turkish").Multi("keyword", SearchField.String("lucene.keyword")),
+        SearchField.Autocomplete(2, 20)));
+
+// The whole name as one token, for the pattern to match across its words.
+var search = await vault.Customers.SearchAsync(Builders<Customer>.Search.Wildcard(
+    Builders<Customer>.SearchPath.Analyzer(x => x.Name, "keyword"), "*Love*", allowAnalyzedField: true));
+```
+
 Members are mapped by their element names, `[BsonElement]` included; a dotted path, such as `Address.City`, maps the
 documents that hold it too. `Definition(BsonDocument)` starts from a definition written by hand, kept in JSON for instance,
 and what the other calls declare is added to it.

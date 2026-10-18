@@ -55,6 +55,28 @@ public partial class SearchTests
     }
 
     [Test]
+    public async Task MigrateAllAsync_TextWithAnAlternateAsDeclared_LeavesItForSearchesToPick()
+    {
+        // Arrange — names indexed whole too, as one token, for a wildcard to match across the space in a name.
+        await using var host = await CrmAsync(customers: customers => customers.SearchIndex("default", index => index
+            .Map(x => x.Name, SearchField.String().Multi("keyword", SearchField.String("lucene.keyword")))));
+        var before = _sink.Snapshot(MongoFlowLogEvents.Search.Category).Count;
+
+        // Act
+        await host.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
+
+        // Assert — each server lists the alternate its own way.
+        var search = await host.Vault.Customers.SearchAsync(Builders<Customer>.Search.Wildcard(
+            Builders<Customer>.SearchPath.Analyzer(x => x.Name, "keyword"), "Ada L*", allowAnalyzedField: true));
+        await Verify(new
+        {
+            Index = (await IndexesAsync(host.Database)).Single(index => index.Name == "default").Definition,
+            Logs = Migrated(before),
+            Found = await Names(search)
+        });
+    }
+
+    [Test]
     public async Task MigrateAllAsync_DeclarationChanged_UpdatesTheIndex()
     {
         // Arrange — the same database, declared again with names mapped for autocomplete too.
