@@ -16,7 +16,8 @@ namespace MongoFlow.IntegrationTests.Search;
 /// <item><c>$searchMeta</c> counts only what the query filters show, and searches run outside an open transaction;</item>
 /// <item>the query filters as clauses filter a pipeline built by hand as <c>SearchAsync</c> does, and an index the vault
 /// doesn't declare is read from the server;</item>
-/// <item>the migrator sets up the declared indexes, text with its alternates, and leaves them on the next run
+/// <item>the migrator sets up the declared indexes, text with its alternates, and leaves them on the next run, as it does
+/// one written by hand that's declared again with <c>Map</c>, static documents in a dynamic index included
 /// (<c>SearchTests.Migrations.cs</c>);
 /// syncing indexes, it drops one no vault declares, creates anew one declared of the other type, fails, before changing
 /// any, when two vaults declare one otherwise, and changes nothing on a second run.</item>

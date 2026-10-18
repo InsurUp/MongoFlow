@@ -12,6 +12,7 @@ internal sealed class SearchIndexBuilder<TDocument>(string name) : ISearchIndexB
     private string? _analyzer;
     private string? _searchAnalyzer;
     private bool? _dynamic;
+    private bool? _documentsDynamic;
 
     public string Name { get; } = name;
 
@@ -42,6 +43,12 @@ internal sealed class SearchIndexBuilder<TDocument>(string name) : ISearchIndexB
     public ISearchIndexBuilder<TDocument> Dynamic(bool dynamic = true)
     {
         _dynamic = dynamic;
+        return this;
+    }
+
+    public ISearchIndexBuilder<TDocument> DocumentsDynamic(bool dynamic = true)
+    {
+        _documentsDynamic = dynamic;
         return this;
     }
 
@@ -97,9 +104,11 @@ internal sealed class SearchIndexBuilder<TDocument>(string name) : ISearchIndexB
             mappings["dynamic"] = false;
         }
 
+        var documentsDynamic = _documentsDynamic is { } documents ? (BsonValue)documents : mappings["dynamic"];
         foreach (var (member, path, fields) in _maps)
         {
-            var target = Leaf(mappings, member is null ? path! : FilterDocuments.RenderField(member, args).FieldName);
+            var fieldPath = member is null ? path! : FilterDocuments.RenderField(member, args).FieldName;
+            var target = Leaf(mappings, fieldPath, documentsDynamic);
             foreach (var field in fields)
             {
                 Merge(target, field.Definition);
@@ -113,7 +122,7 @@ internal sealed class SearchIndexBuilder<TDocument>(string name) : ISearchIndexB
                 continue;
             }
 
-            var target = Leaf(mappings, feature.Path);
+            var target = Leaf(mappings, feature.Path, documentsDynamic);
             if (!target.Mappings.Any(mapping => mapping.GetValue("type", BsonNull.Value) == type))
             {
                 Merge(target, new BsonDocument("type", type));
@@ -123,12 +132,12 @@ internal sealed class SearchIndexBuilder<TDocument>(string name) : ISearchIndexB
         return new SearchIndexDeclaration(Name, SearchIndexType.Search, definition);
     }
 
-    // The mappings of the field at path, with a document mapping for each document holding it, which follows the index's
-    // dynamic setting, as the field's documents were indexed before.
+    // The mappings of the field at path, with a document mapping for each document holding it that isn't mapped already,
+    // created with dynamic: by default the index's setting, as the field's documents were indexed before.
     private static (BsonDocument Parent, string Name, List<BsonDocument> Mappings) Leaf(BsonDocument mappings,
-        string path)
+        string path,
+        BsonValue dynamic)
     {
-        var dynamic = mappings["dynamic"];
         var parent = mappings;
         var segments = path.Split('.');
 

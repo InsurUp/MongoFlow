@@ -1,0 +1,37 @@
+﻿[
+  {
+    Name: default,
+    TypeName: search,
+    Definition: {
+      mappings: {
+        dynamic: true,
+        fields: {
+          Supplier: {
+            type: document,
+            dynamic: false,
+            fields: {
+              city: {
+                type: token
+              },
+              Country: {
+                type: document,
+                dynamic: false,
+                fields: {
+                  Code: {
+                    type: token
+                  }
+                }
+              }
+            }
+          },
+          TenantId: {
+            type: token
+          },
+          DeletedAt: {
+            type: date
+          }
+        }
+      }
+    }
+  }
+]

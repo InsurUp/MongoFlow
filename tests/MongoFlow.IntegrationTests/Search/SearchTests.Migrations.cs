@@ -77,6 +77,49 @@ public partial class SearchTests
     }
 
     [Test]
+    public async Task MigrateAllAsync_DefinitionDeclaredAsMapsWithStaticDocuments_LeavesTheIndex()
+    {
+        // Arrange — the index written by hand, dynamic, with documents that carry no dynamic, so they're static.
+        await using var first = await CrmAsync(customers: customers => customers.SearchIndex("default", index => index
+            .Definition(BsonDocument.Parse("""
+                {
+                    mappings: {
+                        dynamic: true,
+                        fields: {
+                            Address: {
+                                type: 'document',
+                                fields: { City: { type: 'token' }, Country: { type: 'document', fields: { Code: { type: 'token' } } } }
+                            }
+                        }
+                    }
+                }
+                """))));
+        await using var declared = new VaultHost<CrmVault>(_mongo.Client, first.Database, vault => vault
+                .UseSoftDelete((Customer x) => x.IsDeleted)
+                .UseMultiTenancy((Customer x) => x.AgencyId, _ => "a-1")
+                .Collection(x => x.Customers, customers => customers
+                    .SearchIndex("default", index => index
+                        .Dynamic()
+                        .DocumentsDynamic(false)
+                        .Map(x => x.Name, SearchField.String())
+                        .Map("Address.City", SearchField.Token())
+                        .Map("Address.Country.Code", SearchField.Token()))
+                    .VectorSearchIndex("vectors", index => index.Vector(x => x.Embedding, dimensions: 3, VectorSimilarity.Cosine))),
+            services => services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddProvider(_sink)));
+        var before = _sink.Snapshot(MongoFlowLogEvents.Search.Category).Count;
+
+        // Act
+        await declared.Services.GetRequiredService<IVaultMigrator>().MigrateAllAsync();
+
+        // Assert — each server lists the documents its own way.
+        await Verify(new
+        {
+            Index = (await IndexesAsync(first.Database)).Single(index => index.Name == "default").Definition,
+            Logs = Migrated(before)
+        });
+    }
+
+    [Test]
     public async Task MigrateAllAsync_DeclarationChanged_UpdatesTheIndex()
     {
         // Arrange — the same database, declared again with names mapped for autocomplete too.
