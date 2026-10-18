@@ -1,0 +1,50 @@
+﻿{
+  Index: {
+    mappings: {
+      dynamic: true,
+      fields: {
+        Address: {
+          type: document,
+          fields: {
+            City: {
+              type: token
+            },
+            Country: {
+              type: document,
+              fields: {
+                Code: {
+                  type: token
+                }
+              }
+            }
+          }
+        },
+        Name: {
+          type: string
+        },
+        IsDeleted: {
+          type: boolean
+        },
+        AgencyId: {
+          type: token
+        }
+      }
+    }
+  },
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Debug,
+      EventId: 27008003,
+      Event: IndexUpToDate,
+      Message: The search index default of Customers is defined as declared.
+    },
+    {
+      Category: MongoFlow.Search,
+      Level: Debug,
+      EventId: 27008003,
+      Event: IndexUpToDate,
+      Message: The vectorSearch index vectors of Customers is defined as declared.
+    }
+  ]
+}

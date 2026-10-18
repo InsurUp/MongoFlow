@@ -40,6 +40,7 @@ customers.SearchIndex("default", index => index
     .Analyzer("lucene.turkish")                 // what text is indexed with, unless a field says otherwise
     .SearchAnalyzer("lucene.standard")          // what queries are analyzed with
     .Dynamic()                                  // index the fields not mapped, by their type
+    .DocumentsDynamic(false)                    // but in Address, only the fields mapped
     .Map(x => x.Name, SearchField.String(), SearchField.Autocomplete(), SearchField.Token())
     .Map(x => x.Address!.City, SearchField.Token())
     .Map("Tags", SearchField.Token()));
@@ -69,7 +70,8 @@ var search = await vault.Customers.SearchAsync(Builders<Customer>.Search.Wildcar
 ```
 
 Members are mapped by their element names, `[BsonElement]` included; a dotted path, such as `Address.City`, maps the
-documents that hold it too. `Definition(BsonDocument)` starts from a definition written by hand, kept in JSON for instance,
+documents that hold it too, dynamic as the index is unless `DocumentsDynamic` says otherwise. A document mapped already,
+in the definition or as `SearchField.Raw`, keeps its own setting. `Definition(BsonDocument)` starts from a definition written by hand, kept in JSON for instance,
 and what the other calls declare is added to it.
 
 A vector search index indexes vectors, and the fields its filter compares:

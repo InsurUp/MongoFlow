@@ -27,6 +27,14 @@ public interface ISearchIndexBuilder<TDocument>
     /// </summary>
     ISearchIndexBuilder<TDocument> Dynamic(bool dynamic = true);
 
+    /// <summary>
+    /// Whether the documents <c>Map</c>'s dotted paths create, such as <c>Address</c> for <c>c =&gt; c.Address.City</c>,
+    /// index their fields that aren't mapped too, as <see cref="Dynamic"/> does at the index's root: off for documents that
+    /// index only the fields mapped in them while the root is dynamic. As the index's own setting unless called. A document
+    /// mapped already, in <see cref="Definition"/> or as <see cref="SearchField.Raw"/>, keeps its own.
+    /// </summary>
+    ISearchIndexBuilder<TDocument> DocumentsDynamic(bool dynamic = true);
+
     /// <summary>Maps <paramref name="member"/>, such as <c>c =&gt; c.Name</c> or <c>c =&gt; c.Address.City</c>, as <paramref name="fields"/>.</summary>
     ISearchIndexBuilder<TDocument> Map<TMember>(Expression<Func<TDocument, TMember>> member,
         params SearchField[] fields);

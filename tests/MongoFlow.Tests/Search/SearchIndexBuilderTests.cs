@@ -8,7 +8,8 @@ namespace MongoFlow.Tests.Search;
 /// A collection's <c>SearchIndex</c> and <c>VectorSearchIndex</c> declare the indexes the migrator sets up:
 /// <list type="number">
 /// <item>members are mapped by their element names, text with its alternates, dotted paths as document mappings following
-/// the index's dynamic setting, on top of a definition given as it is;</item>
+/// the index's dynamic setting, or the one declared for documents, but for documents mapped already, on top of a
+/// definition given as it is;</item>
 /// <item>the fields features filter on are mapped as their values compare, as filter fields of a vector index, unless
 /// they're mapped so already or can't be compared exactly;</item>
 /// <item>an index declared again is configured further, a type mapped again replaces the earlier mapping, and a vector or
@@ -47,6 +48,43 @@ public partial class SearchIndexBuilderTests
                 SearchField.String("lucene.turkish").Multi("keyword", SearchField.String("lucene.keyword")),
                 SearchField.Autocomplete(2, 20),
                 SearchField.Token())));
+
+        // Act
+        var declarations = Declarations(host);
+
+        // Assert
+        await Verify(declarations);
+    }
+
+    [Test]
+    public async Task SearchIndex_DocumentsStaticInADynamicIndex_CreatesEachDocumentStatic()
+    {
+        // Arrange
+        await using var host = Host(products => products.SearchIndex("default", index => index
+            .Dynamic()
+            .DocumentsDynamic(false)
+            .Map(x => x.Supplier!.City, SearchField.Token())
+            .Map("Supplier.Country.Code", SearchField.Token())));
+
+        // Act
+        var declarations = Declarations(host);
+
+        // Assert
+        await Verify(declarations);
+    }
+
+    [Test]
+    public async Task SearchIndex_DocumentMappedBefore_KeepsItsOwnDynamic()
+    {
+        // Arrange — Supplier mapped in the definition, Archive as a raw mapping; Country is created.
+        await using var host = Host(products => products.SearchIndex("default", index => index
+            .Definition(BsonDocument.Parse("{ mappings: { fields: { Supplier: { type: 'document', dynamic: true } } } }"))
+            .Dynamic()
+            .DocumentsDynamic(false)
+            .Map("Archive", SearchField.Raw(BsonDocument.Parse("{ type: 'document', dynamic: true }")))
+            .Map(x => x.Supplier!.City, SearchField.Token())
+            .Map("Supplier.Country.Code", SearchField.Token())
+            .Map("Archive.Note", SearchField.String())));
 
         // Act
         var declarations = Declarations(host);
