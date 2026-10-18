@@ -3,6 +3,32 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.15] - 2026-10-18
+
+### Added
+
+- `MigrateOptions.SyncIndexes`, off by default, for the server's indexes to be exactly what the code declares. Once every
+  vault's migrations have run, the migrator syncs each collection a migrated vault declares with what every registered
+  vault declares of it, so vaults that map one collection keep each other's indexes. Beside creating what's missing and
+  changing in place what MongoDB can, it makes a plain index declared unique unique in place, leaving it as it was while
+  documents share its keys; recreates one that differs in what MongoDB can't change in place, or that the server keeps
+  under another name; recreates a search index declared of the other type; and drops, last, the indexes and search
+  indexes no vault declares, but `_id_` and Queryable Encryption's on `__safeContent__`. It plans every collection before
+  it changes any, and fails, changing nothing, when two vaults declare an index of one name otherwise, or when an index
+  it would drop is the only one on a sharded collection's shard key, which it reads with `$listClusterCatalog`, from
+  MongoDB 8.0.10. Each index it drops is logged as `IndexDropped`, under `MongoFlow.Indexes` or `MongoFlow.Search`, with
+  its definition, and traced as `dropped` or `recreated`.
+- `CreateCollection()` among a collection's settings: the migrator creates the collection before the vault's migrations,
+  as the server would, though it declares nothing else, so two saves making the first write to it at once don't fail with
+  "Collection namespace ... is already in use". One that exists is left as it is.
+
+### Fixed
+
+- On mongodb-community-search, which lists an index's definition as it was created, without the defaults it fills in or
+  the index's type: a declared search index whose mappings leave a default unset matches it, rather than being updated,
+  and rebuilt, on every run; and a vector search index, declared or searched by name, is known as one, rather than
+  failing the vault's second migration, or the search, as a search index.
+
 ## [1.0.0-beta.14] - 2026-10-18
 
 ### Fixed
@@ -347,6 +373,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[1.0.0-beta.15]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.14...v1.0.0-beta.15
 [1.0.0-beta.14]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.13...v1.0.0-beta.14
 [1.0.0-beta.13]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.12...v1.0.0-beta.13
 [1.0.0-beta.12]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.11...v1.0.0-beta.12
