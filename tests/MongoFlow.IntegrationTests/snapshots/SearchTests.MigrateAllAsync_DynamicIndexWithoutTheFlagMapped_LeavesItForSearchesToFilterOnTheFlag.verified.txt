@@ -1,0 +1,18 @@
+﻿{
+  Logs: [
+    {
+      Category: MongoFlow.Search,
+      Level: Debug,
+      EventId: 27008003,
+      Event: IndexUpToDate,
+      Message: The search index default of Customers is defined as declared.
+    }
+  ],
+  Found: [
+    Ada Lovelace
+  ],
+  Pipeline: aggregate([{ "$search" : { "compound" : { "must" : [{ "text" : { "query" : "ada", "path" : "Name" } }], "filter" : [{ "equals" : { "path" : "AgencyId", "value" : "a-1" } }], "mustNot" : [{ "equals" : { "path" : "IsDeleted", "value" : true } }] } } }]),
+  Count: {
+    Total: 1
+  }
+}

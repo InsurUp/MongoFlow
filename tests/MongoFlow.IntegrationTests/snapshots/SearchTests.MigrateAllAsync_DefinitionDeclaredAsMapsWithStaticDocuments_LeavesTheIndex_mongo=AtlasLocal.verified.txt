@@ -3,9 +3,6 @@
     mappings: {
       dynamic: true,
       fields: {
-        IsDeleted: {
-          type: boolean
-        },
         Address: {
           type: document,
           dynamic: false,

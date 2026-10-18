@@ -22,9 +22,6 @@
         Name: {
           type: string
         },
-        IsDeleted: {
-          type: boolean
-        },
         AgencyId: {
           type: token
         }

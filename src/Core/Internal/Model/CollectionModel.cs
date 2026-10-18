@@ -14,7 +14,7 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
     private readonly ImmutableArray<QueryFilterEntry<TDocument>> _filters = definition.Filters;
     private readonly bool _hasAsyncFilters = definition.Filters.Any(filter => filter.IsAsync);
     private readonly bool _onlyStatic = definition.Filters.All(filter => filter.Static is not null);
-    private readonly ImmutableArray<(LambdaExpression Field, string Feature)> _indexedFields = definition.IndexedFields;
+    private readonly ImmutableArray<(LambdaExpression Field, string Feature, Type ComparedAs)> _indexedFields = definition.IndexedFields;
     private readonly ImmutableArray<(Func<TDocument, bool> Pending, FeatureKey? Owner)> _runSaveWhen = definition.RunSaveWhen;
 
     // The static filters joined once, at startup; the whole filter when every filter is static.
@@ -187,7 +187,8 @@ internal class CollectionModel<TDocument>(CollectionDefinition<TDocument> defini
 
     /// <summary>The fields features filter every read on, rendered with their serializers, for the search indexes to map.</summary>
     public IReadOnlyList<FeatureField> RenderFeatureFields() =>
-        [.. _indexedFields.Select(indexed => new FeatureField(FilterDocuments.RenderField(indexed.Field, RenderArgs), indexed.Feature))];
+        [.. _indexedFields.Select(indexed =>
+            new FeatureField(FilterDocuments.RenderField(indexed.Field, RenderArgs), indexed.Feature, indexed.ComparedAs))];
 
     private async ValueTask<Expression<Func<TDocument, bool>>?> ResolveAsync(IServiceProvider services,
         FeatureSet disabled,

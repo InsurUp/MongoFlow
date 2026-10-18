@@ -90,6 +90,11 @@ a `DateTime` as a `date`, an `ObjectId` as an `objectId` and a standard `Guid` a
 fields. A field mapped otherwise already is left as mapped, and one whose values a search can't compare exactly, such as
 a document, is left out.
 
+A dynamic index indexes booleans, numbers, dates and ObjectIds by their type already, so soft delete's flag is left to
+it: an index created before soft delete, or by hand, matches as it is, and searches filter on the flag it indexes. A
+deletion date and a tenant are mapped still, as they're compared with null, while not deleted or without a current
+tenant, which a search does only on a field that's mapped.
+
 ## Searching
 
 ```csharp

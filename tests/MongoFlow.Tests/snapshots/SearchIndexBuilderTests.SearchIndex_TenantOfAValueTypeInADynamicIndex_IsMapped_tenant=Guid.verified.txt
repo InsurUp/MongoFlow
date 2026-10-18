@@ -1,0 +1,16 @@
+﻿[
+  {
+    Name: default,
+    TypeName: search,
+    Definition: {
+      mappings: {
+        dynamic: true,
+        fields: {
+          OwnerId: {
+            type: uuid
+          }
+        }
+      }
+    }
+  }
+]
