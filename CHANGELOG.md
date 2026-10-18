@@ -3,6 +3,18 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.18] - 2026-10-18
+
+### Fixed
+
+- A search index whose root is dynamic, created before soft delete or by hand, no longer has soft delete's flag mapped
+  into it, which only changed its definition's text, so the migrator updated it, and MongoDB Search rebuilt it, for
+  nothing: a dynamic root indexes a boolean, number, date or ObjectId it doesn't map by its type already, and searches
+  filter on the flag it indexes. A feature's field the feature compares with null is mapped still, as a search compares
+  null only on a field that's mapped: a deletion date, while not deleted, and a tenant, without a current one. Strings
+  and UUIDs, which dynamic mappings don't index as compared, are mapped too. An index declared dynamic since beta.15,
+  which has the flag mapped, is updated once.
+
 ## [1.0.0-beta.17] - 2026-10-18
 
 ### Added
@@ -393,6 +405,7 @@ The ASP.NET Core Identity provider moved into this repository, and ships with Mo
 - `AddMongoFlowStores` checks that the vault's user and role types are Identity's.
 - It targets .NET 10 and .NET 11, like MongoFlow.
 
+[1.0.0-beta.18]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.17...v1.0.0-beta.18
 [1.0.0-beta.17]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.16...v1.0.0-beta.17
 [1.0.0-beta.16]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.15...v1.0.0-beta.16
 [1.0.0-beta.15]: https://github.com/InsurUp/MongoFlow/compare/v1.0.0-beta.14...v1.0.0-beta.15
