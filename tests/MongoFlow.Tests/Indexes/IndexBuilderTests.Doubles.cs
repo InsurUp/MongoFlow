@@ -5,7 +5,8 @@ using MongoDB.Driver;
 namespace MongoFlow.Tests.Indexes;
 
 // Invoices of a tenant, with a status stored as text, an element named otherwise and a tax number that can be encrypted;
-// a feature that indexes every collection's tenant; and defaults that declare an index and a collation of their own.
+// a feature that indexes every collection's tenant; a convention that has every collection created; and defaults that
+// declare an index and a collation of their own.
 public partial class IndexBuilderTests
 {
     public enum InvoiceStatus
@@ -61,6 +62,13 @@ public partial class IndexBuilderTests
 
         public void Configure<TDocument>(IVaultCollectionBuilder<TDocument> collection) =>
             collection.Index(keys => keys.Ascending("TenantId"));
+    }
+
+    /// <summary>A convention that has the migrator create every collection.</summary>
+    public sealed class CreateEveryCollection : IVaultCollectionConfiguration
+    {
+        public void Configure<TDocument>(IVaultCollectionBuilder<TDocument> collection) =>
+            collection.Settings(settings => settings.CreateCollection());
     }
 
     /// <summary>Defaults that index invoices by customer, named <c>by_customer</c>, and compare their strings in English.</summary>

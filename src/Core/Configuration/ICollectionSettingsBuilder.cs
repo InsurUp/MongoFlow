@@ -49,4 +49,11 @@ public interface ICollectionSettingsBuilder<TDocument>
     /// place.
     /// </summary>
     ICollectionSettingsBuilder<TDocument> Clustered(TimeSpan? expireAfter = null);
+
+    /// <summary>
+    /// Has the migrator create the collection when it's missing, as declaring any other setting does, so no save creates
+    /// it: a save that creates a collection in its transaction while another does too fails. A collection that exists is
+    /// left as it is.
+    /// </summary>
+    ICollectionSettingsBuilder<TDocument> CreateCollection();
 }
