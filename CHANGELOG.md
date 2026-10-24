@@ -3,7 +3,7 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0-beta.19] - 2026-10-24
 
 ### Fixed
 
