@@ -137,6 +137,9 @@ A document stored without a token, before the token was switched on, reads as ze
 a stored zero or no token at all. Switching the token on for a collection that has documents takes no migration: a
 document's first replace or update stores its token, incremented from zero.
 
+A replace, update or delete made with a document the same save inserts is neither checked nor incremented: the insert
+writes the document as it is, so it's stored with the token it was added with, and the next save checks against that.
+
 ```csharp
 try
 {

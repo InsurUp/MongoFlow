@@ -25,16 +25,21 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
     public override ValueTask SavingAsync(SaveContext context, CancellationToken cancellationToken)
     {
         var guards = new List<TokenGuard<TDocument, TVersioned, TToken>>();
+        var inserted = Inserted(context);
 
         foreach (var operation in context.Operations)
         {
             switch (operation)
             {
-                case ReplaceOperation<TDocument> replace:
+                // A write made with a document the same save inserts is neither checked nor incremented: the insert writes
+                // the document as it is, token included, and nothing can have changed it in between. Guarded, it would
+                // have its token incremented on the document before the insert writes it, and then miss the token the
+                // insert stored.
+                case ReplaceOperation<TDocument> replace when !IsIn(inserted, replace.Document):
                     Guard(replace, replace.Document!, increment: true, guards);
                     break;
 
-                case UpdateOperation<TDocument> update:
+                case UpdateOperation<TDocument> update when !IsIn(inserted, update.Document):
                     if (update.Document is { } document)
                     {
                         Guard(update, document, increment: true, guards);
@@ -43,7 +48,7 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
                     update.Update = Incremented(update);
                     break;
 
-                case DeleteOperation<TDocument> { Document: { } deleted } delete:
+                case DeleteOperation<TDocument> { Document: { } deleted } delete when !IsIn(inserted, deleted):
                     Guard(delete, deleted, increment: false, guards);
                     break;
             }
@@ -120,6 +125,27 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
 
         return ValueTask.CompletedTask;
     }
+
+    /// <summary>
+    /// The documents the save inserts, by reference, or <see langword="null"/> when it inserts none, which is most saves.
+    /// </summary>
+    private static HashSet<object>? Inserted(SaveContext context)
+    {
+        HashSet<object>? inserted = null;
+
+        foreach (var operation in context.Operations)
+        {
+            if (operation is InsertOperation<TDocument> { Document: { } document })
+            {
+                (inserted ??= new HashSet<object>(ReferenceEqualityComparer.Instance)).Add(document);
+            }
+        }
+
+        return inserted;
+    }
+
+    private static bool IsIn(HashSet<object>? inserted, TDocument? document) =>
+        inserted is not null && document is not null && inserted.Contains(document);
 
     /// <summary>
     /// Limits the write to the stored document whose token has the value <paramref name="document"/> was read with, and
