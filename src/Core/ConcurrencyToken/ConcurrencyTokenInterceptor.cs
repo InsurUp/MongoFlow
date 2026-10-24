@@ -143,10 +143,21 @@ internal sealed class ConcurrencyTokenInterceptor<TDocument, TVersioned, TToken>
         guards.Add(new TokenGuard<TDocument, TVersioned, TToken>(operation, condition, versioned, read, increment));
     }
 
-    /// <summary><c>{ Version: 3 }</c>: the stored token still has the value that was read.</summary>
+    /// <summary>
+    /// <c>{ Version: 3 }</c>: the stored token still has the value that was read. Zero is also what a document stored
+    /// without a token reads as, saved before the token was switched on, so zero matches a stored zero or no token at all:
+    /// <c>{ Version: { $in: [0, null] } }</c>.
+    /// </summary>
     private BsonDocument Matches(VaultOperation<TDocument> operation,
-        TToken read) =>
-        new BsonDocument().Add(FilterDocuments.Equal(Field(operation), read));
+        TToken read)
+    {
+        var field = Field(operation);
+
+        return TToken.IsZero(read)
+            ? new BsonDocument(field.FieldName,
+                new BsonDocument("$in", new BsonArray { field.FieldSerializer.ToBsonValue(read), BsonNull.Value }))
+            : new BsonDocument().Add(FilterDocuments.Equal(field, read));
+    }
 
     /// <summary>
     /// The update with <c>{ $inc: { Version: 1 } }</c> added, as BSON, so the driver doesn't translate the token's member

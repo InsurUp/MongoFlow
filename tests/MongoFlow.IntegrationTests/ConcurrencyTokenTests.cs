@@ -13,6 +13,9 @@ namespace MongoFlow.IntegrationTests;
 /// an outer transaction's rollback, puts the document's token back to what was read;</item>
 /// <item>writes by key or filter increment without checking, deletes by key or filter neither check nor increment, and
 /// inserts are left alone;</item>
+/// <item>a document stored without a token, before the token was switched on, reads as zero, which matches it as it
+/// matches a stored zero: its replaces, updates and deletes write, and store the token incremented from zero, which
+/// later writes of what was read before are checked against;</item>
 /// <item>a delete soft delete turns into an update is checked and incremented like an update;</item>
 /// <item>a guarded write that another interceptor's condition stops isn't a conflict, and the document's token is put
 /// back;</item>
@@ -364,6 +367,82 @@ public partial class ConcurrencyTokenTests
         await Verify(await host.StoredAsync("Memos"));
     }
 
+    [Test]
+    public async Task Replace_DocumentStoredWithoutAToken_WritesAndStoresTheTokenIncrementedFromZero()
+    {
+        // Arrange
+        await using var host = await SeededWithoutATokenAsync();
+        var contract = (await host.Vault.Contracts.GetByKeyAsync(1))!;
+        contract.Party = "renamed";
+        host.Vault.Contracts.Replace(contract);
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { Stored = await host.StoredAsync("Contracts"), Document = contract });
+    }
+
+    [Test]
+    public async Task Update_DocumentStoredWithoutAToken_AppliesTheUpdateAndStoresTheTokenIncrementedFromZero()
+    {
+        // Arrange
+        await using var host = await SeededWithoutATokenAsync();
+        var contract = (await host.Vault.Contracts.GetByKeyAsync(1))!;
+        host.Vault.Contracts.Update(contract, Builders<Contract>.Update.Set(x => x.Party, "renamed"));
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { Stored = await host.StoredAsync("Contracts"), Document = contract });
+    }
+
+    [Test]
+    public async Task SaveAsync_TrackedDocumentStoredWithoutAToken_WritesItsChangesAndStoresTheTokenIncrementedFromZero()
+    {
+        // Arrange
+        await using var host = await SeededWithoutATokenAsync(vault => vault.UseChangeTracking());
+        var contract = (await host.Vault.Contracts.GetByKeyAsync(1))!;
+        contract.Party = "renamed";
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Verify(new { Stored = await host.StoredAsync("Contracts"), Document = contract });
+    }
+
+    [Test]
+    public async Task Delete_DocumentStoredWithoutAToken_DeletesIt()
+    {
+        // Arrange
+        await using var host = await SeededWithoutATokenAsync();
+        host.Vault.Contracts.Delete((await host.Vault.Contracts.GetByKeyAsync(1))!);
+
+        // Act
+        await host.Vault.SaveAsync();
+
+        // Assert
+        await Assert.That(await host.StoredAsync("Contracts")).IsEmpty();
+    }
+
+    [Test]
+    public async Task Replace_DocumentStoredWithoutATokenSavedSinceItWasRead_ThrowsConcurrencyException()
+    {
+        // Arrange — both read before either saved, without a token, so as 0; the first save stores 1.
+        await using var host = await SeededWithoutATokenAsync();
+        host.Vault.Contracts.Replace(new Contract { Id = 1, Party = "first" });
+        await host.Vault.SaveAsync();
+        host.Vault.Contracts.Replace(new Contract { Id = 1, Party = "second" });
+
+        // Act
+        var exception = await Assert.That(() => host.Vault.SaveAsync()).ThrowsExactly<ConcurrencyException>();
+
+        // Assert
+        await Verify(new { exception!.DocumentExists, Stored = await host.StoredAsync("Contracts") });
+    }
+
     private static void UseTokens(IVaultBuilder<ContractVault> vault) => vault
         .UseConcurrencyToken((IVersioned x) => x.Version)
         .UseConcurrencyToken((IRevised x) => x.Revision);
@@ -384,6 +463,19 @@ public partial class ConcurrencyTokenTests
         });
 
         await host.SeedAsync("Contracts", new Contract { Id = 1, Party = "acme", Version = version });
+        return host;
+    }
+
+    /// <summary>A host with a contract stored before the token was switched on: without one.</summary>
+    private async Task<VaultHost<ContractVault>> SeededWithoutATokenAsync(Action<IVaultBuilder<ContractVault>>? configure = null)
+    {
+        var host = Mongo.Host<ContractVault>(vault =>
+        {
+            UseTokens(vault);
+            configure?.Invoke(vault);
+        });
+
+        await host.SeedAsync("Contracts", new BsonDocument { ["_id"] = 1, ["Party"] = "acme" });
         return host;
     }
 }

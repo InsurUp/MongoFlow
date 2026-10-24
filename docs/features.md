@@ -133,6 +133,10 @@ on the document, so the document can be saved again. A checked write that matche
 `Operation` is the write. When a save fails, the tokens it incremented on documents are put back. Pipeline updates get
 the increment as a last stage. With `Without(ConcurrencyTokenFeature.Key)`, writes are neither checked nor incremented.
 
+A document stored without a token, before the token was switched on, reads as zero, and a write checked for zero matches
+a stored zero or no token at all. Switching the token on for a collection that has documents takes no migration: a
+document's first replace or update stores its token, incremented from zero.
+
 ```csharp
 try
 {

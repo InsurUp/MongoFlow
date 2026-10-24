@@ -1,0 +1,10 @@
+﻿{
+  DocumentExists: true,
+  Stored: [
+    {
+      _id: 1,
+      Party: first,
+      ver: 1
+    }
+  ]
+}

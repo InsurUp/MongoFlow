@@ -3,6 +3,16 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- The concurrency token can be switched on for a collection that already has documents, without a migration that
+  stores a token in each. A document stored without one reads as zero, and a write checked for zero now matches a stored
+  zero or no token at all, so its replaces, updates and deletes write, and its first replace or update stores the token,
+  incremented from zero. Before, each of them failed the save with `ConcurrencyException`: `{ Version: 0 }` doesn't
+  match a document without the field.
+
 ## [1.0.0-beta.18] - 2026-10-18
 
 ### Fixed
