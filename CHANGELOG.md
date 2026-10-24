@@ -3,6 +3,16 @@
 Notable changes to MongoFlow. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- A replace, an update or a delete soft delete turns into an update, made with a document the same save inserts, no
+  longer fails the save with `ConcurrencyException` under the concurrency token. The token guarded the write and
+  incremented the token on the document before the insert wrote it, so the insert stored the incremented token and the
+  write, checked against the one before, matched nothing. Such a write is now neither checked nor incremented: the
+  insert writes the document as it is, and it's stored with the token it was added with.
+
 ## [1.0.0-beta.19] - 2026-10-24
 
 ### Fixed

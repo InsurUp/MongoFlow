@@ -13,6 +13,9 @@ namespace MongoFlow.IntegrationTests;
 /// an outer transaction's rollback, puts the document's token back to what was read;</item>
 /// <item>writes by key or filter increment without checking, deletes by key or filter neither check nor increment, and
 /// inserts are left alone;</item>
+/// <item>a replace, update or delete made with a document the same save inserts is neither checked nor incremented: the
+/// insert writes it as it is, so it's stored with the token it was added with, and later writes are checked against
+/// that;</item>
 /// <item>a document stored without a token, before the token was switched on, reads as zero, which matches it as it
 /// matches a stored zero: its replaces, updates and deletes write, and store the token incremented from zero, which
 /// later writes of what was read before are checked against;</item>
